@@ -269,7 +269,7 @@ test("every pair, every condition, both priorities: valid, distinct, consistent 
             assert.ok(res.routes.length >= 2, where + " missing alternative");
             pairsWithAlternatives++;
           }
-          assert.ok(res.routes.length <= E.SETTINGS.maxRoutes, where);
+          assert.ok(res.routes.length <= Math.max(E.SETTINGS.maxRoutes, Object.keys(E.PRIORITIES).length), where);
 
           const sigs = new Set();
           res.routes.forEach((r, i) => {

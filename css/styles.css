@@ -710,6 +710,10 @@ select[aria-invalid="true"] {
 .rc-facts dt { font-weight: 600; }
 .rc-facts dd { margin: 0; }
 .rc-auto { font-size: 0.8rem; opacity: 0.8; }
+.tag-badge.is-green {
+  background: #1f7a45;
+  color: #ffffff;
+}
 .offline-banner {
   margin: 0 0 12px;
   padding: 10px 14px;

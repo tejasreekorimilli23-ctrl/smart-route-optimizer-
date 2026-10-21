@@ -20,25 +20,25 @@ const CM = require("../js/community.js");
 function allSimplePaths(levels, from, to) {
   const graph = E.buildGraph(D, levels);
   const out = [];
-  (function dfs(node, seen, time, dist, risk) {
+  (function dfs(node, seen, time, dist, risk, fuel) {
     if (node === to) {
-      out.push({ timeUnits: time, distanceUnits: dist, riskUnits: risk });
+      out.push({ timeUnits: time, distanceUnits: dist, riskUnits: risk, fuelUnits: fuel });
       return;
     }
     for (const { to: next, edgeId } of graph.adj[node]) {
       if (seen.has(next)) continue;
       const info = graph.edgeInfo[edgeId];
       seen.add(next);
-      dfs(next, seen, time + info.timeUnits, dist + info.distanceUnits, risk + info.riskUnits);
+      dfs(next, seen, time + info.timeUnits, dist + info.distanceUnits, risk + info.riskUnits, fuel + info.fuelUnits);
       seen.delete(next);
     }
-  })(from, new Set([from]), 0, 0, 0);
+  })(from, new Set([from]), 0, 0, 0, 0);
   return out;
 }
 
-const OBJECTIVES = { fastest: ["timeUnits", "isFastest"], shortest: ["distanceUnits", "isShortest"], safest: ["riskUnits", "isSafest"] };
+const OBJECTIVES = { fastest: ["timeUnits", "isFastest"], shortest: ["distanceUnits", "isShortest"], safest: ["riskUnits", "isSafest"], greenest: ["fuelUnits", "isGreenest"] };
 
-test("every pair, every condition, all three objectives: each is truly optimal and all three bests are shown", () => {
+test("every pair, every condition, all four objectives: each is truly optimal and every objective's best is shown", () => {
   let checked = 0;
   const conditions = D.SCENARIOS.map((s) => E.levelsForScenario(D, s.id));
   for (let h = D.DAY_START_HOUR; h <= D.DAY_END_HOUR; h += 3) conditions.push(E.levelsForHour(D, h));
@@ -64,7 +64,7 @@ test("every pair, every condition, all three objectives: each is truly optimal a
           }
           const sigs = res.routes.map((r) => r.signature);
           assert.equal(new Set(sigs).size, sigs.length, where + " duplicate alternatives");
-          assert.ok(res.routes.length <= E.SETTINGS.maxRoutes, where + " too many routes");
+          assert.ok(res.routes.length <= Math.max(E.SETTINGS.maxRoutes, Object.keys(E.PRIORITIES).length), where + " too many routes");
         }
       }
     }
@@ -85,6 +85,12 @@ test("real map, Thotapalem to Vizianagaram Junction: the three objectives keep t
   assert.ok(fastest.recommended.timeUnits <= safest.recommended.timeUnits, "fastest is not slower than safest");
   assert.ok(safest.recommended.riskUnits <= fastest.recommended.riskUnits, "safest has no more risk than fastest");
   assert.ok(safest.recommended.riskUnits <= shortest.recommended.riskUnits, "safest has no more risk than shortest");
+  const greenest = run("greenest");
+  assert.equal(greenest.ok, true);
+  for (const other of [fastest, shortest, safest]) {
+    assert.ok(greenest.recommended.fuelUnits <= other.recommended.fuelUnits, "greenest uses no more fuel than " + other.priority);
+  }
+  assert.ok(greenest.recommended.fuelUnits > 0);
 });
 
 test("unknown priority still falls back to fastest; shortest is accepted", () => {
@@ -156,4 +162,34 @@ test("Firebase: no answer within the time limit gives a 'timeout' error", async 
   } finally {
     CM.SETTINGS.timeoutMs = saved;
   }
+});
+
+test("greenest: the fuel weight follows the same documented model as the dashboard", () => {
+  const TA = require("../js/analytics.js");
+  for (const v of ["car", "auto", "twowheeler"]) {
+    assert.equal(E.VEHICLES[v].kmPerLitre, TA.ECO[v].kmPerLitre, v);
+    assert.equal(E.VEHICLES[v].idleLitresPerHour, TA.ECO[v].idleLitresPerHour, v);
+  }
+  const levels = E.levelsForHour(R, 9);
+  const r = E.findRoutes(R, levels, R.DEFAULTS.origin, R.DEFAULTS.destination, { priority: "greenest", vehicle: "car" }).recommended;
+  const perMin = E.unitsOf(R).perMin;
+  const model = TA.eco(r.distanceUnits / 1000, r.delayUnits / perMin / 60, "car").litres;
+  assert.ok(Math.abs(E.fuelLitres(r.fuelUnits) - model) < 0.01, E.fuelLitres(r.fuelUnits) + " vs " + model);
+  // Walking uses no fuel: the greenest walk is the quickest walk.
+  const walkGreen = E.findRoutes(R, levels, R.DEFAULTS.origin, R.DEFAULTS.destination, { priority: "greenest", vehicle: "walk" }).recommended;
+  const walkFast = E.findRoutes(R, levels, R.DEFAULTS.origin, R.DEFAULTS.destination, { priority: "fastest", vehicle: "walk" }).recommended;
+  assert.equal(walkGreen.fuelUnits, 0);
+  assert.equal(walkGreen.timeUnits, walkFast.timeUnits);
+});
+
+test("greenest long routes: candidates ranked by estimated fuel", () => {
+  const LR = require("../js/long-route.js");
+  const routes = [
+    { durationS: 2400, distanceM: 42000, riskUnits: 1, fuelUnits: 3000000 },
+    { durationS: 2600, distanceM: 39000, riskUnits: 2, fuelUnits: 2600000 }
+  ];
+  assert.equal(LR.rank(routes, "greenest")[0], routes[1]);
+  assert.ok(routes[1].isGreenest && !routes[0].isGreenest);
+  const real = LR.fromOsrm(require("./fixtures/osrm-vizag-lendi.json"), "car")[0];
+  assert.equal(real.fuelUnits, Math.round(1e6 * (real.distanceM / 1000 / 15)), "no traffic data: distance / mileage");
 });

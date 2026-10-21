@@ -441,8 +441,13 @@
     return sc ? t("cond.scenario", { name: scenarioName(sc) }) : t("cond.custom");
   }
 
-  var OBJECTIVES = ["fastest", "shortest", "safest"];
-  var OBJECTIVE_FLAG = { fastest: "isFastest", shortest: "isShortest", safest: "isSafest" };
+  var OBJECTIVES = ["fastest", "shortest", "safest", "greenest"];
+  var OBJECTIVE_FLAG = { fastest: "isFastest", shortest: "isShortest", safest: "isSafest", greenest: "isGreenest" };
+
+  /** "0.14" litres of fuel for a route's fuel units. */
+  function fL(units) {
+    return E.fuelLitres(units).toFixed(2);
+  }
 
   function priorityWord(p) {
     return t("word." + (p || state.priority));
@@ -452,6 +457,7 @@
   function keyFigure(r) {
     if (state.priority === "safest") return t("fig.riskTime", { risk: fR(r.riskUnits), min: fT(r.timeUnits) });
     if (state.priority === "shortest") return t("fig.kmTime", { km: fD(r.distanceUnits), min: fT(r.timeUnits) });
+    if (state.priority === "greenest") return t("fig.fuelTime", { l: fL(r.fuelUnits), min: fT(r.timeUnits) });
     return t("fig.min", { min: fT(r.timeUnits) });
   }
 
@@ -473,7 +479,18 @@
       dt === 0 ? t("cmp.sameTimeShort") : dt > 0 ? t("cmp.slower", { min: fT(dt) }) : t("cmp.faster", { min: fT(-dt) }),
       distDiffText(dd),
       dr === 0 ? t("cmp.sameRisk") : dr > 0 ? t("cmp.riskHigher", { risk: fR(dr) }) : t("cmp.riskLower", { risk: fR(-dr) })
-    ].join(", ");
+    ].concat(state.vehicle === "walk" ? [] : [fuelDiffText(a.fuelUnits - b.fuelUnits)]).join(", ");
+  }
+
+  /** "0.3 L" or, for small amounts, "12 ml". */
+  function fuelAmount(units) {
+    var ml = Math.round(Math.abs(units) / 1000);
+    return Math.abs(units) < 100000 ? t("unit.ml", { ml: ml }) : t("unit.litres", { l: fL(Math.abs(units)) });
+  }
+
+  function fuelDiffText(u) {
+    if (Math.abs(u) < 1000) return t("cmp.sameFuel"); // under 1 ml
+    return u > 0 ? t("cmp.fuelMore", { amount: fuelAmount(u) }) : t("cmp.fuelLess", { amount: fuelAmount(u) });
   }
 
   /**
@@ -2552,7 +2569,8 @@
     var badges = (i === 0 ? '<p class="rec-badge">' + esc(t("card.recommended")) + "</p>" : "") +
       (r.isFastest ? '<p class="tag-badge">' + esc(t("card.fastest")) + "</p>" : "") +
       (r.isShortest ? '<p class="tag-badge">' + esc(t("card.shortest")) + "</p>" : "") +
-      (r.isSafest ? '<p class="tag-badge is-safe">' + esc(t("card.safest")) + "</p>" : "");
+      (r.isSafest ? '<p class="tag-badge is-safe">' + esc(t("card.safest")) + "</p>" : "") +
+      (r.isGreenest ? '<p class="tag-badge is-green">' + esc(t("card.greenest")) + "</p>" : "");
     var safety = E.classifySafety(r.distanceM > 0 ? r.riskUnits / r.distanceM : 0);
     var traffic = res.traffic === "live"
       ? (r.delayS ? t("long.delay", { min: minText(r.delayS) }) : t("long.noDelay"))
@@ -2679,6 +2697,10 @@
         if (next.extraDistanceUnits === 0) return t("cmp.tieDistance");
         return t("cmp.shortest", { km: fD(next.extraDistanceUnits) });
       }
+      if (res.priority === "greenest") {
+        if (next.extraFuelUnits < 1000) return t("cmp.tieFuel");
+        return t("cmp.greenest", { amount: fuelAmount(next.extraFuelUnits) });
+      }
       if (next.extraTimeUnits === 0) return t("cmp.tieTime");
       return t("cmp.fastest", { min: fT(next.extraTimeUnits) });
     }
@@ -2692,6 +2714,7 @@
       return riskPart + ", " + timePart + ", " + distPart;
     }
     if (res.priority === "shortest") return distPart + ", " + timePart;
+    if (res.priority === "greenest") return fuelDiffText(r.extraFuelUnits) + ", " + timePart + ", " + distPart;
     return timePart + ", " + distPart;
   }
 
@@ -2805,7 +2828,8 @@
     var badge = (r.isRecommended ? '<p class="rec-badge">' + esc(t("card.recommended")) + "</p>" : "") +
       (r.isFastest ? '<p class="tag-badge">' + esc(t("card.fastest")) + "</p>" : "") +
       (r.isShortest ? '<p class="tag-badge">' + esc(t("card.shortest")) + "</p>" : "") +
-      (r.isSafest ? '<p class="tag-badge is-safe">' + esc(t("card.safest")) + "</p>" : "");
+      (r.isSafest ? '<p class="tag-badge is-safe">' + esc(t("card.safest")) + "</p>" : "") +
+      (r.isGreenest ? '<p class="tag-badge is-green">' + esc(t("card.greenest")) + "</p>" : "");
     var mapBtnLabel = t(focused ? "card.shown" : "card.show");
     return (
       '<article class="route-card' + (r.isRecommended ? " is-recommended" : "") + (focused ? " is-focused" : "") +
@@ -2926,6 +2950,10 @@
       headline = t("results.headSafest", p);
     } else if (res.priority === "shortest") {
       headline = t("results.headShortest", p);
+    } else if (res.priority === "greenest") {
+      p.l = fL(best.fuelUnits);
+      p.co2 = (E.fuelLitres(best.fuelUnits) * 2.31).toFixed(2);
+      headline = t(state.vehicle === "walk" ? "results.headGreenestWalk" : "results.headGreenest", p);
     } else {
       headline = t("results.headFastest", p);
       if (next) {
@@ -3893,7 +3921,7 @@
       rows.push([t("an.col.route"), t("an.col.km"), t("an.col.min"), t("an.col.free"), t("an.col.delay"), t("an.col.heavy"), t("an.col.risk"), t("an.col.fuel"), t("an.col.co2"), t("an.report.badges")]);
       res.routes.forEach(function (r) {
         var e = ecoFor(r);
-        var badges = [r.isRecommended ? t("card.recommended") : "", r.isFastest ? t("card.fastest") : "", r.isShortest ? t("card.shortest") : "", r.isSafest ? t("card.safest") : ""].filter(Boolean).join(" / ");
+        var badges = [r.isRecommended ? t("card.recommended") : "", r.isFastest ? t("card.fastest") : "", r.isShortest ? t("card.shortest") : "", r.isSafest ? t("card.safest") : "", r.isGreenest ? t("card.greenest") : ""].filter(Boolean).join(" / ");
         rows.push([routeLabel(r), fD(r.distanceUnits), fmtMin(r.timeUnits), fmtMin(r.freeFlowUnits), fmtMin(r.delayUnits), TA.distribution(r.levelDistanceUnits).heavy + "%", fR(r.riskUnits), e.litres.toFixed(2), e.co2Kg.toFixed(2), badges]);
       });
       var base = TA.baseline(E, routeData(), routeLevels(), res.origin.id, res.destination.id, state.vehicle, res.recommended);

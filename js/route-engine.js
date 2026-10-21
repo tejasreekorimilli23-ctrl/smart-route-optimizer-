@@ -8,8 +8,9 @@
  * - Each road also has a simulated safety risk:
  *       riskPoints = distanceKm * (BASE_RISK + sum of its hazard weights)
  * - The user picks a priority. "fastest" weights roads by time, "shortest"
- *   by distance, "safest" by risk points. All weights are positive, so
- *   Dijkstra's algorithm finds the best route for that weight.
+ *   by distance, "safest" by risk points, "greenest" by estimated fuel
+ *   (so CO2): litres = km / km-per-litre + idling litres per hour x delay.
+ *   No weight is negative, so Dijkstra's algorithm finds the best route.
  * - Alternatives come from Yen's k-shortest loopless paths (which calls
  *   Dijkstra repeatedly), followed by a small "distinctness" filter so the
  *   alternatives are not near-copies of each other.
@@ -51,7 +52,8 @@
   var PRIORITIES = {
     fastest: { label: "Fastest", cost: "timeUnits", tie: "distanceUnits" },
     shortest: { label: "Shortest", cost: "distanceUnits", tie: "timeUnits" },
-    safest: { label: "Safest", cost: "riskUnits", tie: "timeUnits" }
+    safest: { label: "Safest", cost: "riskUnits", tie: "timeUnits" },
+    greenest: { label: "Greenest", cost: "fuelUnits", tie: "timeUnits" }
   };
 
   function normalizePriority(priority) {
@@ -66,12 +68,14 @@
    *    Two-wheelers filter through jams, so they lose less time; walkers none.
    *  - ignoresOneway: walkers may use one-way streets in both directions;
    *  - excludedTypes: road types this vehicle may not use.
+   *  - kmPerLitre, idleLitresPerHour: fuel model for "greenest" (typical
+   *    Indian figures, a planning estimate; same as js/analytics.js).
    */
   var VEHICLES = {
-    car: { label: "Car", congestionScale: 1 },
-    twowheeler: { label: "Two-wheeler", maxKmh: 50, congestionScale: 0.6 },
-    auto: { label: "Auto-rickshaw", maxKmh: 35, congestionScale: 0.85 },
-    walk: { label: "Walking", fixedKmh: 4.5, congestionScale: 0, ignoresOneway: true, excludedTypes: ["motorway", "motorway_link"] }
+    car: { label: "Car", congestionScale: 1, kmPerLitre: 15, idleLitresPerHour: 0.8 },
+    twowheeler: { label: "Two-wheeler", maxKmh: 50, congestionScale: 0.6, kmPerLitre: 45, idleLitresPerHour: 0.25 },
+    auto: { label: "Auto-rickshaw", maxKmh: 35, congestionScale: 0.85, kmPerLitre: 25, idleLitresPerHour: 0.5 },
+    walk: { label: "Walking", fixedKmh: 4.5, congestionScale: 0, ignoresOneway: true, excludedTypes: ["motorway", "motorway_link"], kmPerLitre: 0, idleLitresPerHour: 0 }
   };
 
   function normalizeVehicle(vehicle) {
@@ -245,6 +249,23 @@
     };
   }
 
+  /**
+   * Estimated fuel for one road, in microlitres (whole numbers): its length
+   * at the vehicle's typical mileage, plus idling while delayed by traffic.
+   * Walking uses no fuel (0), so the greenest walk is the quickest one.
+   */
+  function fuelUnitsFor(v, distanceUnits, freeFlowUnits, timeUnits, units) {
+    if (!v.kmPerLitre) return 0;
+    var km = distanceUnits / units.perKm;
+    var delayHours = timeUnits === null ? 0 : Math.max(0, timeUnits - freeFlowUnits) / units.perMin / 60;
+    return Math.max(1, Math.round(1e6 * (km / v.kmPerLitre + v.idleLitresPerHour * delayHours)));
+  }
+
+  /** Microlitres -> litres. */
+  function fuelLitres(units) {
+    return units / 1e6;
+  }
+
   function buildGraph(data, levels, priority, vehicle) {
     var lv = normalizeLevels(data, levels);
     var pr = PRIORITIES[normalizePriority(priority)];
@@ -275,6 +296,7 @@
         riskWeight: risk.riskWeight,
         riskUnits: distanceUnits * risk.riskWeight
       };
+      info.fuelUnits = fuelUnitsFor(v, distanceUnits, t.freeFlowUnits, t.timeUnits, unitsOf(data));
       info.cost = info[pr.cost];
       info.tie = info[pr.tie];
       edgeInfo[e.id] = info;
@@ -299,12 +321,13 @@
   }
 
   function makePath(graph, nodes, edges) {
-    var out = { nodes: nodes, edges: edges, timeUnits: 0, distanceUnits: 0, riskUnits: 0, cost: 0, tie: 0 };
+    var out = { nodes: nodes, edges: edges, timeUnits: 0, distanceUnits: 0, riskUnits: 0, fuelUnits: 0, cost: 0, tie: 0 };
     for (var i = 0; i < edges.length; i++) {
       var info = graph.edgeInfo[edges[i]];
       out.timeUnits += info.timeUnits;
       out.distanceUnits += info.distanceUnits;
       out.riskUnits += info.riskUnits;
+      out.fuelUnits += info.fuelUnits;
       out.cost += info.cost;
       out.tie += info.tie;
     }
@@ -586,7 +609,8 @@
         timeUnits: info.timeUnits,
         hazards: info.hazards,
         riskWeight: info.riskWeight,
-        riskUnits: info.riskUnits
+        riskUnits: info.riskUnits,
+        fuelUnits: info.fuelUnits
       };
     });
 
@@ -594,6 +618,7 @@
     var dist = 0;
     var free = 0;
     var risk = 0;
+    var fuel = 0;
     var byLevel = { light: 0, moderate: 0, heavy: 0 };
     var byCorridor = {};
     var hazardsOnRoute = [];
@@ -602,6 +627,7 @@
       dist += s.distanceUnits;
       free += s.freeFlowUnits;
       risk += s.riskUnits;
+      fuel += s.fuelUnits;
       byLevel[s.level] += s.distanceUnits;
       byCorridor[s.corridor] = (byCorridor[s.corridor] || 0) + s.distanceUnits;
       s.hazards.forEach(function (h) {
@@ -629,6 +655,7 @@
       delayPercent: Math.round((ratio - 1) * 100),
       congestion: classify(ratio),
       riskUnits: risk,
+      fuelUnits: fuel,
       safety: classifySafety(dist > 0 ? risk / dist : 0),
       hazards: hazardsOnRoute,
       levelDistanceUnits: byLevel,
@@ -767,6 +794,8 @@
       r.isFastest = r.signature === bestSig.fastest;
       r.isShortest = r.signature === bestSig.shortest;
       r.isSafest = r.signature === bestSig.safest;
+      r.isGreenest = r.signature === bestSig.greenest;
+      r.extraFuelUnits = r.fuelUnits - best.fuelUnits;
       r.extraTimeUnits = r.timeUnits - best.timeUnits;
       r.extraDistanceUnits = r.distanceUnits - best.distanceUnits;
       r.extraRiskUnits = r.riskUnits - best.riskUnits;
@@ -852,6 +881,7 @@
     unitsOf: unitsOf,
     formatTime: formatTime,
     formatDistance: formatDistance,
-    formatRisk: formatRisk
+    formatRisk: formatRisk,
+    fuelLitres: fuelLitres
   };
 });

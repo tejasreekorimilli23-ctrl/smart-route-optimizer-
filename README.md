@@ -350,19 +350,22 @@ The base 1 point per km means a long detour is not "free": the safest route has 
 
 **Algorithm.**
 
-1. The user chooses **Fastest**, **Shortest** or **Safest** and a vehicle. Each objective has its own edge weight, and all weights are positive, so Dijkstra's algorithm is exact:
+1. The user chooses **Fastest**, **Shortest**, **Safest** or **Greenest** and a vehicle. Each objective has its own edge weight, and all weights are positive, so Dijkstra's algorithm is exact:
 
    | Objective | Edge weight (what is minimised) | Unit (real map) | Ties broken by |
    | --- | --- | --- | --- |
    | Fastest | estimated travel time for that vehicle | seconds | shorter distance |
    | Shortest | length of the road section | metres | quicker time |
    | Safest | risk score = length × risk points per km | metre-points | quicker time |
+   | Greenest | estimated fuel = length ÷ mileage + idling fuel × traffic delay (car 15 km/l and 0.8 l/h, auto 25 and 0.5, two-wheeler 45 and 0.25); CO₂ = 2.31 kg per litre | microlitres | quicker time |
+
+   Walking uses no fuel, so the greenest walk is the quickest walk. The fuel model is a planning estimate (typical Indian figures), the same one the trip analytics use.
 2. **Dijkstra's algorithm** (with a binary-heap priority queue) finds the best route for that weight. Ties on time go to the shorter distance; ties on risk go to the quicker route; then to location id, so results are fully deterministic.
 3. **Alternatives.**
    - **Demo town:** **Yen's k-shortest-paths algorithm** (k = 8) lists the next-best loop-free routes by re-running Dijkstra with parts of earlier routes blocked.
    - **Real map:** the network is too big for Yen's algorithm, which also only finds tiny one-street detours there. The app uses the **penalty method** instead, as many navigation apps do: after each route is found, its roads are made 1.4 times more expensive and Dijkstra runs again (6 rounds). This pushes each search onto genuinely different roads, and each search takes about 0.1–0.2 s.
 4. **Distinctness filter.** An alternative is shown only if at most 75% of its length is shared with every route already shown. If that leaves only one route, the next-best is added anyway. At most three routes are shown.
-5. The best route under **each other objective** is always included, so the fastest, shortest and safest routes can be compared side by side (*Fastest*, *Shortest* and *Safest* badges). If one route is best at several things it carries several badges.
+5. The best route under **each other objective** is always included, so the fastest, shortest, safest and greenest routes can be compared side by side (*Fastest*, *Shortest*, *Safest* and *Greenest* badges). Up to 3 routes are shown normally, 4 when all four objectives pick different routes. If one route is best at several things it carries several badges.
 6. The **recommendation** is always the true optimum from step 2 for the chosen objective. Time, distance and risk are never mixed into a combined score, so the recommendation stays easy to explain.
 7. **Why this route.** Every route card says in one line why it is shown: which objective it is best at (or that it is an alternative on different roads), how much of it is in heavy traffic, how many marked hazards it has, which closed roads were avoided, and where the traffic figures came from.
 
@@ -427,7 +430,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ```
 npm run check         # syntax of every JS file; page ids and file references are consistent
-npm test              # 101 automated tests (Node's built-in test runner, no dependencies)
+npm test              # 103 automated tests (Node's built-in test runner, no dependencies)
 npm run build         # builds the single-file version
 npm run verify        # all three
 ```

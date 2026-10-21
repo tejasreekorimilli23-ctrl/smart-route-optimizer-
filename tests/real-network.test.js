@@ -128,7 +128,7 @@ test("sample routes: drivable, truly best, totals exact, fast enough", () => {
         else assert.equal(res.recommended.riskUnits, optRisk, where + " not safest");
         assert.equal(res.routes.find((r) => r.isFastest).timeUnits, optTime, where + " fastest badge");
         assert.equal(res.routes.find((r) => r.isSafest).riskUnits, optRisk, where + " safest badge");
-        assert.ok(res.routes.length <= E.SETTINGS.maxRoutes, where);
+        assert.ok(res.routes.length <= Math.max(E.SETTINGS.maxRoutes, Object.keys(E.PRIORITIES).length), where);
         assert.equal(new Set(res.routes.map((r) => r.signature)).size, res.routes.length, where + " duplicate route");
         res.routes.forEach((r) => {
           assertDrivable(r, levels, where);

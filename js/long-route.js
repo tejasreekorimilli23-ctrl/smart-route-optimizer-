@@ -41,8 +41,14 @@
   var OSM_BASE = "https://routing.openstreetmap.de/";
   var TOMTOM_BASE = "https://api.tomtom.com/routing/1/calculateRoute/";
 
-  // The local map's vehicle profiles (js/route-engine.js): speed caps.
+  // The local map's vehicle profiles (js/route-engine.js): speed caps and fuel model.
   var CAPS = { car: null, auto: 35, twowheeler: 50, walk: null };
+  var FUEL = {
+    car: { kmPerLitre: 15, idleLitresPerHour: 0.8 },
+    auto: { kmPerLitre: 25, idleLitresPerHour: 0.5 },
+    twowheeler: { kmPerLitre: 45, idleLitresPerHour: 0.25 },
+    walk: { kmPerLitre: 0, idleLitresPerHour: 0 }
+  };
 
   var MESSAGES = {
     nofetch: "This browser cannot reach the routing service.",
@@ -147,6 +153,11 @@
     route.durationS = Math.round(duration);
     route.highwayM = Math.round(highwayM);
     route.riskUnits = Math.round(route.distanceM * SETTINGS.baseRiskPerKm + highwayM * SETTINGS.highwayRiskPerKm);
+    // Fuel in microlitres, as on the local map: km / mileage + idling while delayed (TomTom only knows delays).
+    var f = FUEL[vehicle] || FUEL.car;
+    route.fuelUnits = f.kmPerLitre
+      ? Math.round(1e6 * (route.distanceM / 1000 / f.kmPerLitre + f.idleLitresPerHour * Math.max(0, route.delayS || 0) / 3600))
+      : 0;
     var seen = {};
     route.roads = route.steps.map(function (s) { return s.road; }).filter(function (r) {
       if (!r || seen[r]) return false;
@@ -264,7 +275,7 @@
 
   // ---------- choosing ----------
 
-  var COST = { fastest: "durationS", shortest: "distanceM", safest: "riskUnits" };
+  var COST = { fastest: "durationS", shortest: "distanceM", safest: "riskUnits", greenest: "fuelUnits" };
 
   /**
    * Orders candidate routes for the objective; marks the best for each
