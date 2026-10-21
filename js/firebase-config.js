@@ -20,7 +20,7 @@
 (function (root) {
   "use strict";
   root.FIREBASE_CONFIG = {
-    apiKey: "",
-    projectId: ""
+    apiKey: "AIzaSyCYPMaR6vqeO2u21aHVM9LcAHkxBrr4PWQ",
+    projectId: "smarttrafficoptimizer"
   };
 })(typeof self !== "undefined" ? self : this);
