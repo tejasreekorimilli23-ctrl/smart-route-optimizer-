@@ -62,6 +62,7 @@
             <span id="area-name" class="area-name"></span>
             <button type="button" id="area-change" class="link-btn" data-i18n="area.change">Change area</button>
           </div>
+          <p id="area-info" class="area-info real-only"></p>
           <div id="area-box" class="area-box real-only" hidden>
             <div class="area-head">
               <label for="area-query" data-i18n="area.label">Town, city or locality anywhere</label>
@@ -72,6 +73,7 @@
               <button type="button" id="area-search" class="btn-secondary" data-i18n="area.search">Search</button>
             </div>
             <p id="area-status" class="live-status" role="status" aria-live="polite"></p>
+            <button type="button" id="area-retry" class="btn-secondary" data-i18n="area.retry" hidden>Try again</button>
             <ul id="area-results" class="area-results"></ul>
             <div id="area-saved" class="area-saved"></div>
             <p class="note" data-i18n="area.note">The roads and places of the area you choose are downloaded from OpenStreetMap (about 8 km across) and kept on this device, so next time it opens at once.</p>
@@ -121,7 +123,8 @@
             </div>
           </fieldset>
           <p id="form-error" class="form-error" role="alert" hidden></p>
-          <button type="submit" class="btn-primary" data-i18n="plan.find">Find Best Route</button>
+          <button type="button" id="form-action" class="btn-secondary form-action" hidden></button>
+          <button type="submit" id="find-route" class="btn-primary" data-i18n="plan.find">Find Best Route</button>
         </form>
         <div class="emergency">
           <button type="button" id="emergency" class="btn-emergency">

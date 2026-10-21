@@ -49,6 +49,8 @@
   var SETTINGS = {
     maxNote: 140,
     timeoutMs: 15000, // a server call with no answer after this fails with "timeout"
+    reportSnapMetres: 80, // a report counts on the current map's road within this distance
+    alertSnapMetres: 15, // an alert's road (by its middle point) must be found this close
     speedMinutes: 20, // shared speeds count for this long
     speedMinReadings: 2, // readings needed before a road's speed is trusted
     lightMinRatio: 0.8, // same rule as live TomTom speeds
@@ -112,6 +114,51 @@
       });
     });
     return { levels: levels, unsafe: Object.keys(unsafe), byEdge: byEdge };
+  }
+
+  /**
+   * Road ids are made when a map is built, so the same id means different
+   * roads on different downloaded areas. This puts reports and alerts on the
+   * roads of the map in use (area):
+   *  - a report is placed on the road nearest its position (if close enough);
+   *  - an alert made on this same area keeps its roads; one made on another
+   *    area is matched by the middle points of its roads (alert.points);
+   *    an older alert without points only applies on the built-in map, where
+   *    the admin page made it.
+   * area: { key, builtIn, bbox, nearest(lat, lon) -> { edge, metres } | null }
+   * Returns { reports, alerts }; alerts get `edges` for this map and
+   * `here` = whether it concerns this area at all (for the banner).
+   */
+  function forArea(reports, alerts, area) {
+    var outReports = [];
+    (reports || []).forEach(function (r) {
+      if (!r || !(isFinite(r.lat) && isFinite(r.lon))) return;
+      var hit = area.nearest(r.lat, r.lon);
+      if (!hit || hit.metres > SETTINGS.reportSnapMetres) return;
+      outReports.push(Object.assign({}, r, { edgeId: hit.edge.id }));
+    });
+    var overlaps = function (b) {
+      var a = area.bbox;
+      return Array.isArray(b) && b.length === 4 && a && b[0] <= a[2] && b[2] >= a[0] && b[1] <= a[3] && b[3] >= a[1];
+    };
+    var outAlerts = (alerts || []).map(function (a) {
+      var edges;
+      if (a.areaKey && a.areaKey === area.key) {
+        edges = Array.isArray(a.edges) ? a.edges.slice() : [];
+      } else if (Array.isArray(a.points) && a.points.length >= 2) {
+        var set = {};
+        for (var i = 0; i + 1 < a.points.length; i += 2) {
+          var hit = area.nearest(Number(a.points[i]), Number(a.points[i + 1]));
+          if (hit && hit.metres <= SETTINGS.alertSnapMetres) set[hit.edge.id] = true;
+        }
+        edges = Object.keys(set);
+      } else {
+        edges = !a.areaKey && area.builtIn && Array.isArray(a.edges) ? a.edges.slice() : [];
+      }
+      var here = edges.length > 0 || (a.areaKey ? a.areaKey === area.key || overlaps(a.bbox) : area.builtIn);
+      return Object.assign({}, a, { edges: edges, here: here });
+    });
+    return { reports: outReports, alerts: outAlerts };
   }
 
   /**
@@ -387,6 +434,7 @@
     toFields: toFields,
     fromDoc: fromDoc,
     firebaseStore: firebaseStore,
+    forArea: forArea,
     localStore: localStore,
     connect: connect
   };

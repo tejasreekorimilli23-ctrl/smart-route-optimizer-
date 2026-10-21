@@ -436,8 +436,10 @@
 
     // Pass 1: road sections, joined where a road simply continues.
     let segs = mergeSections(splitWays(ways, signals), signals);
+    const sectionsFound = segs.length;
     const scc = largestStronglyConnected(segs);
     segs = segs.filter((s) => scc.has(s.nodes[0]) && scc.has(s.nodes[s.nodes.length - 1]));
+    const sectionsKept = segs.length;
 
     // Pass 2: snap each place to its nearest road point; split sections there.
     const roadPoints = [];
@@ -585,6 +587,15 @@
         scenarioId: null,
         hour: 12,
         priority: "fastest"
+      },
+      // How the build went (not stored in the packed built-in map): road
+      // sections found, those kept in the largest connected network, and
+      // places found / joined to a road.
+      STATS: {
+        sectionsFound: sectionsFound,
+        sectionsKept: sectionsKept,
+        placesFound: places.length,
+        placesOnRoads: snapped.length
       }
     };
   }

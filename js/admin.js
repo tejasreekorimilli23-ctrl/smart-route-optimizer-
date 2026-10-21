@@ -192,11 +192,23 @@
       err.hidden = false;
       return;
     }
+    // Road ids differ between downloaded areas, so the alert also keeps the
+    // middle point of each chosen road; the app finds those roads on any map.
+    var points = [];
+    Object.keys(chosen).forEach(function (id) {
+      var e = data.EDGES.filter(function (x) { return x.id === id; })[0];
+      if (!e || !e.geom || e.geom.length < 2) return;
+      var i = Math.floor(e.geom.length / 4) * 2;
+      points.push(Math.round(e.geom[i] * 1e5) / 1e5, Math.round(e.geom[i + 1] * 1e5) / 1e5);
+    });
     store.addAlert({
       kind: $("alert-kind").value,
       title: title,
       message: $("alert-message").value.trim(),
       edges: Object.keys(chosen),
+      points: points,
+      areaKey: data === BUILT_IN ? "builtin" : data.AREA.key,
+      bbox: data.AREA.bbox,
       area: data.AREA.name,
       startsAt: starts,
       endsAt: ends

@@ -3,13 +3,18 @@
  *
  *  1. find(query): looks the place up with OpenStreetMap's search
  *     (Nominatim). Only called when the user presses Search.
- *  2. boxAround(...): picks the area to download: the place's own outline if
- *     it is town-sized, else a square of about 8 km around it. Two places can
- *     be covered together if they are at most ~25 km apart.
- *  3. load(name, box): downloads the roads and places from the Overpass API
- *     (with a second server if the first is busy) and builds the network
- *     with js/osm-network.js, exactly like the built-in Vizianagaram map.
- *  4. Areas are kept in the browser's IndexedDB, so a town opens instantly
+ *  2. boxForResult / boxInfo: picks the area to download: the place's own
+ *     outline if it is town-sized, else a square of about 8 km around it (a
+ *     whole city is too big for a phone: boxInfo says when that happened).
+ *     boxAround covers a whole trip (both ends) up to maxAreaKm2.
+ *  3. load(name, box): downloads the roads and the places from the Overpass
+ *     API at the same time (with backup servers if one is busy), builds the
+ *     network with js/osm-network.js exactly like the built-in Vizianagaram
+ *     map, and checks it (enough roads, a connected network).
+ *  4. session(): makes sure only the newest load is used. A slower, older
+ *     download that finishes later is ignored instead of replacing the area
+ *     the user chose since.
+ *  5. Areas are kept in the browser's IndexedDB, so a town opens instantly
  *     next time and works offline.
  *
  * Map data © OpenStreetMap contributors (ODbL). The public servers are free
@@ -36,6 +41,7 @@
   var SETTINGS = {
     squareKm: 8, // area loaded around a single point
     maxSpanKm: 25, // largest area (both directions) the app will load
+    maxAreaKm2: 150, // ...and at most this many square km (about 12 x 12 km): more is too slow for phones
     minSpanKm: 4, // a small place's outline is widened to at least this
     marginKm: 1.5, // extra around two places loaded together
     keepAreas: 4, // areas remembered in the browser
@@ -66,6 +72,16 @@
     return { ns: (box[2] - box[0]) * KM_LAT, ew: (box[3] - box[1]) * kmLon(mid) };
   }
 
+  function areaKm2(box) {
+    var s = spanKm(box);
+    return s.ns * s.ew;
+  }
+
+  function fits(box) {
+    var s = spanKm(box);
+    return s.ns <= SETTINGS.maxSpanKm && s.ew <= SETTINGS.maxSpanKm && s.ns * s.ew <= SETTINGS.maxAreaKm2;
+  }
+
   /**
    * The area to load for a search result: its own outline when that is
    * between minSpanKm and maxSpanKm, else a square of squareKm around it.
@@ -73,11 +89,22 @@
   function boxForResult(r) {
     if (r.box) {
       var s = spanKm(r.box);
-      if (s.ns <= SETTINGS.maxSpanKm && s.ew <= SETTINGS.maxSpanKm && (s.ns >= SETTINGS.minSpanKm || s.ew >= SETTINGS.minSpanKm)) {
+      if (fits(r.box) && (s.ns >= SETTINGS.minSpanKm || s.ew >= SETTINGS.minSpanKm)) {
         return r.box.map(round);
       }
     }
     return square(r.lat, r.lon, SETTINGS.squareKm / 2);
+  }
+
+  /**
+   * boxForResult plus what it means for the user: cropped is true when the
+   * place (e.g. a city) is bigger than the app can load, so only the part
+   * around its centre is covered; full is the place's own size in km.
+   */
+  function boxInfo(r) {
+    var box = boxForResult(r);
+    var full = r.box ? spanKm(r.box) : null;
+    return { box: box, cropped: !!full && !fits(r.box) && areaKm2(r.box) > areaKm2(box), full: full, span: spanKm(box) };
   }
 
   /**
@@ -97,7 +124,31 @@
     // Make it at least a few km wide so the start or end is not on the edge.
     var c = { lat: (box[0] + box[2]) / 2, lon: (box[1] + box[3]) / 2 };
     var min = square(c.lat, c.lon, SETTINGS.minSpanKm / 2);
-    return [Math.min(box[0], min[0]), Math.min(box[1], min[1]), Math.max(box[2], min[2]), Math.max(box[3], min[3])];
+    var out = [Math.min(box[0], min[0]), Math.min(box[1], min[1]), Math.max(box[2], min[2]), Math.max(box[3], min[3])];
+    return fits(out) ? out : null;
+  }
+
+  /** Straight-line distance in km between two points. */
+  function distanceKm(a, b) {
+    var dLat = (b.lat - a.lat) * KM_LAT;
+    var dLon = (b.lon - a.lon) * kmLon((a.lat + b.lat) / 2);
+    return Math.sqrt(dLat * dLat + dLon * dLon);
+  }
+
+  /**
+   * Keeps track of area loads so only the newest one is used:
+   * var t = s.begin(); ... later: if (!s.isCurrent(t)) ignore the result.
+   */
+  function session() {
+    var current = 0;
+    var busy = false;
+    return {
+      begin: function () { busy = true; return ++current; },
+      isCurrent: function (token) { return token === current; },
+      end: function (token) { if (token === current) busy = false; },
+      busy: function () { return busy; },
+      cancel: function () { current++; busy = false; }
+    };
   }
 
   function contains(box, p) {
@@ -210,25 +261,43 @@
 
   /**
    * Downloads and builds the network for a box. progress(step, seconds) is
-   * called with "roads", "places", "building", or "retry" (servers busy,
-   * trying again in `seconds`). Resolves to the data set.
+   * called with "roads", "places", "building", "validating", or "retry"
+   * (servers busy, trying again in `seconds`). Resolves to the data set.
+   * Roads and places are downloaded at the same time (two requests, the
+   * number Overpass allows at once), which roughly halves the wait.
    */
   function load(name, box, progress, fetchImpl) {
     var doFetch = getFetch(fetchImpl);
     var q = OSM.queries(box);
     var tell = progress || function () {};
     var retrying = function (seconds) { tell("retry", seconds); };
-    var roads;
+    var center = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
+    var roadsDone = false;
+    var placesDone = false;
     tell("roads");
-    return overpass(q.roads, doFetch, retrying).then(function (r) {
-      roads = r;
-      tell("places");
-      return overpass(q.places, doFetch, retrying);
-    }).then(function (places) {
-      tell("building");
-      var center = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
-      var data = OSM.buildNetwork(roads, places, OSM.areaSettings(name, box, center));
+    var roadsReq = overpass(q.roads, doFetch, retrying).then(function (r) {
+      roadsDone = true;
+      if (!placesDone) tell("places");
+      return r;
+    });
+    var placesReq = overpass(q.places, doFetch, retrying).then(function (p) {
+      placesDone = true;
+      return p;
+    });
+    // Let the page show each step before the (synchronous) work starts.
+    var pause = function (step) {
+      return function (v) { tell(step); return wait(0.05).then(function () { return v; }); };
+    };
+    return Promise.all([roadsReq, placesReq]).then(pause("building")).then(function (both) {
+      var roads = both[0];
+      var places = both[1];
+      if (!roads || !Array.isArray(roads.elements) || !places || !Array.isArray(places.elements)) throw failure("download");
+      return OSM.buildNetwork(roads, places, OSM.areaSettings(name, box, center));
+    }).then(pause("validating")).then(function (data) {
+      // Checks: enough roads, and most of them in one connected network.
       if (data.EDGES.length < 20) throw failure("noroads");
+      var st = data.STATS || {};
+      if (st.sectionsFound && st.sectionsKept / st.sectionsFound < 0.2) throw failure("disconnected");
       // Start from the named place nearest the centre.
       var best = null;
       data.NODES.forEach(function (n) {
@@ -296,8 +365,12 @@
     SETTINGS: SETTINGS,
     square: square,
     spanKm: spanKm,
+    areaKm2: areaKm2,
+    distanceKm: distanceKm,
     boxForResult: boxForResult,
+    boxInfo: boxInfo,
     boxAround: boxAround,
+    session: session,
     contains: contains,
     parseSearch: parseSearch,
     find: find,

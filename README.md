@@ -53,17 +53,40 @@ Vizianagaram is built in, but the real map works for any town or locality, in In
 1. Press **Change area** (above *Start*).
 2. Type a town, city or locality, for example *Srikakulam*, *Gajuwaka* or *Guntur*, and press **Search**.
 3. Pick the right place from the list.
-4. The app downloads that area's roads and places from OpenStreetMap (about 8 × 8 km) and builds the road network on your device.
+4. The app downloads that area's roads and places from OpenStreetMap, builds the road network on your device, checks it, and switches the map and the routing to it.
 
-The first download of an area usually takes 30–90 seconds, depending on how busy the free OpenStreetMap servers are; the app tries three servers and tells you when it is retrying. After that, the area is **kept on the device** and opens at once, even offline. The last four areas you used are kept. *Areas on this device* lets you switch between them, or back to the built-in Vizianagaram.
+**What you see while it loads.** Downloading (roads and places at the same time) → building the road network → checking that it is connected and routable → ready. While it loads, Start, Destination and *Find Best Route* are greyed out, so nothing is calculated on the old map. If it fails, the real reason is shown (servers busy, no internet, hardly any roads, not connected), the old area stays, and **Try again** repeats the same download.
 
-**Searching beyond the current area.** When you type a place in Start or Destination that isn't in the loaded area, choose **Search "…" outside this area**. If the other end of your trip is already chosen and the two are within about 25 km, the app loads one area covering both. Otherwise it loads the area around the place you searched.
+**How big an area is.**
+- A town whose outline is up to about 12 × 12 km (150 km²) is loaded whole.
+- Anything bigger, such as a whole city (Visakhapatnam is about 35 × 34 km), is too much for a phone: about 8 × 8 km around its centre is loaded, and the area line under *Area:* says so.
+- When **both ends of a trip** are chosen, the area covers both (up to about 12 × 12 km / 150 km² in total). This is how trips across a city work: for example Pothinamallayyapalem → Hanumanthuwaka in Visakhapatnam (5.3 km apart) load as one 13 × 7 km area.
+- Longer trips (for example Vizianagaram → Visakhapatnam, about 45 km) are refused with a clear message: this is a town-level planner; inter-city routing would need a routing server.
+
+**Getting a trip into one area.** Any of these load an area that covers both ends when they fit:
+- In Start or Destination, type a place that isn't on the map and choose **Search "…" outside this area**.
+- Click or tap a point outside the map (or drag a pin there): the app offers **Load one area covering both**, or **Load the roads around this point**.
+- **Change area** with a start already chosen (for example by GPS): the searched place becomes the destination when both fit; otherwise the start is cleared and the app says why.
+- **Use my location** outside the map keeps a chosen destination when both fit.
+
+The first download of an area usually takes 40–90 seconds, depending on how busy the free OpenStreetMap servers are; the app tries three servers and tells you when it is retrying. After that, the area is **kept on the device** and opens at once, even offline. The last four areas you used are kept. *Areas on this device* lets you switch between them, or back to the built-in Vizianagaram. The line under *Area:* shows whether the map is built in, downloaded just now, or saved (with its download date), its size, and its number of junctions, road sections and places, counted from the data.
+
+**One area at a time, no mixing.** Only the newest area request counts: if you search a city while "Use my location" is still loading, the older download is ignored when it finishes. Road ids are generated per area, so the same id is a different road in another area (the tests found over 100 such clashes between two areas built from the same data). Therefore:
+- live TomTom answers that arrive after you switched area are thrown away;
+- reports from people are placed on the current map's road nearest to where they were made (within 80 m), never by id;
+- official alerts carry their area and the middle point of each closed road, and are matched by position (within 15 m) on other areas; older alerts without that information only apply on the built-in map, where they were made;
+- shared trip speeds are tagged with their area and only used on the same area.
 
 Everything works the same in every area: fastest and safest routes, vehicle types, directions, emergency (nearest hospital), live TomTom traffic and incidents, and Telugu.
 
-**Tested:** Srikakulam was searched, downloaded and routed in the browser (3,938 junctions, 201 places, 56 hospitals; route to RIMS General Hospital, emergency routing, Telugu names).
+**Tested in the browser with the real OpenStreetMap servers:**
+- Srikakulam: searched, downloaded and routed (3,938 junctions, 201 places, 56 hospitals).
+- Visakhapatnam (city centre): downloaded and built in 56 s; 4,400 junctions, 6,389 road sections, 399 places; route Old Post Office area → RK Beach (5.6 min via Beach Road); the "only the centre is covered" note was shown.
+- The bug-report trip: a start at Pothinamallayyapalem, outside that map, offered *Load one area covering both*; the 13 × 7 km area (8,403 junctions, 12,361 road sections) loaded in 43 s; then Pothinamallayyapalem → Hanumanthuwaka gave 3 routes (fastest 15.0 min, 8.3 km via Old NH16).
+- Switching Visakhapatnam → built-in Vizianagaram → saved Visakhapatnam: each area routed on its own roads, and the saved one showed its download date after a reload.
+- Choosing Srikakulam and then, 2 s later, Visakhapatnam: only Visakhapatnam was ever shown.
 
-**Limits.** An area can be at most about 25 km across. Very large, dense cities take longer to download. Routes between towns far apart (for example Vizianagaram to Hyderabad) are not supported; this is a town-level planner.
+**Limits.** An area is at most about 12 × 12 km (150 km²). Very large, dense areas take longer to download. Routes between towns far apart are not supported.
 
 ## Using the real map
 
@@ -352,7 +375,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ```
 npm run check         # syntax of every JS file; page ids and file references are consistent
-npm test              # 71 automated tests (Node's built-in test runner, no dependencies)
+npm test              # 78 automated tests (Node's built-in test runner, no dependencies)
 npm run build         # builds the single-file version
 npm run verify        # all three
 ```
@@ -374,6 +397,13 @@ npm run verify        # all three
 - On the real map (Thotapalem → Vizianagaram Junction, 9 AM): the shortest route is not longer than the others, the fastest not slower, the safest not riskier.
 - GPS: positions worse than ±100 m never trigger re-routing; the off-route tolerance grows with the GPS accuracy.
 - Time limits: a TomTom or Firebase server that never answers gives a "timeout" error; a TomTom reply that is not JSON gives "no answer". These use fake servers and prove the error handling, not the real services.
+
+**Areas** (`tests/areas.test.js`, using the downloaded data in `data/osm/`, no internet).
+- A whole city (Visakhapatnam's real outline) is cropped to its centre and flagged; a town outline is used whole.
+- The bug-report trip (Pothinamallayyapalem → Hanumanthuwaka) did not fit in the 8 km square around the start, but fits in one trip area under the size limit; Vizianagaram → Visakhapatnam is refused.
+- Only the newest area load counts.
+- Two areas built from the same OpenStreetMap data give the same ids to different roads (over 100 clashes); reports and alerts are moved to the right road by position, legacy alerts stay on the built-in map, far-away alerts are ignored, and a moved closure really closes the road.
+- A second area routes on its own graph and does not change the built-in map.
 
 **Translations.** Every text key used by the page exists in English and Telugu, with the same placeholders.
 
@@ -441,6 +471,7 @@ tests/translit.test.js         English -> Telugu names
 tests/area-loader.test.js      Loading other towns (fake servers)
 tests/i18n.test.js             English / Telugu text checks
 tests/objectives.test.js       Fastest / shortest / safest, GPS accuracy, time-outs
+tests/areas.test.js            Area sizes, trips across a city, newest load wins, no mixing of areas
 tests/browser-smoke.cjs        Optional browser test
 ```
 

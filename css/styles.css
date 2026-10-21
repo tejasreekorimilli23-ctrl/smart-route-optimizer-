@@ -521,6 +521,31 @@ select[aria-invalid="true"] {
   min-height: 42px;
   font-size: 0.9rem;
 }
+.area-info {
+  margin: -4px 0 10px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+.area-info .area-warn {
+  display: block;
+  margin-top: 4px;
+  color: #8a5a00;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .area-info .area-warn {
+    color: #f2c46b;
+  }
+}
+:root[data-theme="dark"] .area-info .area-warn {
+  color: #f2c46b;
+}
+.form-action {
+  margin: 0 0 10px;
+}
+.route-form.is-loading-area .field,
+.route-form.is-loading-area fieldset {
+  opacity: 0.55;
+}
 .offline-banner {
   margin: 0 0 12px;
   padding: 10px 14px;

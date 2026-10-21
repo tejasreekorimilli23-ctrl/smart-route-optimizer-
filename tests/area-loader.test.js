@@ -54,7 +54,10 @@ test("a busy server is retried, then the area is built and routable", async () =
     const box = [18.085, 83.375, 18.14, 83.445];
     const data = await A.load("Test town", box, (s) => steps.push(s), fake);
     assert.ok(steps.includes("retry"), "the user is told about the retry");
-    assert.deepEqual(steps.filter((s) => s !== "retry"), ["roads", "places", "building"]);
+    // Roads and places download at the same time; "places" only shows if roads finish first.
+    assert.deepEqual(steps.filter((s) => s !== "retry" && s !== "places"), ["roads", "building", "validating"]);
+    assert.ok(data.STATS.sectionsKept > 1000 && data.STATS.sectionsKept <= data.STATS.sectionsFound, "build statistics");
+    assert.ok(data.STATS.placesOnRoads > 100 && data.STATS.placesOnRoads <= data.STATS.placesFound);
     assert.ok(data.NODES.length > 1000 && data.EDGES.length > 1000);
     assert.equal(data.AREA.name, "Test town");
     assert.ok(data.DEFAULTS.origin, "a starting place near the centre");

@@ -62,7 +62,7 @@
   var fitCounter = 0;
   var hourTimer = null;
   // TomTom live data (real mode): speeds on main roads and incidents.
-  var live = { on: false, busy: false, flow: null, incidents: null, error: null, warn: false };
+  var live = { on: false, busy: false, flow: null, incidents: null, error: null, warn: false, req: 0 };
   var searches = {};
 
   var els = {
@@ -73,6 +73,10 @@
     demoExit: $("demo-exit"),
     modeBadgeText: $("mode-badge-text"),
     form: $("route-form"),
+    areaInfo: $("area-info"),
+    areaRetry: $("area-retry"),
+    formAction: $("form-action"),
+    findRoute: $("find-route"),
     origin: $("origin"),
     destination: $("destination"),
     originSearch: $("origin-search"),
@@ -796,9 +800,13 @@
     return select === els.origin ? els.originSearch : els.destinationSearch;
   }
 
-  function showFormError(message, select) {
+  /** action (optional): { label, run } shown as a button under the message. */
+  function showFormError(message, select, action) {
     els.formError.textContent = message;
     els.formError.hidden = false;
+    els.formAction.hidden = !action;
+    els.formAction.textContent = action ? action.label : "";
+    els.formAction.onclick = action ? function () { clearFormError(); action.run(); } : null;
     [els.origin, els.destination, els.originSearch, els.destinationSearch].forEach(function (s) { s.removeAttribute("aria-invalid"); });
     if (select) {
       var field = fieldFor(select);
@@ -810,6 +818,8 @@
   function clearFormError() {
     els.formError.hidden = true;
     els.formError.textContent = "";
+    els.formAction.hidden = true;
+    els.formAction.onclick = null;
     [els.origin, els.destination, els.originSearch, els.destinationSearch].forEach(function (s) { s.removeAttribute("aria-invalid"); });
   }
 
@@ -837,6 +847,10 @@
   }
 
   function runSearch() {
+    if (area.busy) {
+      showFormError(t("area.waitLoading"));
+      return;
+    }
     var query = { origin: els.origin.value, destination: els.destination.value, emergency: false };
     var res = compute(query);
     if (!res.ok && res.code !== "UNREACHABLE") {
@@ -1004,9 +1018,10 @@
     var pinned = G.pinToRoad(D, id, "", lat, lon);
     var select = role === "start" ? els.origin : els.destination;
     if (!pinned) {
-      showFormError(t("err.outside", { metres: G.MAX_PIN_METRES, area: local(D.AREA.name) }), select);
+      offerAreaFor(role, lat, lon, kind, label, select);
       return false;
     }
+    pinned.kind = kind;
     pinned.node.name = kind === "gps" ? t("pin.myLocation") : kind === "place" && label ? label : t("pin.pointOn", { road: roadName(pinned.road) });
     pins[role] = pinned;
     routing = null;
@@ -1102,21 +1117,19 @@
           return;
         }
         locateSay(t("gps.loadingArea"));
-        els.areaBox.hidden = false;
+        // Keep a chosen destination if it fits in one area with the user.
+        var dest = tripEnd("destination");
+        var both = dest ? AL.boxAround(dest, here) : null;
+        var box = both || AL.square(here.lat, here.lon, AL.SETTINGS.squareKm / 2);
         AL.whereIs(here.lat, here.lon).then(function (name) { return name || t("gps.myArea"); }, function () { return t("gps.myArea"); })
         .then(function (name) {
-          return AL.load(name, AL.square(here.lat, here.lon, AL.SETTINGS.squareKm / 2), function (step, seconds) {
-            setAreaStatus(t("area.step." + step, { s: seconds }));
+          loadBox(name, box, {
+            onDone: function () {
+              if (both) setPin("destination", dest.lat, dest.lon, dest.kind, dest.name);
+              startHere();
+            },
+            onFail: function (err) { locateSay(areaErrorText(err), true); }
           });
-        })
-        .then(function (data) {
-          AL.remember(data);
-          switchArea(data, data.AREA.key);
-          setAreaStatus("");
-          startHere();
-        }, function (err) {
-          setAreaStatus(areaErrorText(err), true);
-          locateSay(areaErrorText(err), true);
         });
       });
     }, function (err) {
@@ -1293,6 +1306,8 @@
     want = want || { speeds: true, incidents: true };
     var key = savedKey();
     var first = !liveActive();
+    var req = ++live.req;
+    var areaAt = DATASETS.real;
     live.busy = true;
     live.error = null;
     updateLiveStatus();
@@ -1303,6 +1318,7 @@
     function ok(v) { return { ok: v }; }
     function bad(e) { return { err: e }; }
     Promise.all(jobs).then(function (out) {
+      if (req !== live.req || areaAt !== DATASETS.real) return; // asked for another area: ignore
       live.busy = false;
       var speeds = out[0];
       var incidents = out[1];
@@ -1386,7 +1402,8 @@
     speedFx: { levels: {}, roads: 0 },
     busy: false,
     error: null,
-    signature: ""
+    signature: "",
+    req: 0
   };
   var COMMUNITY_EVERY_MS = 60 * 1000;
   var lastCommunityAt = 0;
@@ -1478,13 +1495,23 @@
     community.busy = true;
     lastCommunityAt = Date.now();
     var now = new Date();
+    var req = ++community.req;
+    var areaNow = DATASETS.real;
     Promise.all([store.listReports(now), store.listAlerts(now), store.listSpeeds(now)]).then(function (out) {
+      if (req !== community.req || areaNow !== DATASETS.real) return; // the area changed meanwhile
       community.busy = false;
       community.error = null;
-      var areaNow = D;
-      community.reports = out[0].filter(function (r) { return CM.isActive(r, now) && inArea(r); });
-      community.alerts = out[1].filter(function (a) { return CM.isAlertActive(a, now); });
-      community.speeds = out[2];
+      // Road ids differ between areas: place reports and alerts on this map's roads.
+      var mapped = CM.forArea(
+        out[0].filter(function (r) { return CM.isActive(r, now) && inArea(r); }),
+        out[1].filter(function (a) { return CM.isAlertActive(a, now); }),
+        { key: currentAreaKey(), builtIn: areaNow === BUILT_IN, bbox: areaNow.AREA.bbox, nearest: function (lat, lon) { return G.nearestRoad(areaNow, lat, lon); } }
+      );
+      community.reports = mapped.reports;
+      community.alerts = mapped.alerts.filter(function (a) { return a.here; });
+      var tag = speedTag() + ":";
+      community.speeds = out[2].filter(function (s) { return s && typeof s.edgeId === "string" && s.edgeId.indexOf(tag) === 0; })
+        .map(function (s) { return Object.assign({}, s, { edgeId: s.edgeId.slice(tag.length) }); });
       var graph = E.buildGraph(areaNow, null, "fastest", "car");
       community.fx = CM.effects(community.reports, community.alerts, now);
       community.speedFx = CM.speedLevels(areaNow, community.speeds, now, function (e) {
@@ -1503,10 +1530,22 @@
         renderMap();
       }
     }, function (err) {
+      if (req !== community.req) return;
       community.busy = false;
       community.error = err;
       renderCommunity();
     });
+  }
+
+  /**
+   * Short tag of the area in use, put in front of shared speed readings so a
+   * reading is only used on the same map (road ids differ between areas).
+   */
+  function speedTag() {
+    var key = currentAreaKey();
+    var h = 5381;
+    for (var i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
+    return h.toString(36);
   }
 
   var REPORT_GAP_MS = 60 * 1000; // one new report a minute from this device
@@ -1678,7 +1717,7 @@
     var measured = trip.track(at, pos.timestamp || Date.now());
     if (measured && trip.share && store && state.vehicle !== "walk") {
       store.addSpeed({
-        edgeId: measured.edgeId, kmh: measured.kmh, vehicle: state.vehicle,
+        edgeId: speedTag() + ":" + measured.edgeId, kmh: measured.kmh, vehicle: state.vehicle,
         at: new Date(), expiresAt: new Date(Date.now() + CM.SETTINGS.speedMinutes * 60000)
       }).catch(function () { /* a lost reading does not matter */ });
     }
@@ -1771,7 +1810,9 @@
 
   var AL = window.AreaLoader;
   var BUILT_IN = DATASETS.real;
-  var area = { busy: false, results: [], pending: null };
+  var area = { busy: false, results: [], pending: null, lastLoad: null, fresh: {} };
+  var areaCounts = typeof WeakMap === "function" ? new WeakMap() : { get: function () { return null; }, set: function () {} };
+  var areaSession = AL ? AL.session() : null;
 
   function setAreaStatus(text, isError) {
     els.areaStatus.textContent = text || "";
@@ -1788,6 +1829,11 @@
     DATASETS.real = data;
     try { window.localStorage.setItem("route-area", keyForStorage || "builtin"); } catch (err) { /* ignore */ }
     var wasLive = live.on;
+    // Answers still on their way were asked for the old area: ignore them.
+    live.req++;
+    live.busy = false;
+    community.req++;
+    community.busy = false;
     live.on = false;
     live.flow = null;
     live.incidents = null;
@@ -1801,6 +1847,185 @@
     if (!els.areaName) return;
     var d = DATASETS.real;
     els.areaName.textContent = d ? t("area.current", { name: local(d.AREA.name) }) : "";
+    renderAreaInfo();
+  }
+
+  /** Key of the area in use: "builtin" or the downloaded box. */
+  function currentAreaKey() {
+    return DATASETS.real === BUILT_IN ? "builtin" : DATASETS.real.AREA.key;
+  }
+
+  /**
+   * Under the area name: where its data comes from, how big it is, what it
+   * contains, and (for a city too big to load) which part is covered.
+   */
+  function renderAreaInfo() {
+    if (!els.areaInfo) return;
+    var d = DATASETS.real;
+    if (!d) { els.areaInfo.textContent = ""; return; }
+    var counts = areaCounts.get(d);
+    if (!counts) {
+      var places = 0;
+      d.NODES.forEach(function (n) { if (n.category) places++; });
+      counts = { j: d.NODES.length - places, e: d.EDGES.length, p: places };
+      areaCounts.set(d, counts);
+    }
+    var parts = [];
+    if (d === BUILT_IN) parts.push(t("area.info.builtin"));
+    else if (area.fresh[d.AREA.key]) parts.push(t("area.info.fresh"));
+    else {
+      var when = d.GENERATED && d.GENERATED.downloaded ? new Date(d.GENERATED.downloaded) : null;
+      parts.push(when && !isNaN(when) ? t("area.info.saved", { date: when.toLocaleDateString(lang === "te" ? "te-IN" : "en-IN") }) : t("area.info.savedNoDate"));
+    }
+    if (AL) {
+      var s = AL.spanKm(d.AREA.bbox);
+      parts.push(t("area.info.size", { ns: s.ns.toFixed(0), ew: s.ew.toFixed(0) }));
+    }
+    parts.push(t("area.info.counts", { j: counts.j.toLocaleString("en-IN"), e: counts.e.toLocaleString("en-IN"), p: counts.p }));
+    var html = esc(parts.join(" · "));
+    if (d.AREA.cropped) {
+      html += '<span class="area-warn">' + esc(t("area.cropped", {
+        name: local(d.AREA.cropped.name), ns: d.AREA.cropped.ns, ew: d.AREA.cropped.ew
+      })) + "</span>";
+    }
+    els.areaInfo.innerHTML = html;
+  }
+
+  /**
+   * A chosen end of the trip that should survive loading another area:
+   * a pin (GPS, map, place) or a place picked by the user. The built-in
+   * default start does not count. Returns { lat, lon, name, kind } or null.
+   */
+  function tripEnd(role) {
+    var pin = pins[role];
+    if (pin && pin.node) return { lat: pin.node.lat, lon: pin.node.lon, name: pin.node.name, kind: pin.kind || "place" };
+    var select = role === "start" ? els.origin : els.destination;
+    var n = nodeById[select.value];
+    if (!n || n.lat === undefined) return null;
+    if (role === "start" && select.value === D.DEFAULTS.origin) return null;
+    return { lat: n.lat, lon: n.lon, name: placeName(n), kind: "place" };
+  }
+
+  /** Greys out the form while a new area loads, so nothing runs on the old map. */
+  function setAreaLoading(on) {
+    els.form.classList.toggle("is-loading-area", on);
+    [els.findRoute, els.emergency, els.originSearch, els.destinationSearch, els.locate, els.swap].forEach(function (b) {
+      if (b) b.disabled = on;
+    });
+    els.form.setAttribute("aria-busy", on ? "true" : "false");
+  }
+
+  /**
+   * Checks that a freshly built area can actually route: two places far
+   * apart are connected. Returns null if fine, else an error with a code.
+   */
+  function checkArea(data) {
+    var places = data.NODES.filter(function (n) { return n.category; });
+    if (places.length < 2) return null;
+    var south = places[0];
+    var north = places[0];
+    places.forEach(function (n) {
+      if (n.lat < south.lat) south = n;
+      if (n.lat > north.lat) north = n;
+    });
+    if (south.id === north.id) return null;
+    var res = E.findRoutes(data, E.levelsForHour(data, 12), south.id, north.id, { priority: "fastest" });
+    if (res.ok) return null;
+    var err = new Error("Area check: " + res.code);
+    err.code = "unroutable";
+    return err;
+  }
+
+  /**
+   * Loads an area (only one at a time: a newer request replaces an older
+   * one, whose answer is then ignored). opts: { onDone(data), onFail(err),
+   * cropped: { name, ns, ew } }.
+   */
+  function loadBox(name, box, opts) {
+    opts = opts || {};
+    var token = areaSession.begin();
+    area.busy = true;
+    area.lastLoad = { name: name, box: box, opts: opts };
+    els.areaRetry.hidden = true;
+    els.areaBox.hidden = false;
+    clearFormError();
+    setAreaLoading(true);
+    setAreaStatus(t("area.step.roads"));
+    AL.load(name, box, function (step, seconds) {
+      if (areaSession.isCurrent(token)) setAreaStatus(t("area.step." + step, { s: seconds }));
+    }).then(function (data) {
+      if (!areaSession.isCurrent(token)) return; // the user chose another area since
+      var bad = checkArea(data);
+      if (bad) throw bad;
+      areaSession.end(token);
+      area.busy = false;
+      setAreaLoading(false);
+      if (opts.cropped) data.AREA.cropped = opts.cropped;
+      AL.remember(data);
+      area.fresh[data.AREA.key] = true; // only for this visit: not saved with the area
+      switchArea(data, data.AREA.key);
+      setAreaStatus("");
+      if (opts.onDone) opts.onDone(data);
+      if (!state.query && !state.notice) {
+        state.notice = { kind: "same", text: t("area.ready", { name: local(data.AREA.name), e: data.EDGES.length.toLocaleString("en-IN") }) };
+        renderNotice();
+      }
+    }).catch(function (err) {
+      if (!areaSession.isCurrent(token)) return;
+      areaSession.end(token);
+      area.busy = false;
+      setAreaLoading(false);
+      els.areaBox.hidden = false;
+      setAreaStatus(areaErrorText(err) + " " + t("area.stillOn", { name: local(D.AREA.name) }), true);
+      els.areaRetry.hidden = false;
+      if (opts.onFail) opts.onFail(err);
+    });
+  }
+
+  /**
+   * A point outside the map: offer to load an area for it. If the other end
+   * of the trip is chosen and both fit in one area, that area covers both.
+   */
+  function offerAreaFor(role, lat, lon, kind, label, select) {
+    var here = { lat: lat, lon: lon };
+    var otherRole = role === "start" ? "destination" : "start";
+    var other = AL ? tripEnd(otherRole) : null;
+    var areaName = local(D.AREA.name);
+    if (!AL) {
+      showFormError(t("err.outside", { metres: G.MAX_PIN_METRES, area: areaName }), select);
+      return;
+    }
+    var name = label || t("pin.mapPoint");
+    var finish = function () {
+      if (other) setPin(otherRole, other.lat, other.lon, other.kind, other.name);
+      if (setPin(role, lat, lon, kind, label)) searchIfReady();
+    };
+    var km = other ? AL.distanceKm(other, here).toFixed(1) : null;
+    var both = other ? AL.boxAround(other, here) : null;
+    if (both) {
+      showFormError(t("area.outsideBoth", { area: areaName, km: km, other: t("area.role." + otherRole) }), select, {
+        label: t("area.loadBoth"),
+        run: function () {
+          // Name the area after the locality of the point (OpenStreetMap reverse search).
+          AL.whereIs(lat, lon).then(function (n) { return n || name; }, function () { return name; }).then(function (n) {
+            loadBox(t("area.tripName", { a: other.name, b: label || n }), both, { onDone: finish });
+          });
+        }
+      });
+      return;
+    }
+    var msg = other
+      ? t("area.outsideFar", { area: areaName, km: km, other: t("area.role." + otherRole) })
+      : t("area.outsideNoOther", { area: areaName });
+    showFormError(msg, select, {
+      label: t("area.loadHere"),
+      run: function () {
+        other = null;
+        AL.whereIs(lat, lon).then(function (n) { return n || name; }, function () { return name; }).then(function (n) {
+          loadBox(n, AL.square(lat, lon, AL.SETTINGS.squareKm / 2), { onDone: finish });
+        });
+      }
+    });
   }
 
   /** Remembered areas and the built-in one, as buttons. */
@@ -1856,41 +2081,45 @@
    * chosen result becomes the start or destination (area.pending).
    */
   function loadResult(r) {
-    if (area.busy) return;
-    var box = AL.boxForResult(r);
+    var info = AL.boxInfo(r);
+    var box = info.box;
+    var cropped = info.cropped ? { name: r.name, ns: Math.round(info.full.ns), ew: Math.round(info.full.ew) } : null;
+    // The searched place becomes this end of the trip: the role asked for
+    // ("Search outside this area"), else the destination when a start was
+    // chosen by the user (e.g. by GPS), else nothing (just a new area).
+    var role = area.pending ? area.pending.role : null;
+    var otherRole = role === "start" ? "destination" : "start";
+    var other = tripEnd(otherRole);
     var keep = null;
-    if (area.pending) {
-      var otherSelect = area.pending.role === "start" ? els.destination : els.origin;
-      var other = nodeById[otherSelect.value];
-      if (other && other.lat !== undefined) {
-        var both = AL.boxAround({ lat: other.lat, lon: other.lon }, r);
-        if (both) {
-          box = both;
-          keep = { role: area.pending.role === "start" ? "destination" : "start", lat: other.lat, lon: other.lon, name: placeName(other) };
-        }
+    var dropped = null;
+    if (other) {
+      var both = AL.boxAround(other, r);
+      if (both) {
+        box = both;
+        cropped = null;
+        keep = { role: otherRole, other: other };
+        if (!role) role = "destination";
+      } else if (!role) {
+        dropped = { name: other.name, km: AL.distanceKm(other, r).toFixed(0) };
       }
     }
-    area.busy = true;
-    els.areaSearch.disabled = true;
-    setAreaStatus(t("area.step.roads"));
-    var pending = area.pending;
-    AL.load(r.name, box, function (step, seconds) { setAreaStatus(t("area.step." + step, { s: seconds })); }).then(function (data) {
-      area.busy = false;
-      els.areaSearch.disabled = false;
-      area.pending = null;
-      AL.remember(data);
-      switchArea(data, data.AREA.key);
-      // Put the searched place (and the kept other end) on the new map.
-      if (pending) {
-        if (keep) setPin(keep.role, keep.lat, keep.lon, "place", keep.name);
-        setPin(pending.role, r.lat, r.lon, "place", local(r.name));
-        searchIfReady();
+    area.pending = null;
+    loadBox(r.name, box, {
+      cropped: cropped,
+      onDone: function (data) {
+        if (keep) setPin(keep.role, keep.other.lat, keep.other.lon, keep.other.kind, keep.other.name);
+        if (role) {
+          setPin(role, r.lat, r.lon, "place", local(r.name));
+          searchIfReady();
+        }
+        if (keep) {
+          state.notice = { kind: "same", text: t("area.readyTrip", { a: keep.other.name, b: local(r.name) }) };
+          renderNotice();
+        } else if (dropped) {
+          state.notice = { kind: "changed", text: t("area.startDropped", { name: dropped.name, km: dropped.km, area: local(data.AREA.name) }) };
+          renderNotice();
+        }
       }
-      setAreaStatus("");
-    }, function (err) {
-      area.busy = false;
-      els.areaSearch.disabled = false;
-      setAreaStatus(areaErrorText(err), true);
     });
   }
 
@@ -2058,19 +2287,11 @@
         });
       }
       var box = AL.boxAround(s.a, s.b);
-      if (!box) return;
-      els.areaBox.hidden = false;
-      setAreaStatus(t("share.loadingArea"));
-      return AL.load(s.b.name || s.a.name || "Shared route", box, function (step, seconds) {
-        setAreaStatus(t("area.step." + step, { s: seconds }));
-      }).then(function (data) {
-        AL.remember(data);
-        switchArea(data, data.AREA.key);
-        setAreaStatus("");
-        showShared(s);
-      }, function (err) {
-        setAreaStatus(areaErrorText(err), true);
-      });
+      if (!box) {
+        showFormError(t("share.tooFar", { km: AL.distanceKm(s.a, s.b).toFixed(0) }));
+        return;
+      }
+      loadBox(s.b.name || s.a.name || "Shared route", box, { onDone: function () { showShared(s); } });
     });
   }
 
@@ -2593,6 +2814,10 @@
     else els.areaBox.hidden = true;
   });
   els.areaClose.addEventListener("click", function () { els.areaBox.hidden = true; });
+  els.areaRetry.addEventListener("click", function () {
+    var l = area.lastLoad;
+    if (l) loadBox(l.name, l.box, l.opts);
+  });
   els.areaSearch.addEventListener("click", searchAreas);
   els.areaQuery.addEventListener("keydown", function (ev) {
     if (ev.key === "Enter") {
