@@ -1709,3 +1709,62 @@ fieldset {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- live incidents ---------- */
+
+.live-incidents {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.live-incidents[hidden] {
+  display: none;
+}
+.inc-item {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--moderate-ink);
+  background: var(--moderate-bg);
+  border: 0;
+  border-left: 5px solid var(--moderate);
+  border-radius: var(--radius-s);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.inc-item.is-closed,
+.inc-item.inc-accident,
+.inc-item.inc-flooding {
+  color: var(--heavy-ink);
+  background: var(--heavy-bg);
+  border-left-color: var(--heavy);
+}
+.inc-item:hover {
+  text-decoration: underline;
+}
+.inc-none {
+  font-size: 0.85rem;
+  color: var(--light-ink);
+  font-weight: 600;
+}
+.mk-incident {
+  border-radius: 50%;
+  background: #e3a11b;
+  color: #0d1c36;
+  font-size: 14px;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+.mk-incident.is-severe {
+  background: #c62828;
+  color: #ffffff;
+}
+.hazards li.hz-incident {
+  background: var(--heavy-bg);
+  color: var(--heavy-ink);
+  font-weight: 600;
+}

@@ -46,21 +46,38 @@ It has two modes, switched at the top of the page:
 5. Press **Emergency: nearest hospital**. From Thotapalem at midday it routes to Tirumala Medicover Hospitals (2.4 min) and lists the next two nearest, with the 108 / 112 helpline numbers.
 6. Click any point on the map and choose **Go here** to show routing to an arbitrary place.
 
-## Live traffic (TomTom)
+## Live traffic and incidents (TomTom)
 
-Live traffic is optional and uses your own free TomTom key.
+The time-of-day estimate cannot know about *today*: an accident, a bandh, a broken-down lorry, road works or waterlogging. To react to the real situation, the app uses live data from TomTom, with your own free key.
 
-1. Sign up at <https://developer.tomtom.com/> and create an API key. The free plan includes the Traffic API.
+**Set up (once per device)**
+1. Sign up at <https://developer.tomtom.com/> and create an API key. The free plan includes the Traffic APIs.
 2. In the app, open *Traffic conditions → TomTom API key*, paste the key and press **Save**.
-3. Live traffic switches on. The status line says when it was updated and how many road sections it covered. Press **Update now** to refresh.
+3. Live traffic and incidents switch on and then **update automatically** while the page is open.
 
-**How it works.**
-- The app asks TomTom for the current and free-flow speed at up to 80 points along the main roads. That's 80 requests per update, well inside the free daily allowance.
-- Each reading becomes a traffic level: current ÷ free-flow of 0.8 or more is *light*, 0.5 or more is *moderate*, lower is *heavy*, and closed roads are removed.
-- Each level is applied to the main-road sections along TomTom's matched stretch of road. Small lanes keep the time-of-day estimate.
-- TomTom's live traffic colours are also drawn over the map.
+**What it detects**
+
+| Live data | How it is used | Updated |
+| --- | --- | --- |
+| **Incidents**: accidents, road closures, road works, lane closures, flooding, broken-down vehicles, jams | Placed on the exact road sections they affect. A closure (or an "indefinite" delay) **closes** the road; others make it **moderate or heavy** by their reported delay. Accidents, closures, works, flooding and breakdowns also add a temporary **Live incident** hazard (+3 risk points per km), so the **Safest** route avoids them too. | Every **2 minutes** (1 request) |
+| **Speeds** on main roads | Current ÷ free-flow speed at up to 80 points: 0.8 or more is light, 0.5 or more is moderate, below that heavy. This catches slowdowns even before anyone reports an incident. | Every **15 minutes** (up to 80 requests) |
+
+When something changes, the routes are recalculated and the notice above the map says why. For example: *"Live update: 1 incident in the area. Recommendation changed: the route via Railway Station Road is now fastest…"*.
+
+Other places it shows up:
+- The *Traffic conditions* panel lists the current incidents. Tap one to see it on the map.
+- Route cards warn when a route passes an incident.
+- When TomTom reports the incident cleared, the next update puts the road back.
+
+**Your own changes stay on top.** If you mark a road closed by hand (for example a procession you can see), later live updates do not undo it. Choosing a new time of day starts again.
+
+**Request budget.** About 30 incident requests and 320 speed requests per hour of use. That's roughly 7 hours a day inside TomTom's free 2,500 requests a day. Updates pause while the page is hidden. The intervals are `incidentsEveryMs` and `speedsEveryMs` in `js/live-traffic.js`.
 
 **Your key stays private.** It is stored only in that browser on that device (`localStorage`). It is never written into the project files or sent anywhere except TomTom. *Remove saved key* deletes it. Because the page runs in the browser, anyone using your device can read the key in the developer tools. TomTom lets you restrict a key to your website's address in its dashboard.
+
+**Limits.**
+- TomTom only knows what its data sources report. In a town the size of Vizianagaram, small lanes and very recent events may be missing. A bandh with no traffic data behind it won't appear.
+- Community reports (anyone can report "accident here") and official alerts (police or municipality post a bandh or closure) are planned next, using a Firebase database.
 
 ## Vehicle types
 
@@ -183,7 +200,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ## Known limitations
 
-- **Live traffic needs your own key, and covers main roads only.** Without a key, traffic is estimated from time of day and road type. With a TomTom key, main roads use live readings and small lanes still use the estimate.
+- **Live data needs your own key and depends on TomTom's coverage.** Without a key, traffic is estimated from time of day and road type and nothing that happens today is detected. With a key, accidents, closures, works and jams that TomTom knows about are detected automatically, and main roads get live speeds. Small lanes and events nobody has reported may still be missed.
 - **Simplified journey times.** They ignore signal waits, turns and vehicle type. Traffic is constant along each road section.
 - **Map data gaps.** OpenStreetMap data for smaller towns can miss lanes, have wrong one-way tags, or name places inconsistently. Only the largest connected part of the network is used, so every route found is drivable on the map data.
 - **Inferred hazards.** Apart from your black spot list, hazards are worked out from the map, not from accident records.
@@ -203,10 +220,12 @@ npm run verify        # all three
 
 **Vehicles.** For every pair of places and every vehicle type, the recommendation is checked against brute force.
 
-**Live traffic** (with a fake TomTom server, no key needed). The tests check:
-- sample points;
-- speed-to-level rules;
-- matching readings to road sections;
+**Live traffic and incidents** (with a fake TomTom server, no key needed). The tests check:
+- speed sample points and speed-to-level rules;
+- incident categories and delays turned into levels;
+- incidents placed on the right road sections (and not on side lanes);
+- a closure or accident on today's route changes the fastest and the safest recommendation;
+- one request fetches all incidents for the area;
 - error handling: wrong key, daily limit, no answer, a browser that throws.
 
 **Translations.** Every text key used by the page exists in English and Telugu, with the same placeholders.

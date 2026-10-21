@@ -97,3 +97,97 @@ test("without a fetch argument it uses the browser's global fetch", async () => 
     global.fetch = saved;
   }
 });
+
+// ---------- incidents ----------
+
+/** A TomTom-style incident lying along one of our road sections. */
+function incidentOn(edge, iconCategory, magnitudeOfDelay, extra) {
+  const coordinates = [];
+  for (let i = 0; i < edge.geom.length; i += 2) coordinates.push([edge.geom[i + 1], edge.geom[i]]); // [lon, lat]
+  return {
+    type: "Feature",
+    geometry: { type: "LineString", coordinates },
+    properties: { id: "t-" + edge.id, iconCategory, magnitudeOfDelay, events: [{ description: "Test incident" }], from: "A", to: "B", delay: 300, ...extra }
+  };
+}
+
+const recommendedEdge = () => {
+  const r = E.findRoutes(R, E.levelsForHour(R, 12), R.DEFAULTS.origin, R.DEFAULTS.destination);
+  const named = r.recommended.edges.map((id) => R.EDGES.find((e) => e.id === id)).filter((e) => e.type !== "access");
+  return named[Math.floor(named.length / 2)];
+};
+
+test("incident categories and delays become traffic levels", () => {
+  assert.equal(LT.incidentLevel("closed", 0), "closed");
+  assert.equal(LT.incidentLevel("accident", 4), "closed");
+  assert.equal(LT.incidentLevel("accident", 3), "heavy");
+  assert.equal(LT.incidentLevel("roadworks", 2), "heavy");
+  assert.equal(LT.incidentLevel("jam", 1), "moderate");
+  assert.equal(LT.incidentLevel("accident", 0), "moderate", "an accident always slows the road");
+  assert.equal(LT.incidentLevel("fog", 0), null, "weather with no delay changes nothing");
+  assert.ok(R.HAZARDS.incident, "the map data has the live incident hazard");
+});
+
+test("an incident is placed on the right road sections", () => {
+  const e = recommendedEdge();
+  const out = LT.incidentsFromResponse(R, { incidents: [incidentOn(e, 1, 2)] });
+  assert.equal(out.incidents.length, 1);
+  assert.equal(out.incidents[0].category, "accident");
+  assert.ok(out.incidents[0].edges.includes(e.id), "the incident's own road is matched");
+  assert.equal(out.levels[e.id], "heavy");
+  assert.ok(out.unsafe.includes(e.id), "an accident makes the road unsafe");
+  assert.equal(out.byEdge[e.id].id, "t-" + e.id);
+  // It should not spread to roads far away.
+  for (const id of out.incidents[0].edges) {
+    const other = R.EDGES.find((x) => x.id === id);
+    assert.ok(Math.abs(other.geom[0] - e.geom[0]) < 0.01 && Math.abs(other.geom[1] - e.geom[1]) < 0.01, id + " is far from the incident");
+  }
+  // A point incident goes to the nearest section only.
+  const pt = { type: "Feature", geometry: { type: "Point", coordinates: [e.geom[1], e.geom[0]] }, properties: { iconCategory: 14, magnitudeOfDelay: 1 } };
+  const one = LT.incidentsFromResponse(R, { incidents: [pt] });
+  assert.equal(one.incidents[0].edges.length, 1);
+  // Jams slow the road but do not make it unsafe.
+  const jam = LT.incidentsFromResponse(R, { incidents: [incidentOn(e, 6, 1)] });
+  assert.equal(jam.levels[e.id], "moderate");
+  assert.deepEqual(jam.unsafe, []);
+});
+
+test("a road closure or accident on today's route changes the recommendation", () => {
+  const e = recommendedEdge();
+  const levels = E.levelsForHour(R, 12);
+  const before = E.findRoutes(R, levels, R.DEFAULTS.origin, R.DEFAULTS.destination);
+  assert.ok(before.recommended.edges.includes(e.id));
+
+  // Closure: the road is removed, so no route may use it.
+  const closed = LT.incidentsFromResponse(R, { incidents: [incidentOn(e, 8, 4)] });
+  const after = E.findRoutes(R, { ...levels, ...closed.levels }, R.DEFAULTS.origin, R.DEFAULTS.destination);
+  assert.equal(after.ok, true);
+  for (const r of after.routes) for (const id of closed.incidents[0].edges) assert.ok(!r.edges.includes(id), "route uses the closed road");
+
+  // Accident: the road gets the live incident hazard, so the safest route avoids it when it can.
+  const acc = LT.incidentsFromResponse(R, { incidents: [incidentOn(e, 1, 1)] });
+  const marked = new Set(acc.unsafe);
+  const data = { ...R, EDGES: R.EDGES.map((x) => (marked.has(x.id) ? { ...x, hazards: ["incident", ...x.hazards] } : x)) };
+  const safe = E.findRoutes(data, { ...levels, ...acc.levels }, R.DEFAULTS.origin, R.DEFAULTS.destination, { priority: "safest" });
+  assert.ok(!safe.recommended.edges.some((id) => marked.has(id)), "the safest route still goes past the accident");
+});
+
+test("incidents are fetched with one request for the whole area", async () => {
+  const urls = [];
+  const fake = (url) => {
+    urls.push(url);
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ incidents: [incidentOn(recommendedEdge(), 9, 1)] }) });
+  };
+  const out = await LT.fetchIncidents(R, KEY, fake);
+  assert.equal(urls.length, 1);
+  const [s, w, n, e] = R.AREA.bbox;
+  assert.ok(urls[0].startsWith("https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=" + [w, s, e, n].join(",")));
+  assert.ok(urls[0].includes("key=" + KEY) && urls[0].includes("timeValidityFilter=present"));
+  assert.equal(out.incidents[0].category, "roadworks");
+  assert.ok(out.fetchedAt instanceof Date);
+  const status = (code) => () => Promise.resolve({ ok: false, status: code, json: () => Promise.resolve({}) });
+  await assert.rejects(LT.fetchIncidents(R, KEY, status(403)), (err) => err.code === "denied");
+  await assert.rejects(LT.fetchIncidents(R, KEY, status(429)), (err) => err.code === "limit");
+  await assert.rejects(LT.fetchIncidents(R, KEY, status(500)), (err) => err.code === "noanswer");
+  await assert.rejects(LT.fetchIncidents(R, "", fake), (err) => err.code === "nokey");
+});

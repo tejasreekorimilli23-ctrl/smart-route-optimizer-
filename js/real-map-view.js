@@ -26,6 +26,12 @@
     };
   }
 
+  // Symbols for incident markers (plain characters, so no image files are needed).
+  var INCIDENT_ICONS = {
+    accident: "!", breakdown: "!", closed: "⛔", roadworks: "⚒", laneclosed: "⚒",
+    flooding: "≈", jam: "≡", danger: "!", fog: "~", rain: "~", ice: "*", wind: "~", unknown: "?"
+  };
+
   var ALT_STYLES = [
     null,
     { color: "#1B2B48", dashArray: "10 8", weight: 4.5 },
@@ -253,6 +259,25 @@
       });
     }
 
+    // Live incidents from TomTom: the affected stretch and a warning marker.
+    (opts.incidents || []).forEach(function (inc) {
+      if (!inc.edges.length) return;
+      var ll = inc.coords.map(function (c) { return [c.lat, c.lon]; });
+      var severe = inc.level === "closed" || inc.level === "heavy";
+      if (ll.length > 1) {
+        root.L.polyline(ll, {
+          color: severe ? "#C62828" : "#E3A11B", weight: 7, opacity: 0.85,
+          dashArray: inc.level === "closed" ? "8 6" : null, interactive: false
+        }).addTo(overlay);
+      }
+      var mid = ll[Math.floor(ll.length / 2)];
+      root.L.marker(mid, {
+        icon: divIcon("mk-incident inc-" + inc.category + (severe ? " is-severe" : ""), INCIDENT_ICONS[inc.category] || "!", 26),
+        zIndexOffset: 900,
+        keyboard: false
+      }).bindTooltip(opts.incidentTip ? opts.incidentTip(inc) : inc.category).addTo(overlay);
+    });
+
     // Accident black spots from js/blackspots.js.
     (opts.blackspots || []).forEach(function (b) {
       root.L.circle([b.lat, b.lon], { radius: b.radiusMetres || 100, color: "#DD4545", weight: 2, fillOpacity: 0.12, interactive: false })
@@ -311,7 +336,13 @@
     }
   }
 
+  /** Centres the map on a point (e.g. an incident chosen from the list). */
+  function focusOn(lat, lon) {
+    if (map) map.setView([lat, lon], 17, { animate: false });
+  }
+
   api.render = render;
+  api.focusOn = focusOn;
   api.setLiveOverlay = setLiveOverlay;
   api.invalidate = function () {
     if (map) map.invalidateSize();

@@ -59,7 +59,8 @@
   var state;
   var fitCounter = 0;
   var hourTimer = null;
-  var live = { on: false, busy: false, result: null, error: null }; // TomTom live traffic (real mode)
+  // TomTom live data (real mode): speeds on main roads and incidents.
+  var live = { on: false, busy: false, flow: null, incidents: null, error: null, warn: false };
   var searches = {};
 
   var els = {
@@ -85,6 +86,7 @@
     liveToggle: $("live-toggle"),
     liveRefresh: $("live-refresh"),
     liveStatus: $("live-status"),
+    liveIncidents: $("live-incidents"),
     liveKeyBox: $("live-key-box"),
     liveKey: $("live-key"),
     liveKeySave: $("live-key-save"),
@@ -192,7 +194,7 @@
   function roadName(edge) {
     if (!edge) return "";
     if (edge.type === "access") return t("road.access");
-    if (isReal() && !edge.corridor) return t("road.unnamed", { type: roadTypeLabel(edge.type) });
+    if (isReal() && !edge.corridor) return t("road.unnamed", { type: roadTypeLabel(edge.type).toLowerCase() });
     return edge.name;
   }
 
@@ -233,14 +235,25 @@
     return Object.keys(pins).map(function (k) { return pins[k]; });
   }
 
-  /** The current data plus any GPS / map-click locations. */
+  /**
+   * The current data plus any GPS / map-click locations, with the temporary
+   * "incident" hazard on roads that have a live accident, closure or works.
+   */
   function routeData() {
     var list = pinList();
-    if (!list.length) return D;
+    var unsafe = liveActive() && live.incidents && D.HAZARDS.incident ? live.incidents.unsafe : [];
+    if (!list.length && !unsafe.length) return D;
     if (!routing) {
+      var marked = {};
+      unsafe.forEach(function (id) { marked[id] = true; });
+      var edges = unsafe.length
+        ? D.EDGES.map(function (e) {
+            return marked[e.id] ? Object.assign({}, e, { hazards: ["incident"].concat(e.hazards || []) }) : e;
+          })
+        : D.EDGES;
       routing = Object.assign({}, D, {
         NODES: D.NODES.concat(list.map(function (p) { return p.node; })),
-        EDGES: D.EDGES.concat([].concat.apply([], list.map(function (p) { return p.edges; })))
+        EDGES: edges.concat([].concat.apply([], list.map(function (p) { return p.edges; })))
       });
     }
     return routing;
@@ -278,16 +291,24 @@
     return Math.min(D.DAY_END_HOUR, Math.max(D.DAY_START_HOUR, h));
   }
 
-  /** Time-of-day estimate, with live TomTom levels on top when switched on. */
-  function baseLevels(hour) {
+  /**
+   * Traffic for an hour: the time-of-day estimate, then live TomTom speeds,
+   * then live incidents (the worse level wins), then the user's own edits.
+   */
+  function baseLevels(hour, withoutManual) {
     var levels = E.levelsForHour(D, hour) || E.levelsForScenario(D, D.DEFAULTS.scenarioId);
-    if (isReal() && live.on && live.result) levels = Object.assign({}, levels, live.result.levels);
+    if (liveActive()) {
+      levels = Object.assign({}, levels);
+      if (live.flow) Object.assign(levels, live.flow.levels);
+      if (live.incidents) mergeWorse(levels, live.incidents.levels);
+    }
+    if (!withoutManual && state && state.manual) levels = Object.assign({}, levels, state.manual);
     return levels;
   }
 
   function initialState(keep) {
     var hour = isReal() ? currentHour() : D.DEFAULTS.hour;
-    var levels = baseLevels(hour);
+    var levels = baseLevels(hour, true); // a fresh start: no hand edits
     return {
       scenarioId: matchScenario(levels),
       hour: E.levelsForHour(D, hour) ? hour : null, // null when traffic is not set by the time slider
@@ -300,7 +321,8 @@
       stale: false, // selection changed since the last search
       selectedEdgeId: DEFAULT_ROAD,
       notice: null,
-      fitKey: null
+      fitKey: null,
+      manual: {} // roads the user set by hand: { edgeId: level }; kept on top of live updates
     };
   }
 
@@ -328,7 +350,7 @@
   }
 
   function conditionsPhrase() {
-    if (isReal() && live.on && live.result && state.hour !== null) return t("cond.live");
+    if (liveActive() && state.hour !== null) return t("cond.live");
     if (state.hour !== null) {
       return t(isReal() ? "cond.hourEstimated" : "cond.hour", { time: hourText(state.hour), band: bandName(E.bandForHour(D, state.hour)) });
     }
@@ -512,7 +534,7 @@
     els.plannerNote.textContent = t("note.planner." + mt);
     els.trafficNote.textContent = t("note.traffic." + mt);
     els.mapNote.textContent = t("note.map." + mt);
-    els.simTag.textContent = t(isReal() ? (live.on && live.result ? "tag.live" : "tag.estimated") : "tag.simulated");
+    els.simTag.textContent = t(isReal() ? (liveActive() ? "tag.live" : "tag.estimated") : "tag.simulated");
   }
 
   function syncControls() {
@@ -521,7 +543,7 @@
         input.checked = input.value === pair[1];
       });
     });
-    var liveNow = isReal() && live.on && live.result;
+    var liveNow = liveActive();
     var band = state.hour !== null ? E.bandForHour(D, state.hour) : null;
     if (band) {
       els.hour.value = state.hour;
@@ -728,6 +750,7 @@
 
   function setHour(hour) {
     if (!E.levelsForHour(D, hour)) return;
+    state.manual = {};
     applyTraffic(baseLevels(hour), hour, t("cause.hour", { time: hourText(hour), band: bandName(E.bandForHour(D, hour)) }));
   }
 
@@ -762,6 +785,7 @@
     var levels = Object.assign({}, state.levels);
     var before = levels[edgeId];
     levels[edgeId] = level;
+    state.manual[edgeId] = level;
     var name = roadName(edgeById[edgeId]);
     var cause;
     if (level === "closed") cause = t("cause.closed", { road: name });
@@ -774,7 +798,10 @@
     var levels = {};
     var count = 0;
     Object.keys(state.levels).forEach(function (k) {
-      if (state.levels[k] === "closed") count++;
+      if (state.levels[k] === "closed") {
+        count++;
+        state.manual[k] = "light";
+      }
       levels[k] = state.levels[k] === "closed" ? "light" : state.levels[k];
     });
     applyTraffic(levels, null, t(count === 1 ? "cause.reopenedOne" : "cause.reopenedMany"));
@@ -860,10 +887,86 @@
     }
   }
 
-  // ---------- live traffic (TomTom, real mode) ----------
+  // ---------- live traffic and incidents (TomTom, real mode) ----------
+
+  var SEVERITY = { light: 0, moderate: 1, heavy: 2, closed: 3 };
 
   function savedKey() {
     try { return window.localStorage.getItem(KEY_STORE) || ""; } catch (err) { return ""; }
+  }
+
+  /** True when live TomTom data is switched on and has arrived. */
+  function liveActive() {
+    return isReal() && live.on && !!(live.flow || live.incidents);
+  }
+
+  /** Copies b's levels into a, keeping the more congested level for each road. */
+  function mergeWorse(a, b) {
+    Object.keys(b).forEach(function (id) {
+      if (!a[id] || SEVERITY[b[id]] > SEVERITY[a[id]]) a[id] = b[id];
+    });
+    return a;
+  }
+
+  function incidentLabel(inc) {
+    return t("incident." + inc.category);
+  }
+
+  /** The road an incident is on: its longest named section, else its longest one. */
+  function incidentRoad(inc) {
+    var edges = inc.edges.map(function (id) { return edgeById[id]; }).filter(Boolean);
+    edges.sort(function (a, b) { return (b.corridor ? 1 : 0) - (a.corridor ? 1 : 0) || b.distanceKm - a.distanceKm; });
+    return edges[0];
+  }
+
+  /** "1 incident in the area, 246 road sections with live speeds" */
+  function liveSummary() {
+    var parts = [];
+    if (live.incidents) {
+      var n = live.incidents.incidents.filter(function (i) { return i.edges.length; }).length;
+      parts.push(n === 0 ? t("live.noIncident") : n === 1 ? t("live.oneIncident") : t("live.nIncidents", { n: n }));
+    }
+    if (live.flow) parts.push(t("live.nRoads", { n: live.flow.roads }));
+    return parts.join(", ");
+  }
+
+  /** Short line describing an incident: "Accident · RTC Complex Road · +5 min · since 1:05 PM". */
+  function incidentText(inc) {
+    var e = incidentRoad(inc);
+    var parts = [incidentLabel(inc)];
+    var where = e ? roadName(e) : inc.from;
+    if (where) parts.push(where);
+    if (inc.delaySeconds >= 60) parts.push(t("incident.delay", { min: Math.round(inc.delaySeconds / 60) }));
+    if (inc.level === "closed") parts.push(t("incident.closedRoad"));
+    if (inc.startTime && !isNaN(inc.startTime)) parts.push(t("incident.since", { time: clockText(inc.startTime) }));
+    return parts.join(" · ");
+  }
+
+  function incidentTip(inc) {
+    return incidentText(inc) + (inc.description ? " — " + inc.description : "") +
+      (inc.from && inc.to ? " (" + inc.from + " → " + inc.to + ")" : "");
+  }
+
+  function renderIncidentList() {
+    var list = els.liveIncidents;
+    var incs = liveActive() && live.incidents ? live.incidents.incidents.filter(function (i) { return i.edges.length; }) : [];
+    list.hidden = !(liveActive() && live.incidents);
+    if (list.hidden) {
+      list.innerHTML = "";
+      return;
+    }
+    if (!incs.length) {
+      list.innerHTML = '<li class="inc-none">' + esc(t("live.noIncidents")) + "</li>";
+      return;
+    }
+    var shown = incs.slice().sort(function (a, b) {
+      return SEVERITY[b.level || "light"] - SEVERITY[a.level || "light"] || b.delaySeconds - a.delaySeconds;
+    }).slice(0, 6);
+    list.innerHTML = shown.map(function (inc) {
+      var i = live.incidents.incidents.indexOf(inc);
+      return '<li><button type="button" class="inc-item inc-' + esc(inc.category) + (inc.level === "closed" ? " is-closed" : "") +
+        '" data-incident="' + i + '">' + esc(incidentText(inc)) + "</button></li>";
+    }).join("") + (incs.length > shown.length ? '<li class="inc-none">' + esc(t("card.more", { n: incs.length - shown.length })) + "</li>" : "");
   }
 
   function updateLiveStatus() {
@@ -875,42 +978,87 @@
     els.liveKeyClear.hidden = !key;
     var text;
     if (!key) text = t("live.needKey");
-    else if (live.busy) text = t("live.loading");
+    else if (live.busy && !liveActive()) text = t("live.loading");
     else if (live.error) text = t("live.err." + (live.error.code || "noanswer"));
-    else if (live.on && live.result) {
-      text = t("live.updated", { time: clockText(live.result.fetchedAt), roads: live.result.roads, answered: live.result.answered });
+    else if (liveActive()) {
+      var latest = [live.flow && live.flow.fetchedAt, live.incidents && live.incidents.fetchedAt].filter(Boolean)
+        .sort(function (a, b) { return b - a; })[0];
+      text = t("live.updated", { time: clockText(latest), summary: liveSummary() });
+      if (live.warn) text += " " + t("live.partial");
     } else text = t("live.off");
     els.liveStatus.textContent = text;
     els.liveStatus.classList.toggle("is-error", !!live.error);
-    els.simTag.textContent = t(isReal() ? (live.on && live.result ? "tag.live" : "tag.estimated") : "tag.simulated");
-    if (VIEWS.real && VIEWS.real.setLiveOverlay) VIEWS.real.setLiveOverlay(isReal() && live.on && live.result ? LT.overlayUrl(key) : null);
+    els.simTag.textContent = t(isReal() ? (liveActive() ? "tag.live" : "tag.estimated") : "tag.simulated");
+    if (VIEWS.real && VIEWS.real.setLiveOverlay) VIEWS.real.setLiveOverlay(liveActive() && live.flow ? LT.overlayUrl(key) : null);
+    renderIncidentList();
   }
 
-  function refreshLive() {
+  function safely(make) {
+    try {
+      return make();
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
+  /** One-line summary of what live data changed, for the notice above the map. */
+  function liveCause(first) {
+    return t(first ? "cause.live" : "cause.liveUpdate", { summary: liveSummary() });
+  }
+
+  /**
+   * Fetches live data: speeds and/or incidents. The first time (when live is
+   * switched on) both are needed; a refused key or the daily limit switch
+   * live off again. Later automatic updates keep the last good data if one
+   * part fails.
+   */
+  function refreshLive(want) {
+    if (live.busy) return;
+    want = want || { speeds: true, incidents: true };
     var key = savedKey();
+    var first = !liveActive();
     live.busy = true;
     live.error = null;
     updateLiveStatus();
-    var request;
-    try {
-      request = LT.fetchLive(D, key);
-    } catch (err) {
-      request = Promise.reject(err);
-    }
-    request.then(function (result) {
+    var jobs = [
+      want.speeds ? safely(function () { return LT.fetchLive(D, key); }).then(ok, bad) : Promise.resolve(null),
+      want.incidents ? safely(function () { return LT.fetchIncidents(D, key); }).then(ok, bad) : Promise.resolve(null)
+    ];
+    function ok(v) { return { ok: v }; }
+    function bad(e) { return { err: e }; }
+    Promise.all(jobs).then(function (out) {
       live.busy = false;
-      live.result = result;
+      var speeds = out[0];
+      var incidents = out[1];
+      var errors = [speeds, incidents].filter(function (r) { return r && r.err; }).map(function (r) { return r.err; });
+      var fatal = errors.filter(function (e) { return e.code === "denied" || e.code === "limit" || e.code === "nokey"; })[0];
+      var gotSomething = (speeds && speeds.ok) || (incidents && incidents.ok);
+      if (fatal || (first && !gotSomething)) {
+        live.error = fatal || errors[0];
+        live.on = false;
+        live.flow = null;
+        live.incidents = null;
+        routing = null;
+        indexData();
+        updateLiveStatus();
+        if (!first) applyTraffic(baseLevels(state.hour !== null ? state.hour : currentHour()), state.hour, t("cause.liveOff"));
+        else syncControls();
+        return;
+      }
+      var before = JSON.stringify([live.flow && live.flow.levels, live.incidents && live.incidents.levels, live.incidents && live.incidents.unsafe]);
+      if (speeds && speeds.ok) live.flow = speeds.ok;
+      if (incidents && incidents.ok) live.incidents = incidents.ok;
+      live.warn = errors.length > 0;
       live.on = true;
+      var after = JSON.stringify([live.flow && live.flow.levels, live.incidents && live.incidents.levels, live.incidents && live.incidents.unsafe]);
+      routing = null;
+      indexData();
       updateLiveStatus();
+      // Live data describes now: use the current hour for the estimate under it.
       var hour = currentHour();
-      applyTraffic(baseLevels(hour), hour, t("cause.live", { roads: result.roads }));
-    }, function (err) {
-      live.busy = false;
-      live.error = err;
-      live.on = false;
-      live.result = null;
-      updateLiveStatus();
-      syncControls();
+      if (first || before !== after || state.hour !== hour) {
+        applyTraffic(baseLevels(hour), hour, liveCause(first));
+      }
     });
   }
 
@@ -920,12 +1068,31 @@
       refreshLive();
     } else {
       live.on = false;
-      live.result = null;
+      live.flow = null;
+      live.incidents = null;
       live.error = null;
+      live.warn = false;
+      routing = null;
+      indexData();
       updateLiveStatus();
       var hour = state.hour !== null ? state.hour : currentHour();
       applyTraffic(baseLevels(hour), hour, t("cause.liveOff"));
     }
+  }
+
+  /**
+   * Automatic updates while live is on and the page is visible: incidents
+   * every 2 minutes (1 request), speeds every 15 minutes (up to 80 requests).
+   */
+  function autoTick() {
+    if (!liveActive() || live.busy || document.hidden) return;
+    var now = Date.now();
+    var S = LT.SETTINGS;
+    var want = {
+      incidents: !live.incidents || now - live.incidents.fetchedAt >= S.incidentsEveryMs,
+      speeds: !live.flow || now - live.flow.fetchedAt >= S.speedsEveryMs
+    };
+    if (want.incidents || want.speeds) refreshLive(want);
   }
 
   // ---------- rendering ----------
@@ -948,7 +1115,9 @@
       blackspots: BLACKSPOTS,
       fitKey: state.fitKey,
       t: t,
-      hazardLabel: hazardLabel
+      hazardLabel: hazardLabel,
+      incidents: liveActive() && live.incidents ? live.incidents.incidents : [],
+      incidentTip: incidentTip
     });
   }
 
@@ -1023,15 +1192,17 @@
     r.segments.forEach(function (s) {
       s.hazards.forEach(function (h) {
         var road = segRoadName(s);
-        var key = h.id + "|" + road;
+        var inc = h.id === "incident" && live.incidents ? live.incidents.byEdge[s.edgeId] : null;
+        var label = inc ? t("incident.liveOn", { label: incidentLabel(inc) }) : hazardLabel(h.id);
+        var key = label + "|" + road;
         if (seen[key]) return;
         seen[key] = true;
-        items.push({ id: h.id, road: road });
+        items.push({ id: h.id, road: road, label: label });
       });
     });
     return '<ul class="hazards" aria-label="' + esc(t("card.hazardsLabel", { route: routeLabel(r) })) + '">' +
       items.map(function (h) {
-        return '<li class="hz-' + esc(h.id) + '">' + t("card.hazardOn", { hazard: "<strong>" + esc(hazardLabel(h.id)) + "</strong>", road: esc(h.road) }) + "</li>";
+        return '<li class="hz-' + esc(h.id) + '">' + t("card.hazardOn", { hazard: "<strong>" + esc(h.label) + "</strong>", road: esc(h.road) }) + "</li>";
       }).join("") + "</ul>";
   }
 
@@ -1311,7 +1482,7 @@
         "<h3>" + esc(t("calc.formulaTitle")) + "</h3>" +
         "<p>" + esc(t("calc.formulaTime", { rounding: t(real ? "calc.roundSecond" : "calc.roundTenth") })) + "</p>" +
         "<p>" + esc(t("calc.formulaRisk", { base: D.BASE_RISK, safer: S.saferMaxRisk.toFixed(1), caution: S.cautionMaxRisk.toFixed(1) })) + "</p>" +
-        "<h3>" + esc(t(real ? (live.on && live.result ? "calc.factorsLive" : "calc.factorsEstimated") : "calc.factorsSimulated")) + "</h3><p>" + esc(factors) + ".</p>" +
+        "<h3>" + esc(t(real ? (liveActive() ? "calc.factorsLive" : "calc.factorsEstimated") : "calc.factorsSimulated")) + "</h3><p>" + esc(factors) + ".</p>" +
         "<h3>" + esc(t("calc.speedsTitle")) + "</h3><p>" + esc(speeds) + "." +
         (real ? " " + esc(t("calc.speedsReal")) : "") + " " + esc(t("calc.speedsNote")) + "</p>" +
         "<h3>" + esc(t("calc.vehiclesTitle")) + "</h3><p>" + esc(vehicles) + ".</p>" +
@@ -1325,7 +1496,7 @@
           : t("calc.howYen", { k: S.candidatePool })) + " " +
         esc(t("calc.howFilter", { pct: Math.round(S.maxSharedLength * 100) })) + "</p>" +
         "<p>" + esc(t(real ? "calc.howEmergencyReal" : "calc.howEmergencyDemo")) + "</p>" +
-        (real && live.on && live.result ? "<p>" + esc(t("calc.howLive")) + "</p>" : "") +
+        (liveActive() ? "<p>" + esc(t("calc.howLive")) + "</p>" : "") +
         "<p>" + esc(t("calc.label", { light: Math.round((S.lightMaxRatio - 1) * 100), moderate: Math.round((S.moderateMaxRatio - 1) * 100) })) + "</p>" +
       "</div>";
     els.calc.hidden = false;
@@ -1403,7 +1574,18 @@
   els.liveToggle.addEventListener("change", function () {
     setLive(els.liveToggle.checked);
   });
-  els.liveRefresh.addEventListener("click", refreshLive);
+  els.liveRefresh.addEventListener("click", function () { refreshLive(); });
+  els.liveIncidents.addEventListener("click", function (ev) {
+    var btn = ev.target.closest ? ev.target.closest("[data-incident]") : null;
+    if (!btn || !live.incidents) return;
+    var inc = live.incidents.incidents[Number(btn.getAttribute("data-incident"))];
+    if (!inc) return;
+    var mid = inc.coords[Math.floor(inc.coords.length / 2)];
+    if (VIEWS.real.focusOn) VIEWS.real.focusOn(mid.lat, mid.lon);
+    els.mapPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  });
+  setInterval(autoTick, 30000);
+  document.addEventListener("visibilitychange", autoTick);
   els.liveKeySave.addEventListener("click", function () {
     var key = els.liveKey.value.trim();
     if (!key) return;
@@ -1415,7 +1597,7 @@
   });
   els.liveKeyClear.addEventListener("click", function () {
     try { window.localStorage.removeItem(KEY_STORE); } catch (err) { /* ignore */ }
-    if (live.on) setLive(false);
+    if (live.on || live.flow || live.incidents) setLive(false);
     live.error = null;
     updateLiveStatus();
   });
@@ -1423,6 +1605,7 @@
   els.scenarioOptions.addEventListener("change", function (ev) {
     var sc = scenarioById(ev.target.value);
     if (!sc) return;
+    state.manual = {};
     applyTraffic(E.levelsForScenario(D, sc.id), null, t("cause.scenario", { name: scenarioName(sc) }));
   });
 

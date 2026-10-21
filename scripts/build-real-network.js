@@ -49,6 +49,8 @@ const MAJOR = new Set(["trunk", "motorway", "primary", "secondary", "tertiary"])
 const SKIP_SERVICE = new Set(["parking_aisle", "driveway", "drive-through", "emergency_access"]);
 
 const HAZARDS = {
+  // Added in the browser to roads with a live TomTom incident (accident, closure, works...).
+  incident: { label: "Live incident", weight: 3 },
   blackspot: { label: "Accident black spot", weight: 3 },
   school: { label: "School or college zone", weight: 2 },
   market: { label: "Crowded market or shopping area", weight: 2 },
@@ -57,7 +59,7 @@ const HAZARDS = {
   unlit: { label: "Poor street lighting", weight: 1 },
   nofootpath: { label: "No footpath for pedestrians", weight: 1 }
 };
-const HAZARD_ORDER = ["blackspot", "school", "market", "heavyvehicles", "junction", "unlit", "nofootpath"];
+const HAZARD_ORDER = ["incident", "blackspot", "school", "market", "heavyvehicles", "junction", "unlit", "nofootpath"];
 
 // Estimated traffic through the day, by road class and by nearby hazard.
 // These are planning estimates, not live traffic.
