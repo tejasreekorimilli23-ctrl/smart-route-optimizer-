@@ -17,6 +17,7 @@
   var G = window.GeoTools;
   var LT = window.LiveTraffic;
   var PS = window.PlaceSearch;
+  var DIR = window.Directions;
   var I18N = window.I18N;
   var DATASETS = { demo: window.TrafficData, real: window.RealTrafficData };
   var VIEWS = { demo: window.MapView, real: window.RealMapView };
@@ -1248,6 +1249,44 @@
       items.map(function (name) { return "<li>" + esc(name) + "</li>"; }).join("") + "</ol>";
   }
 
+  /** "350 m" or "1.2 km" for a leg, from the route's distance units. */
+  function legDistance(units) {
+    var metres = (units / E.unitsOf(D).perKm) * 1000;
+    if (metres < 1000) return t("unit.metres", { m: Math.max(10, Math.round(metres / 10) * 10) });
+    return t("fig.km", { km: (metres / 1000).toFixed(1) });
+  }
+
+  /** Name of the road a step follows: the whole road's name, not one section's. */
+  function stepRoad(step) {
+    var e = edgeById[step.roadEdgeId];
+    if (!e) return "";
+    return e.corridor ? e.corridor : roadName(e);
+  }
+
+  /** One instruction in the page language. */
+  function stepText(step, r) {
+    if (step.kind === "arrive") return t("dir.arrive", { place: r.nodeNames[r.nodeNames.length - 1] });
+    var road = stepRoad(step);
+    var text = step.kind === "depart"
+      ? t("dir.depart", { dir: t("dir.compass." + step.compass), road: road })
+      : t("dir.turn." + step.turn, { road: road });
+    return text + " " + t("dir.follow", { dist: legDistance(step.units) });
+  }
+
+  function routeSteps(r) {
+    return DIR ? DIR.build(r, edgeById, nodeById) : [];
+  }
+
+  function directionsList(r) {
+    var steps = routeSteps(r);
+    if (!steps.length) return "";
+    return '<details class="directions"><summary>' + esc(t("dir.title", { n: steps.length })) + "</summary><ol>" +
+      steps.map(function (s, i) {
+        return '<li class="dir-' + esc(s.kind === "turn" ? s.turn : s.kind) + '"><button type="button" class="dir-step" data-action="step" data-sig="' +
+          esc(r.signature) + '" data-step="' + i + '">' + esc(stepText(s, r)) + "</button></li>";
+      }).join("") + "</ol></details>";
+  }
+
   function routeCard(r, res) {
     var focused = r.signature === state.focusedSig;
     var id = "route-title-" + r.rank;
@@ -1275,6 +1314,7 @@
         trafficBar(r) +
         hazardList(r) +
         stopsList(r) +
+        directionsList(r) +
         '<button type="button" class="map-toggle" data-action="focus" data-sig="' + esc(r.signature) + '" aria-pressed="' + focused + '">' + esc(mapBtnLabel) + "</button>" +
       "</article>"
     );
@@ -1643,6 +1683,15 @@
       els.destination.value = btn.getAttribute("data-id");
       state.priority = "fastest";
       runSearch();
+    } else if (action === "step") {
+      var route = state.result && state.result.routes.filter(function (x) { return x.signature === btn.getAttribute("data-sig"); })[0];
+      var step = route ? routeSteps(route)[Number(btn.getAttribute("data-step"))] : null;
+      if (step && isReal() && VIEWS.real.focusOn) {
+        state.focusedSig = route.signature;
+        renderMap();
+        VIEWS.real.focusOn(step.point.lat, step.point.lon);
+        els.mapPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      }
     } else if (action === "focus") {
       state.focusedSig = btn.getAttribute("data-sig");
       renderMap();

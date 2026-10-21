@@ -1768,3 +1768,35 @@ fieldset {
   color: var(--heavy-ink);
   font-weight: 600;
 }
+
+/* ---------- directions ---------- */
+
+.directions summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+.directions ol {
+  margin: 8px 0 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+.dir-step {
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.dir-step:hover {
+  text-decoration: underline;
+}
+.directions li.dir-arrive .dir-step,
+.directions li.dir-depart .dir-step {
+  font-weight: 700;
+}

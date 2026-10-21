@@ -35,6 +35,8 @@ test("every text key used by the page and the app exists in English", () => {
   for (const k of Object.keys(E.VEHICLES)) used.add("vehicle." + k).add("by." + k);
   for (const k of Object.keys(E.PRIORITIES)) used.add("cause.priority." + k);
   for (const k of ["nofetch", "nokey", "denied", "limit", "noanswer"]) used.add("live.err." + k);
+  for (const k of ["straight", "slight-left", "slight-right", "left", "right", "uturn"]) used.add("dir.turn." + k);
+  for (const k of ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]) used.add("dir.compass." + k);
   for (const k of Object.values(require("../js/live-traffic.js").CATEGORIES)) used.add("incident." + k);
   for (const m of ["real", "demo"]) ["note.planner.", "note.traffic.", "note.map."].forEach((p) => used.add(p + m));
   const missing = [...used].filter((k) => !k.endsWith(".") && I18N.en[k] === undefined && !/^(hazard|roadType|cat|band|bandDesc|scenario|scenarioDesc|te)\./.test(k));
