@@ -298,9 +298,9 @@ async function step(name, fn) {
     assert.match(await r.textContent("#form-error"), /only covers this area/);
 
     // Switching to the demo town and back works.
-    await r.click("label.mode:has-text('Demo town')");
+    await r.click("#demo-open");
     assert.match(await r.textContent("#mode-badge-text"), /Demo mode/);
-    await r.click("label.mode:has-text('Real map')");
+    await r.click("#demo-exit");
     assert.match(await r.textContent("#mode-badge-text"), /Real roads/);
     await r.close();
   });

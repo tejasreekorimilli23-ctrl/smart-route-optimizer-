@@ -34,13 +34,7 @@
               <label class="mode"><input type="radio" name="lang" value="te"><span class="mode-body" lang="te">తెలుగు</span></label>
             </div>
           </fieldset>
-          <fieldset class="mode-set">
-            <legend class="visually-hidden" data-i18n="mode.legend">Map</legend>
-            <div id="mode-options" class="mode-grid">
-              <label class="mode"><input type="radio" name="mode" value="real"><span class="mode-body" data-i18n="mode.real">Real map</span></label>
-              <label class="mode"><input type="radio" name="mode" value="demo"><span class="mode-body" data-i18n="mode.demo">Demo town</span></label>
-            </div>
-          </fieldset>
+          <button type="button" id="demo-exit" class="install-btn demo-only" data-i18n="mode.demoExit">← Back to the real map</button>
         </div>
         <button type="button" id="install-app" class="install-btn" data-i18n="install.button" hidden>Install app</button>
         <p id="mode-badge" class="demo-badge"><span class="pulse" aria-hidden="true"></span><span id="mode-badge-text">Demo mode: traffic is simulated, not live</span></p>
@@ -317,7 +311,9 @@
           <li data-i18n="about.real4">Map data can have gaps. Always follow road signs, signals and the traffic police.</li>
         </ul>
         <p class="note"><a href="admin.html" class="admin-link" data-i18n="about.admin">Official alerts (for police and municipality)</a></p>
-        <h3 data-i18n="about.demoTitle">Demo town mode</h3>
+        <h3 data-i18n="about.demoTitle">How it works: demo town</h3>
+        <p class="note" data-i18n="about.demoIntro">A small sample town (not real streets) for explaining the route algorithm step by step in a class or presentation.</p>
+        <p class="note"><button type="button" id="demo-open" class="link-btn" data-i18n="mode.demoOpen">Open the demo town</button></p>
         <ul>
           <li data-i18n="about.demo1">The town, its 12 locations and 19 roads are a sample network, not real streets.</li>
           <li data-i18n="about.demo2">Road lengths, free-flow speeds and traffic levels are fixed demo values.</li>

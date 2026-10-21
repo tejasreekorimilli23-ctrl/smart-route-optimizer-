@@ -67,7 +67,8 @@
 
   var els = {
     langOptions: $("lang-options"),
-    modeOptions: $("mode-options"),
+    demoOpen: $("demo-open"),
+    demoExit: $("demo-exit"),
     modeBadgeText: $("mode-badge-text"),
     form: $("route-form"),
     origin: $("origin"),
@@ -682,7 +683,6 @@
     if (next === "real" && !realAvailable) next = "demo";
     var keep = state;
     mode = next;
-    try { window.localStorage.setItem("route-mode", mode); } catch (err) { /* private mode: ignore */ }
     D = DATASETS[mode];
     M = VIEWS[mode];
     if (typeof trip !== "undefined" && trip.on) stopTrip();
@@ -2412,8 +2412,16 @@
     if (ev.target.value !== lang) setLang(ev.target.value);
   });
 
-  els.modeOptions.addEventListener("change", function (ev) {
-    if (ev.target.value !== mode) setMode(ev.target.value);
+  // The demo town is only for explaining the algorithm: opened from the
+  // footer link (or #mode=demo), never on start-up.
+  els.demoOpen.addEventListener("click", function () {
+    setMode("demo");
+    window.scrollTo(0, 0);
+  });
+  els.demoExit.addEventListener("click", function () {
+    setMode("real");
+    restoreArea();
+    if (/mode=demo/.test(window.location.hash)) history.replaceState(null, "", window.location.pathname + window.location.search);
   });
 
   els.form.addEventListener("submit", function (ev) {
@@ -2665,16 +2673,15 @@
 
   // ---------- start ----------
   var savedLang = null;
-  var savedMode = null;
   try {
     savedLang = window.localStorage.getItem("route-lang");
-    savedMode = window.localStorage.getItem("route-mode");
+    window.localStorage.removeItem("route-mode"); // older versions remembered the demo
   } catch (err) { /* ignore */ }
   var hashLang = /lang=(en|te)/.exec(window.location.hash);
   var hashMode = /mode=(real|demo)/.exec(window.location.hash);
   lang = hashLang ? hashLang[1] : I18N[savedLang] ? savedLang : "en";
   applyStaticText();
-  setMode(hashMode ? hashMode[1] : savedMode || (realAvailable ? "real" : "demo"));
+  setMode(hashMode ? hashMode[1] : "real");
   var shared = realAvailable ? sharedTrip() : null;
   if (shared && mode === "real") openShared(shared);
   else restoreArea();
