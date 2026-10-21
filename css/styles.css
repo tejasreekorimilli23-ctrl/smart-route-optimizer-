@@ -699,6 +699,17 @@ select[aria-invalid="true"] {
   .site-header, .site-nav, #planner, .panel, .map-panel, .site-footer, .safety, .card-actions, .an-actions, .directions { display: none !important; }
   .results, .analytics { display: block !important; }
 }
+.report-confirm {
+  margin: 10px 0;
+  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s, 10px);
+}
+.rc-title { margin: 0 0 6px; font-weight: 700; }
+.rc-facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 0.9rem; }
+.rc-facts dt { font-weight: 600; }
+.rc-facts dd { margin: 0; }
+.rc-auto { font-size: 0.8rem; opacity: 0.8; }
 .offline-banner {
   margin: 0 0 12px;
   padding: 10px 14px;

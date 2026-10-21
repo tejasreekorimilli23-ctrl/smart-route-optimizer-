@@ -68,7 +68,7 @@
   var els = {
     langOptions: $("lang-options"),
     demoOpen: $("demo-open"),
-    reportNote: $("report-note"),
+    reportConfirm: $("report-confirm"),
     offlineBanner: $("offline-banner"),
     demoExit: $("demo-exit"),
     modeBadgeText: $("mode-badge-text"),
@@ -1199,7 +1199,7 @@
     } else if (action === "set-level") {
       setRoadLevel(payload.edgeId, payload.level);
     } else if (action === "report") {
-      sendReport(payload.lat, payload.lng, payload.type, payload.edgeId);
+      prepareReport(payload.lat, payload.lng, payload.type, payload.edgeId, { kind: "map" });
     } else if (action === "vote") {
       vote(payload.id, payload.kind);
     }
@@ -1481,7 +1481,7 @@
     var edge = edgeById[r.edgeId];
     var parts = [];
     if (edge) parts.push(roadName(edge));
-    if (r.createdAt) parts.push(t("report.reported", { ago: minutesAgo(r.createdAt) }));
+    if (r.createdAt) parts.push(t("report.reported", { ago: minutesAgo(r.createdAt) }) + " (" + shortWhen(r.createdAt) + ")");
     parts.push(r.confirms ? t("report.confirms", { n: r.confirms }) : t("report.unverified"));
     if (r.clears) parts.push(t("report.clears", { n: r.clears }));
     if (r.note) parts.push("“" + r.note + "”");
@@ -1599,7 +1599,7 @@
   var lastReportAt = 0;
 
   /** Sends a report for a point (map tap or GPS). */
-  function sendReport(lat, lon, type, edgeId) {
+  function sendReport(lat, lon, type, edgeId, extra) {
     if (!store) return;
     if (Date.now() - lastReportAt < REPORT_GAP_MS) {
       flashCommunity(t("report.err.tooSoon"), true);
@@ -1625,7 +1625,7 @@
       }
       return;
     }
-    var note = els.reportNote ? els.reportNote.value.replace(/\s+/g, " ").trim().slice(0, CM.SETTINGS.maxNote) : "";
+    var note = String(extra && extra.note || "").replace(/\s+/g, " ").trim().slice(0, CM.SETTINGS.maxNote);
     var input = { type: type, lat: lat, lon: lon, edgeId: e.id, roadName: e.name, area: D.AREA.name, note: note };
     if (CM.validateReport(input)) {
       flashCommunity(t("report.err.invalid"), true);
@@ -1634,8 +1634,9 @@
     lastReportAt = Date.now();
     store.addReport(CM.newReport(input, new Date())).then(function (saved) {
       if (saved && saved.id) saveVote(saved.id, "mine");
-      if (els.reportNote) els.reportNote.value = "";
-      flashCommunity(t(store.mode === "firebase" ? "report.sent" : "report.sentLocal"), false);
+      var when = saved && saved.createdAt instanceof Date ? saved.createdAt : new Date();
+      flashCommunity(t(store.mode === "firebase" ? "report.sent" : "report.sentLocal") + " " +
+        t("rc.sentAt", { when: dateTimeText(when), road: roadName(e) }), false);
       refreshCommunity(true);
     }, function (err) {
       lastReportAt = 0; // not sent: allow trying again at once
@@ -1659,15 +1660,80 @@
     els.communityPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
   }
 
+  // ---------- report form: date, time and place filled in automatically ----------
+
+  var pendingReport = null;
+
+  /** "12:05 AM, 22 Oct" (time, and the date when it is not today). */
+  function shortWhen(d) {
+    var today = d.toDateString() === new Date().toDateString();
+    return clockText(d) + (today ? "" : ", " + d.toLocaleDateString(lang === "te" ? "te-IN" : "en-IN", { day: "numeric", month: "short" }));
+  }
+
+  /**
+   * Shows the report before sending: the date and time come from the
+   * device clock (kept current), the place from GPS or the map tap: the
+   * road, the locality (OpenStreetMap reverse search) and the coordinates.
+   */
+  function prepareReport(lat, lon, type, edgeId, source) {
+    var e = edgeId ? edgeById[edgeId] : null;
+    if (!e) {
+      var hit = G.nearestRoad(D, lat, lon);
+      if (!hit || hit.metres > 80) {
+        flashCommunity(t("report.err.noroad"), true);
+        return;
+      }
+      e = hit.edge;
+    }
+    pendingReport = { lat: lat, lon: lon, type: type, edgeId: e.id, source: source || {}, locality: null };
+    $("rc-title").textContent = t("rc.title", { type: t("report.type." + type) });
+    $("rc-note").value = "";
+    renderReportConfirm();
+    els.reportConfirm.hidden = false;
+    els.reportTypes.hidden = true;
+    els.communityStatus.textContent = t("rc.check");
+    els.communityStatus.classList.remove("is-error");
+    els.reportConfirm.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+    $("rc-note").focus();
+    if (AL) {
+      var mine = pendingReport;
+      AL.whereIs(lat, lon).then(function (name) {
+        if (pendingReport !== mine || !name) return;
+        mine.locality = name;
+        renderReportConfirm();
+      });
+    }
+  }
+
+  function renderReportConfirm() {
+    var p = pendingReport;
+    if (!p) return;
+    var e = edgeById[p.edgeId];
+    $("rc-when").innerHTML = esc(dateTimeText(new Date())) + ' <span class="rc-auto">' + esc(t("rc.autoClock")) + "</span>";
+    var where = [e ? roadName(e) : "", p.locality, local(D.AREA.name)].filter(Boolean);
+    var src = p.source.kind === "gps"
+      ? t("rc.autoGps", { m: Math.round(p.source.accuracy || 0) })
+      : t("rc.autoMap");
+    $("rc-where").innerHTML = esc(where.filter(function (x, i) { return where.indexOf(x) === i; }).join(", ")) +
+      " (" + p.lat.toFixed(5) + ", " + p.lon.toFixed(5) + ') <span class="rc-auto">' + esc(src) + "</span>";
+  }
+
+  function closeReportConfirm() {
+    pendingReport = null;
+    els.reportConfirm.hidden = true;
+  }
+
   /** "Report at my location": GPS, then the chosen kind of problem. */
-  function reportHere(type) {
+  function reportHere(type, immediate) {
     if (!navigator.geolocation) {
       flashCommunity(t("gps.unsupported"), true);
       return;
     }
     flashCommunity(t("gps.finding"), false);
     navigator.geolocation.getCurrentPosition(function (pos) {
-      sendReport(pos.coords.latitude, pos.coords.longitude, type, null);
+      var c = pos.coords;
+      if (immediate) sendReport(c.latitude, c.longitude, type, null, {});
+      else prepareReport(c.latitude, c.longitude, type, null, { kind: "gps", accuracy: c.accuracy });
     }, function (err) {
       flashCommunity(t(err.code === 1 ? "gps.denied" : "report.err.gps"), true);
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
@@ -3184,9 +3250,17 @@
       return '<button type="button" class="area-pick rp-' + type + '" data-trip-report="' + type + '" data-i18n="report.type.' + type + '"></button>';
     }).join("");
   }
+  $("rc-send").addEventListener("click", function () {
+    var p = pendingReport;
+    if (!p) return;
+    closeReportConfirm();
+    sendReport(p.lat, p.lon, p.type, p.edgeId, { note: $("rc-note").value });
+  });
+  $("rc-cancel").addEventListener("click", closeReportConfirm);
+  setInterval(renderReportConfirm, 15000); // keep the time current while the form is open
   els.tripReports.addEventListener("click", function (ev) {
     var b = ev.target.closest ? ev.target.closest("[data-trip-report]") : null;
-    if (b) reportHere(b.getAttribute("data-trip-report"));
+    if (b) reportHere(b.getAttribute("data-trip-report"), true); // while driving: one tap, no form
   });
   document.addEventListener("visibilitychange", function () { refreshCommunity(false); });
   els.liveIncidents.addEventListener("click", function (ev) {

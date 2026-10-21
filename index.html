@@ -182,11 +182,24 @@
         <div id="community-panel" class="live-box community-box real-only">
           <div class="live-head">
             <strong data-i18n="community.title">Reports from people</strong>
-            <label class="report-note-label" for="report-note" data-i18n="report.noteLabel">Details (optional, sent with your next report)</label>
-            <input type="text" id="report-note" class="report-note" maxlength="140" autocomplete="off" data-i18n-attr="placeholder:report.notePlaceholder" placeholder="e.g. lorry broken down near the bridge">
             <button type="button" id="report-here" class="link-btn" data-i18n="community.reportHere">Report at my location</button>
           </div>
           <div id="report-types" class="report-types" hidden></div>
+          <div id="report-confirm" class="report-confirm" hidden>
+            <p class="rc-title" id="rc-title"></p>
+            <dl class="rc-facts">
+              <dt data-i18n="rc.when">Date and time</dt>
+              <dd id="rc-when"></dd>
+              <dt data-i18n="rc.where">Place</dt>
+              <dd id="rc-where"></dd>
+            </dl>
+            <label class="report-note-label" for="rc-note" data-i18n="rc.note">Details (optional)</label>
+            <input type="text" id="rc-note" class="report-note" maxlength="140" autocomplete="off" data-i18n-attr="placeholder:report.notePlaceholder" placeholder="e.g. lorry broken down near the bridge">
+            <div class="acct-actions">
+              <button type="button" id="rc-send" class="btn-primary" data-i18n="rc.send">Send report</button>
+              <button type="button" id="rc-cancel" class="btn-secondary" data-i18n="area.cancel">Cancel</button>
+            </div>
+          </div>
           <p id="community-status" class="live-status" role="status" aria-live="polite"></p>
           <ul id="community-list" class="live-incidents" hidden></ul>
           <p class="note" data-i18n="community.hint">Saw an accident, a closed road, a bandh or flooding? Tap that spot on the map and choose “Report a problem here”, so routes avoid it for everyone.</p>
