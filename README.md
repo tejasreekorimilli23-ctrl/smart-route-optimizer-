@@ -1,6 +1,18 @@
 # Smart Traffic Route Optimization System for Safer and More Efficient Urban Travel
 
-A Community Service Project software prototype. A road user picks a start and a destination, compares alternative routes by **estimated journey time, distance, traffic and road-safety hazards**, and gets the **fastest** or the **safest** route recommended for their **vehicle** (two-wheeler, car, auto or walking). Traffic follows a **time-of-day slider** or comes **live from TomTom**, an **Emergency** button finds the fastest route to the nearest hospital, and the whole interface works in **English or Telugu (తెలుగు)**.
+A Community Service Project web application. A road user picks a start and a destination in **any town**, compares alternative routes by **journey time, distance, traffic and road-safety hazards**, and gets the **fastest** or the **safest** route for their **vehicle** (two-wheeler, car, auto or walking).
+
+**Main features**
+- **Turn-by-turn directions** and **Trip mode**, which follows your GPS, gives voice guidance and re-routes when you go off the route.
+- **Today's real situation.** The app finds out about accidents, closures, bandhs and jams from four sources:
+  - live TomTom traffic and incidents;
+  - **reports from people**;
+  - **official alerts** from the police or municipality;
+  - **speeds shared anonymously** by travellers.
+- **Emergency:** the nearest hospital by travel time.
+- **Share a route** by link or WhatsApp.
+- **Install it** on your phone and **use it offline**.
+- **Everything in English or Telugu (తెలుగు)**, including place names.
 
 **Open the app:** <https://tejasreekorimilli23-ctrl.github.io/smart-route-optimizer-/> (works on phones; allow location access for *Use my location*).
 
@@ -19,9 +31,18 @@ It has two modes, switched at the top of the page:
 | --- | --- |
 | Easiest | Double-click `index.html` (opens in any modern browser). |
 | Local server | `npm start`, then open <http://localhost:5173>. Needs Node.js 18+. Use `PORT=8080 npm start` for another port. |
-| Single file | `npm run build` creates `dist/smart-traffic-route-optimizer.html` (about 2.7 MB) with everything inlined, for email or a pen drive. |
+| Single file | `npm run build` creates `dist/smart-traffic-route-optimizer.html` (about 1.2 MB) with everything inlined, for email or a pen drive. |
 
-**Internet.** Routing works offline in both modes. The real map only needs internet for the background map pictures (OpenStreetMap tiles). Without internet you still see the coloured roads and routes.
+**Internet.** Routing works offline in both modes. The real map needs internet for:
+- the background map pictures (OpenStreetMap tiles);
+- downloading a new town;
+- live data (TomTom, reports, alerts).
+
+**Install as an app and use offline.**
+- On a phone, open the site (it must be `https://`, for example GitHub Pages) and press **⬇ Install app**, or use the browser menu: *Add to Home screen*.
+- A service worker (`sw.js`) keeps the app's files, so it opens without internet. It also keeps the map pictures you have looked at (up to 800). Towns you loaded are kept by the app itself.
+- Tested: with the server switched off, the app still opened, loaded a saved town and found routes and the nearest hospital.
+- Live services are never cached, because they must be current.
 
 **"Use my location".** Browsers only share GPS with pages served over `https://` or from `localhost`. On a laptop, use `npm start`. To use it on a phone, put the folder on any free static host with HTTPS (for example GitHub Pages or Netlify) and open that link on the phone.
 
@@ -65,6 +86,71 @@ Everything works the same in every area: fastest and safest routes, vehicle type
 5. Press **Emergency: nearest hospital**. From Thotapalem at midday it routes to Tirumala Medicover Hospitals (2.4 min) and lists the next two nearest, with the 108 / 112 helpline numbers.
 6. Click any point on the map and choose **Go here** to show routing to an arbitrary place.
 
+## Directions and Trip mode
+
+Every route card has **Directions**, for example "Head west on … for 140 m", "Turn left onto R T C Complex Road for 270 m", "Arrive at Vizianagaram Junction". Tap a step to see it on the map.
+
+**Trip mode.** On the route shown on the map, press **▶ Start trip**.
+- **Following:** the app follows your GPS (a blue dot) and keeps the map centred.
+- **Next turn:** shows the next turn ("In 200 m: Turn left onto …"), the time and distance left, and your arrival time.
+- **Voice guidance** (optional): reminders at 200 m and 50 m before each turn. Telugu voice works if the phone has a Telugu text-to-speech voice; otherwise switch to English.
+- **Re-routing:** if you leave the route (two GPS positions in a row more than 50 m away), it plans again from where you are. If a new accident, closure or jam changes the best route while you travel, it follows the new one.
+- **Quick reports** (Accident, Road closed, Traffic jam, Flooding) send a report at your position.
+- **Share my speed anonymously** (optional, off by default, never on foot): your measured speed on each road section is shared, so the app can spot jams from real travellers. Only the road, speed, vehicle type and time are sent, with no name, phone or trip.
+- The screen stays on during the trip where the browser allows it.
+
+## Share a route
+
+Under the route summary, use **Share route** (the phone's share menu, or copy the link) or **Send on WhatsApp**.
+- **What the link carries:** both places (by position and name), the vehicle, and fastest or safest.
+- **On the other phone:** the same route opens. If that town isn't on the phone yet, it opens from saved towns or is downloaded automatically.
+
+## Reports from people and official alerts
+
+This is how the app learns about things nobody can predict: an accident an hour ago, a bandh today, a flooded underpass. TomTom live data helps, but it often doesn't cover small towns, so the people using the app and the local authorities fill the gap.
+
+**Reporting (anyone)**
+- Tap the spot on the map and choose **⚠ Report a problem here**, then pick the problem:
+
+  | Problem | Effect on that road | Expires after |
+  | --- | --- | --- |
+  | Accident | heavy traffic, unsafe | 2 h |
+  | Road closed | closed | 12 h |
+  | Bandh / strike | closed | end of the day |
+  | Flooding / waterlogging | heavy traffic, unsafe | 6 h |
+  | Traffic jam | heavy traffic | 1 h |
+  | Road works | moderate traffic, unsafe | 7 days |
+  | Other problem | moderate traffic | 2 h |
+
+- Or use **Report at my location** (or the buttons in Trip mode) to report where you are, by GPS.
+- Reports show on the map and in the *Reports from people* list. Routes avoid them straight away: a closed or bandh road is not used, and an accident or flooding also counts as a hazard for the Safest route.
+- Others answer **✓ Still there** or **✗ Cleared now** (one answer per device). When two people say *Cleared* and fewer say *Still there*, the report stops counting. Every report also expires by itself.
+
+**Official alerts (police, municipality, project team)**
+- Open **admin.html** (linked at the bottom of the page) and sign in with an admin account.
+- Choose the kind (bandh, road closure, VIP movement, event / procession), a title, a message, and the start and end time. Then click the affected roads on the map; clicking a named road selects the whole road.
+- Everyone sees the alert as a banner. Closures and bandhs close the chosen roads; the other kinds make them heavy.
+- Admins can also remove false or abusive public reports.
+
+**Tested end to end** with a fake Firebase:
+- an admin posted a closure of Lower Tank Bund Road;
+- a user's page showed the banner within a minute;
+- a trip that normally takes 4.8 min along that road was re-routed via 100 feet Ring Road (11.9 min).
+
+**Setting up the shared database (free, about 10 minutes).** Reports and alerts are shared through Google Firebase (Cloud Firestore).
+1. Follow the steps at the top of `js/firebase-config.js` to create the project, the database and the admin accounts.
+2. Paste the contents of `firestore.rules` into the Firebase console.
+3. Copy the `apiKey` and `projectId` into `js/firebase-config.js`.
+
+The web `apiKey` isn't secret; the rules protect the data:
+- anyone can add a well-formed report and answer *Still there* or *Cleared*;
+- only admins can post alerts or remove reports;
+- speeds are short-lived and anonymous.
+
+**Until Firebase is set up,** reports are saved only on the device that made them, and the page says so.
+
+**Abuse and mistakes.** A false report affects routes for at most its expiry time, and others can clear it. Admins can delete reports. The rules limit what a report can contain and allow reports only inside India.
+
 ## Live traffic and incidents (TomTom)
 
 The time-of-day estimate cannot know about *today*: an accident, a bandh, a broken-down lorry, road works or waterlogging. To react to the real situation, the app uses live data from TomTom, with your own free key.
@@ -96,7 +182,7 @@ Other places it shows up:
 
 **Limits.**
 - TomTom only knows what its data sources report. In a town the size of Vizianagaram, small lanes and very recent events may be missing. A bandh with no traffic data behind it won't appear.
-- Community reports (anyone can report "accident here") and official alerts (police or municipality post a bandh or closure) are planned next, using a Firebase database.
+- That is why the app also uses **reports from people** and **official alerts** (above).
 
 ## Vehicle types
 
@@ -282,7 +368,7 @@ css/styles.css                 Styles (responsive, light and dark themes)
 css/vendor/leaflet.css         Leaflet map library styles
 js/vendor/leaflet.js           Leaflet 1.9.4 map library (BSD-2, see LEAFLET-LICENSE.txt)
 js/network-data.js             Demo town: network, road types, traffic levels, hazards, scenarios, time bands
-js/real-network-data.js        Real map: GENERATED from OpenStreetMap by npm run build-map
+js/real-network-data.js        Built-in map: GENERATED by npm run build-map, stored packed (605 KB, unpacked on load in ~10 ms)
 js/blackspots.js               Accident black spots for the real map (edit this)
 js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, penalty method, safety risk, vehicles, emergency
 js/live-traffic.js             Live traffic and incidents from TomTom (optional, your own key)
@@ -290,7 +376,11 @@ js/osm-network.js              Builds a road network from OpenStreetMap data (us
 js/area-loader.js              Finds and downloads any town in the browser; keeps areas on the device
 js/translit.js                 English -> Telugu writing of place and road names
 js/directions.js               Turn-by-turn directions
-js/community.js                Community reports, official alerts, shared trip speeds (Firebase; not yet on the page)
+js/community.js                Community reports, official alerts, shared trip speeds (Firebase or this device only)
+js/trip.js                     Trip mode logic: position on the route, next step, off-route, measured speeds
+js/admin.js, admin.html        Admin page for official alerts and report moderation
+sw.js, manifest.webmanifest    Install as an app and offline use
+icons/                         App icons (drawn by scripts/make-icons.js)
 js/firebase-config.js          Your Firebase settings (empty = reports stay on this device)
 firestore.rules                Security rules to paste into Firebase
 js/place-search.js             Type-ahead place search box
@@ -309,6 +399,11 @@ data/osm/                      The OpenStreetMap download the real map was built
 tests/route-engine.test.js     Algorithm tests (demo town)
 tests/real-network.test.js     Real map tests
 tests/live-traffic.test.js     Live traffic tests (fake TomTom server)
+tests/community.test.js        Reports, alerts, speeds (fake Firebase server)
+tests/directions.test.js       Turn-by-turn directions
+tests/trip.test.js             Trip mode with simulated GPS
+tests/translit.test.js         English -> Telugu names
+tests/area-loader.test.js      Loading other towns (fake servers)
 tests/i18n.test.js             English / Telugu text checks
 tests/browser-smoke.cjs        Optional browser test
 ```
