@@ -87,6 +87,9 @@
     cut: "కట్", piece: "పీస్", brothers: "బ్రదర్స్", trends: "ట్రెండ్స్", future: "ఫ్యూచర్", sale: "సేల్",
     gajula: "గాజుల", rega: "రేగ", kotha: "కొత్త", agraharam: "అగ్రహారం", bagh: "బాగ్", peta: "పేట",
     palem: "పాలెం", puram: "పురం", pet: "పేట", nagaram: "నగరం", gudem: "గూడెం", padu: "పాడు", wada: "వాడ",
+    andhra: "ఆంధ్ర", pradesh: "ప్రదేశ్", mandal: "మండలం", baba: "బాబా", syndicate: "సిండికేట్",
+    lifestyle: "లైఫ్‌స్టైల్", tipsy: "టిప్సీ", topsy: "టాప్సీ", jewellers: "జ్యువెలర్స్", textiles: "టెక్స్‌టైల్స్",
+    medical: "మెడికల్", hall: "హాల్", colony: "కాలనీ", ganesh: "గణేష్", nagar: "నగర్", visakhapatnam: "విశాఖపట్నం",
     family: "ఫ్యామిలీ", lucky: "లక్కీ", chennai: "చెన్నై", south: "దక్షిణ", junction: "జంక్షన్",
     bund: "బండ్", upper: "అప్పర్", lower: "లోయర్", new: "న్యూ", old: "పాత", north: "ఉత్తర", south: "దక్షిణ",
     east: "తూర్పు", west: "పడమర", and: "మరియు", of: "", the: "", near: "దగ్గర", guest: "గెస్ట్", house: "హౌస్",
@@ -147,6 +150,14 @@
         continue;
       }
       lastVowel = "";
+      if (ch === "y" && i > 0 && !/^[aeiou]/.test(word.slice(i + 1))) {
+        // y without a vowel after it sounds like "i" (Tipsy, Syndicate).
+        out += afterConsonant ? (i === word.length - 1 ? "ీ" : "ై") : (i === word.length - 1 ? "ఈ" : "ఐ");
+        afterConsonant = false;
+        lastVowel = "y";
+        i++;
+        continue;
+      }
       var c = null;
       for (var b = 0; b < CONSONANTS.length && !c; b++) if (startsWith(word, i, CONSONANTS[b][0])) c = CONSONANTS[b];
       if (!c) {
@@ -180,7 +191,7 @@
     if (/^[a-z]$/i.test(w)) return LETTERS[lower];
     // All-capital abbreviations without a vowel after the first letter: spell
     // them out (NCS, SVC, APSRTC). A zero-width non-joiner keeps the letters apart.
-    if (/^[A-Z]{2,4}$/.test(w) || (/^[A-Z]{5,7}$/.test(w) && !/[AEIOU]/.test(w.slice(1)))) {
+    if ((/^[A-Z]{2,3}$/.test(w) && !/^[A-Z][AEIOU][A-Z]?$/.test(w)) || (/^[A-Z]{4,7}$/.test(w) && !/[AEIOU]/.test(w.slice(1)))) {
       return w.toLowerCase().split("").map(function (l) { return LETTERS[l]; }).join("‌");
     }
     return phonetic(lower);

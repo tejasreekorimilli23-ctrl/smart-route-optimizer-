@@ -507,6 +507,32 @@
     fillLocationSelect(els.destination, t("plan.destinationPlaceholder"));
   }
 
+  // Words people type when looking for a kind of place, in both languages.
+  var CATEGORY_WORDS = {
+    "Hospitals": "hospital hospitals ఆసుపత్రి ఆస్పత్రి దవాఖానా హాస్పిటల్ వైద్యశాల",
+    "Clinics": "clinic doctor క్లినిక్ దవాఖానా డాక్టర్ వైద్యుడు",
+    "Schools and colleges": "school college university పాఠశాల బడి స్కూల్ కళాశాల కాలేజీ విశ్వవిద్యాలయం",
+    "Transport": "railway station train bus stand stop రైల్వే స్టేషన్ రైలు బస్ బస్టాండ్ బస్సు స్టాప్",
+    "Markets and shopping": "market shop shopping mall bazaar మార్కెట్ సంత బజార్ షాపింగ్ మాల్ దుకాణం",
+    "Temples, mosques and churches": "temple mosque church గుడి ఆలయం దేవాలయం మందిరం మసీదు చర్చి",
+    "Areas and junctions": "area colony nagar junction ప్రాంతం కాలనీ నగర్ జంక్షన్ కూడలి",
+    "Other landmarks": "bank police post office petrol fuel cinema బ్యాంక్ పోలీస్ స్టేషన్ పోస్ట్ ఆఫీస్ పెట్రోల్ బంక్ సినిమా థియేటర్"
+  };
+  var NAME_WORDS = {
+    temple: "గుడి దేవాలయం మందిరం", mandir: "గుడి ఆలయం", mandiram: "గుడి ఆలయం", masjid: "మసీదు", church: "చర్చి",
+    hospital: "దవాఖానా ఆస్పత్రి", school: "బడి", college: "కాలేజీ", junction: "కూడలి", market: "సంత",
+    bus: "బస్సు బస్టాండ్", station: "స్టేషన్", police: "ఠాణా పోలీస్ స్టేషన్", bank: "బ్యాంకు"
+  };
+
+  /** Extra words a place can be found by (kind of place, everyday Telugu words). */
+  function searchWords(n) {
+    var extra = [CATEGORY_WORDS[n.category] || ""];
+    String(n.name).toLowerCase().split(/[^a-z]+/).forEach(function (w) {
+      if (NAME_WORDS[w]) extra.push(NAME_WORDS[w]);
+    });
+    return extra.join(" ");
+  }
+
   /** Search items for the place boxes (real mode). */
   function searchItems() {
     var pinsAsItems = pinList().map(function (p) {
@@ -519,7 +545,7 @@
       return {
         id: n.id, label: shown,
         sub: (other ? other + " · " : "") + categoryLabel(n.category),
-        keywords: [n.name, n.nameTe || "", TL ? TL.toTelugu(n.name) : "", n.category].join(" ")
+        keywords: [n.name, n.nameTe || "", TL ? TL.toTelugu(n.name) : "", n.category, searchWords(n)].join(" ")
       };
     }));
   }

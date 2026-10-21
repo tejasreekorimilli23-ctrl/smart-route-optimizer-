@@ -9,13 +9,22 @@
 
   var MAX_RESULTS = 8;
 
+  /** Lower case, accents removed from Latin letters, Telugu vowel signs kept. */
   function norm(s) {
-    return String(s || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return String(s || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").normalize("NFC")
+      .replace(/[‌‍]/g, "").replace(/[^\p{L}\p{M}\p{N}]+/gu, " ").trim();
+  }
+
+  /** Letters only (Telugu vowel signs and the virama dropped): for spelling slips. */
+  function skeleton(s) {
+    return norm(s).replace(/\p{M}/gu, "");
   }
 
   /**
    * Ranks items for a query. Every word of the query must appear in the
-   * item's text; names that start with the query come first.
+   * item's text; names that start with the query come first. If nothing
+   * matches exactly (e.g. a long vowel typed short in Telugu), the letters
+   * alone are compared, at the start of words only, so results stay relevant.
    * items: [{ id, label, sub, keywords }]
    */
   function rank(items, query) {
@@ -30,6 +39,15 @@
       var score = name.indexOf(q) === 0 ? 0 : (" " + name).indexOf(" " + words[0]) >= 0 ? 1 : name.indexOf(words[0]) >= 0 ? 2 : 3;
       out.push({ item: it, score: score });
     });
+    if (!out.length) {
+      var sq = skeleton(query).split(" ").filter(Boolean);
+      if (sq.join("").length >= 2) {
+        items.forEach(function (it) {
+          var all = " " + skeleton(it.label) + " " + skeleton(it.keywords || "");
+          if (sq.every(function (w) { return all.indexOf(" " + w) >= 0; })) out.push({ item: it, score: 4 });
+        });
+      }
+    }
     out.sort(function (a, b) {
       return a.score - b.score || a.item.label.length - b.item.label.length || a.item.label.localeCompare(b.item.label);
     });
@@ -168,5 +186,5 @@
     return { close: close, render: render };
   }
 
-  root.PlaceSearch = { attach: attach, rank: rank };
+  root.PlaceSearch = { attach: attach, rank: rank, norm: norm };
 })(typeof self !== "undefined" ? self : this);
