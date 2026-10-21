@@ -274,6 +274,10 @@
           }]
         }));
       },
+      /** Admins only: removes a report (e.g. a false one). */
+      removeReport: function (report) {
+        return call("https://firestore.googleapis.com/v1/" + report.path + "?" + key, json("DELETE", undefined, true));
+      },
       listAlerts: function (now) { return listAfter("alerts", "endsAt", now); },
       addAlert: function (a) { return create("alerts", a, true); },
       removeAlert: function (alert) {
@@ -337,6 +341,12 @@
         db.reports.forEach(function (r) {
           if (r.id === report.id) r[kind === "clear" ? "clears" : "confirms"]++;
         });
+        save(db);
+        return Promise.resolve(null);
+      },
+      removeReport: function (report) {
+        var db = load();
+        db.reports = db.reports.filter(function (r) { return r.id !== report.id; });
         save(db);
         return Promise.resolve(null);
       },

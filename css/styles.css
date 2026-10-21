@@ -1949,3 +1949,56 @@ fieldset {
   font-size: 0.82rem;
   color: var(--ink-2);
 }
+
+/* ---------- admin page ---------- */
+
+.admin-layout {
+  display: grid;
+  gap: 18px;
+  padding-top: 20px;
+  padding-bottom: 40px;
+  max-width: 900px;
+}
+.admin-map {
+  height: 380px;
+}
+.admin-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.admin-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.admin-list li {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+}
+.admin-list .btn-secondary {
+  min-height: 32px;
+  padding: 4px 10px;
+  margin-left: 6px;
+}
+.admin-who {
+  font-weight: 700;
+}
+.admin-back {
+  color: var(--on-navy);
+}
+.admin-page select,
+.admin-page .combo-input {
+  width: 100%;
+}
+@media (max-width: 560px) {
+  .admin-times {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.site-footer .admin-link { color: var(--cyan-map); }

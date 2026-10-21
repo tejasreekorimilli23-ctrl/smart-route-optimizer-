@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Official Alerts – Smart Traffic Route Optimizer</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/vendor/leaflet.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="is-real admin-page">
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="header-text">
+        <h1>Official alerts</h1>
+        <p class="lede">For traffic police, the municipality and the project team: post a bandh, road closure, VIP movement or event so every user's routes avoid the affected roads, and remove false public reports.</p>
+      </div>
+      <p class="demo-badge"><a class="admin-back" href="index.html">← Back to the route planner</a></p>
+    </div>
+  </header>
+
+  <main class="wrap admin-layout">
+    <section id="not-set-up" class="panel" hidden>
+      <h2>Firebase is not set up yet</h2>
+      <p>Official alerts are shared through a free Firebase database. Fill in <code>js/firebase-config.js</code> (the steps are written at the top of that file), publish <code>firestore.rules</code>, and add each admin as described there. Then reload this page.</p>
+    </section>
+
+    <section id="sign-in" class="panel" hidden>
+      <h2>Sign in</h2>
+      <form id="sign-in-form" class="route-form" novalidate>
+        <div class="field">
+          <label for="admin-email">Email</label>
+          <input id="admin-email" class="combo-input" type="email" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="admin-password">Password</label>
+          <input id="admin-password" class="combo-input" type="password" autocomplete="current-password" required>
+        </div>
+        <p id="sign-in-error" class="form-error" role="alert" hidden></p>
+        <button type="submit" class="btn-primary">Sign in</button>
+      </form>
+      <p class="note">Only accounts added as admins in Firebase can post alerts. Ask the project team for an account.</p>
+    </section>
+
+    <div id="admin-area" hidden>
+      <p class="admin-who"><span id="admin-who"></span> <button type="button" id="sign-out" class="link-btn">Sign out</button></p>
+
+      <section class="panel">
+        <h2>New alert</h2>
+        <form id="alert-form" class="route-form" novalidate>
+          <div class="field">
+            <label for="alert-kind">Kind</label>
+            <select id="alert-kind">
+              <option value="bandh">Bandh / strike (closes the chosen roads)</option>
+              <option value="closure">Road closure (closes the chosen roads)</option>
+              <option value="vip">VIP movement (heavy traffic)</option>
+              <option value="event">Event / procession (heavy traffic)</option>
+              <option value="other">Other (heavy traffic)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="alert-title">Title (shown to everyone)</label>
+            <input id="alert-title" class="combo-input" maxlength="120" placeholder="e.g. Bandh in the town today">
+          </div>
+          <div class="field">
+            <label for="alert-message">Message (optional)</label>
+            <input id="alert-message" class="combo-input" maxlength="300" placeholder="e.g. Shops closed; avoid MG Road and Clock Tower area">
+          </div>
+          <div class="admin-times">
+            <div class="field">
+              <label for="alert-start">From</label>
+              <input id="alert-start" class="combo-input" type="datetime-local">
+            </div>
+            <div class="field">
+              <label for="alert-end">Until</label>
+              <input id="alert-end" class="combo-input" type="datetime-local">
+            </div>
+          </div>
+          <div class="field">
+            <label for="alert-area">Area</label>
+            <select id="alert-area"></select>
+          </div>
+          <p class="note"><strong>Affected roads:</strong> click roads on the map to choose them (click again to remove). With no roads chosen, the alert is only shown as a banner.</p>
+          <div id="admin-map" class="real-map admin-map" role="region" aria-label="Map: click roads to choose them"></div>
+          <p id="chosen-roads" class="note"></p>
+          <p id="alert-error" class="form-error" role="alert" hidden></p>
+          <p id="alert-done" class="note" role="status" aria-live="polite"></p>
+          <button type="submit" class="btn-primary">Post alert</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Active alerts</h2>
+        <ul id="alert-list" class="admin-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Public reports</h2>
+        <p class="note">Reports from people expire on their own. Remove a report only if it is false or abusive.</p>
+        <ul id="report-list" class="admin-list"></ul>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/vendor/leaflet.js"></script>
+  <script src="js/network-data.js"></script>
+  <script src="js/real-network-data.js"></script>
+  <script src="js/osm-network.js"></script>
+  <script src="js/area-loader.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/community.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

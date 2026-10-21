@@ -172,6 +172,12 @@ test("Firebase store: only signed-in admins can post and remove alerts", async (
   assert.deepEqual(list[0].edges, alert.edges);
   assert.equal(list[0].title, "Bandh today");
   await store.removeAlert(saved);
+  // Admins can also remove a false report; others cannot.
+  const other = C.connect(CONFIG, null, fb.fetchImpl);
+  const report = await other.addReport(C.newReport({ type: "jam", lat: 18.1, lon: 83.4, edgeId: "r1" }, new Date()));
+  await assert.rejects(other.removeReport(report), (e) => e.code === "denied");
+  await store.removeReport(report);
+  assert.equal((await store.listReports(new Date())).length, 0);
   assert.equal((await store.listAlerts(new Date())).length, 0);
   const lastPost = fb.calls.filter((c) => c.method === "POST" && c.url.includes("/alerts?"));
   assert.ok(lastPost.every((c) => !c.auth || c.auth.startsWith("Bearer ")));
