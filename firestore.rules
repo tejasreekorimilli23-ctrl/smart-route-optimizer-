@@ -1,0 +1,64 @@
+// Security rules for the Smart Traffic Route Optimizer's Cloud Firestore.
+// Paste into Firebase console > Firestore Database > Rules, then Publish.
+//
+// - reports: anyone may read; anyone may add a well-formed report; the only
+//   change allowed afterwards is +1 to "confirms" or "clears"; admins may delete.
+// - alerts: anyone may read; only admins (a document admins/<uid> exists) may write.
+// - speeds: anyone may read and add a well-formed, short-lived reading; never edit.
+// - admins: nobody can read or write from the app (manage in the console).
+//
+// Turn on TTL (Firestore > TTL policies) on reports.expiresAt, alerts.endsAt and
+// speeds.expiresAt so old documents are deleted automatically.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(db)/documents/admins/$(request.auth.uid));
+    }
+    function recent(t) {
+      return t is timestamp && t > request.time - duration.value(10, 'm') && t < request.time + duration.value(10, 'm');
+    }
+    function inArea(d) {
+      return d.lat is number && d.lon is number && d.lat > 17.5 && d.lat < 19 && d.lon > 82.5 && d.lon < 84.5;
+    }
+
+    match /reports/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(
+            ['type', 'lat', 'lon', 'edgeId', 'roadName', 'note', 'createdAt', 'expiresAt', 'confirms', 'clears', 'area'])
+        && request.resource.data.type in ['accident', 'closed', 'bandh', 'flooding', 'jam', 'works', 'other']
+        && inArea(request.resource.data)
+        && request.resource.data.note is string && request.resource.data.note.size() <= 140
+        && request.resource.data.roadName is string && request.resource.data.roadName.size() <= 120
+        && request.resource.data.confirms == 0 && request.resource.data.clears == 0
+        && recent(request.resource.data.createdAt)
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt <= request.time + duration.value(8, 'd');
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirms', 'clears'])
+        && ((request.resource.data.confirms == resource.data.confirms + 1 && request.resource.data.clears == resource.data.clears)
+         || (request.resource.data.clears == resource.data.clears + 1 && request.resource.data.confirms == resource.data.confirms));
+      allow delete: if isAdmin();
+    }
+
+    match /alerts/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /speeds/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['edgeId', 'kmh', 'vehicle', 'at', 'expiresAt'])
+        && request.resource.data.edgeId is string && request.resource.data.edgeId.size() <= 40
+        && request.resource.data.kmh is number && request.resource.data.kmh >= 0 && request.resource.data.kmh <= 120
+        && request.resource.data.vehicle in ['car', 'twowheeler', 'auto']
+        && recent(request.resource.data.at)
+        && request.resource.data.expiresAt <= request.time + duration.value(30, 'm');
+      allow update, delete: if false;
+    }
+
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
+  }
+}
