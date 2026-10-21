@@ -18,6 +18,7 @@
   var LT = window.LiveTraffic;
   var PS = window.PlaceSearch;
   var DIR = window.Directions;
+  var TL = window.Translit;
   var I18N = window.I18N;
   var DATASETS = { demo: window.TrafficData, real: window.RealTrafficData };
   var VIEWS = { demo: window.MapView, real: window.RealMapView };
@@ -191,12 +192,33 @@
   function scenarioDescription(sc) { return tData("scenarioDesc." + sc.id, sc.description); }
   function vehicleLabel(v) { return t("vehicle." + v); }
 
+  // ---------- names in the page language ----------
+
+  var teCache = {};
+
+  /** A name from the map data in the page language (Telugu by transliteration). */
+  function local(name) {
+    if (lang !== "te" || !TL || !name) return name;
+    if (!(name in teCache)) teCache[name] = TL.toTelugu(name);
+    return teCache[name];
+  }
+
+  /** A place's name: its OpenStreetMap Telugu name if it has one, else transliterated. */
+  function placeName(n) {
+    if (!n) return "";
+    return lang === "te" && n.nameTe ? n.nameTe : local(n.name);
+  }
+
+  function placeNameById(id) {
+    return placeName(nodeById[id]);
+  }
+
   /** Display name of a road (unnamed roads and access paths get a generic name). */
   function roadName(edge) {
     if (!edge) return "";
     if (edge.type === "access") return t("road.access");
     if (isReal() && !edge.corridor) return t("road.unnamed", { type: roadTypeLabel(edge.type).toLowerCase() });
-    return edge.name;
+    return local(edge.name);
   }
 
   function segRoadName(s) {
@@ -205,7 +227,7 @@
 
   function routeName(r) {
     if (lang === "en") return r.name;
-    var via = r.via ? r.via : t("route.localStreets");
+    var via = r.via ? local(r.via) : t("route.localStreets");
     return t("route.via", { road: via }) + (r.viaNumber > 1 ? " (" + r.viaNumber + ")" : "");
   }
 
@@ -411,12 +433,12 @@
       case "MISSING_DESTINATION": return t("err.missingDestination");
       case "INVALID_LOCATION": return t("err.invalidLocation");
       case "SAME_LOCATION": return t("err.same");
-      case "AT_HOSPITAL": return t("err.atHospital", { name: o ? o.name : "" });
+      case "AT_HOSPITAL": return t("err.atHospital", { name: placeName(o) });
       case "NO_HOSPITAL": return t("err.noHospital");
       case "UNREACHABLE":
         return emergency
-          ? t("err.noHospitalRoute", { from: o ? o.name : "" })
-          : t("err.unreachable", { from: o ? o.name : "", to: d ? d.name : "" });
+          ? t("err.noHospitalRoute", { from: placeName(o) })
+          : t("err.unreachable", { from: placeName(o), to: placeName(d) });
       default: return res.message;
     }
   }
@@ -428,7 +450,7 @@
     sel.innerHTML = "";
     sel.add(new Option(placeholder, ""));
     if (!isReal()) {
-      NODES_SORTED.forEach(function (n) { sel.add(new Option(n.name, n.id)); });
+      NODES_SORTED.forEach(function (n) { sel.add(new Option(placeName(n), n.id)); });
     } else {
       var list = pinList();
       if (list.length) {
@@ -442,7 +464,7 @@
         if (!items.length) return;
         var g = document.createElement("optgroup");
         g.label = categoryLabel(cat);
-        items.forEach(function (n) { g.appendChild(new Option(n.name, n.id)); });
+        items.forEach(function (n) { g.appendChild(new Option(placeName(n), n.id)); });
         sel.appendChild(g);
       });
     }
@@ -460,7 +482,14 @@
       return { id: p.node.id, label: p.node.name, sub: t("cat.yourPoints") };
     });
     return pinsAsItems.concat(NODES_SORTED.map(function (n) {
-      return { id: n.id, label: n.name, sub: categoryLabel(n.category), keywords: (n.nameTe || "") + " " + n.category };
+      // Shown in the page language; found by English, Telugu or transliterated name.
+      var shown = placeName(n);
+      var other = shown === n.name ? "" : n.name;
+      return {
+        id: n.id, label: shown,
+        sub: (other ? other + " · " : "") + categoryLabel(n.category),
+        keywords: [n.name, n.nameTe || "", TL ? TL.toTelugu(n.name) : "", n.category].join(" ")
+      };
     }));
   }
 
@@ -495,7 +524,7 @@
     [[els.originSearch, els.origin], [els.destinationSearch, els.destination]].forEach(function (pair) {
       if (document.activeElement === pair[0]) return;
       var n = nodeById[pair[1].value];
-      pair[0].value = n ? n.name : "";
+      pair[0].value = n ? placeName(n) : "";
     });
     els.originSearch.placeholder = t("search.originPlaceholder");
     els.destinationSearch.placeholder = t("search.destinationPlaceholder");
@@ -531,7 +560,7 @@
     els.hour.max = D.DAY_END_HOUR;
 
     var mt = isReal() ? "real" : "demo";
-    els.modeBadgeText.textContent = isReal() ? t("badge.real", { area: D.AREA.name }) : t("badge.demo");
+    els.modeBadgeText.textContent = isReal() ? t("badge.real", { area: local(D.AREA.name) }) : t("badge.demo");
     els.plannerNote.textContent = t("note.planner." + mt);
     els.trafficNote.textContent = t("note.traffic." + mt);
     els.mapNote.textContent = t("note.map." + mt);
@@ -829,7 +858,7 @@
     var pinned = G.pinToRoad(D, id, "", lat, lon);
     var select = role === "start" ? els.origin : els.destination;
     if (!pinned) {
-      showFormError(t("err.outside", { metres: G.MAX_PIN_METRES, area: D.AREA.name }), select);
+      showFormError(t("err.outside", { metres: G.MAX_PIN_METRES, area: local(D.AREA.name) }), select);
       return false;
     }
     pinned.node.name = kind === "gps" ? t("pin.myLocation") : t("pin.pointOn", { road: roadName(pinned.road) });
@@ -1115,6 +1144,7 @@
       edgeById: edgeById,
       blackspots: BLACKSPOTS,
       fitKey: state.fitKey,
+      placeName: placeName,
       t: t,
       hazardLabel: hazardLabel,
       incidents: liveActive() && live.incidents ? live.incidents.incidents : [],
@@ -1133,7 +1163,7 @@
       var r = res.recommended;
       var p = { route: "<strong>" + esc(routeLabel(r)) + "</strong>", min: fT(r.timeUnits), km: fD(r.distanceUnits) };
       if (res.emergency) {
-        p.hospital = esc(res.hospital.name);
+        p.hospital = esc(placeName(res.hospital));
         html = '<span class="emg-flag">' + esc(t("summary.emergencyFlag")) + "</span> " + t("summary.emergency", p);
       } else {
         p.word = esc(priorityWord());
@@ -1226,7 +1256,7 @@
     r.segments.forEach(function (s) {
       var e = edgeById[s.edgeId];
       if (e && e.type === "access") return;
-      var name = s.corridor ? s.roadName : t("route.localLanes");
+      var name = s.corridor ? local(s.roadName) : t("route.localLanes");
       if (out.length && out[out.length - 1] === name) return;
       out.push(name);
     });
@@ -1238,13 +1268,13 @@
     if (isReal()) {
       var roads = roadSequence(r);
       var shown = roads.length > 9 ? roads.slice(0, 8).concat([t("card.more", { n: roads.length - 8 })]) : roads;
-      items = [r.nodeNames[0]].concat(shown, [r.nodeNames[r.nodeNames.length - 1]]);
+      items = [placeNameById(r.nodes[0])].concat(shown, [placeNameById(r.nodes[r.nodes.length - 1])]);
       return '<ol class="stops is-roads" aria-label="' + esc(t("card.roadsLabel", { route: routeLabel(r) })) + '">' +
         items.map(function (name, i) {
           return "<li" + (i > 0 && i < items.length - 1 ? ' class="road"' : "") + ">" + esc(name) + "</li>";
         }).join("") + "</ol>";
     }
-    items = r.nodeNames;
+    items = r.nodes.map(placeNameById);
     return '<ol class="stops" aria-label="' + esc(t("card.stopsLabel", { route: routeLabel(r) })) + '">' +
       items.map(function (name) { return "<li>" + esc(name) + "</li>"; }).join("") + "</ol>";
   }
@@ -1260,12 +1290,12 @@
   function stepRoad(step) {
     var e = edgeById[step.roadEdgeId];
     if (!e) return "";
-    return e.corridor ? e.corridor : roadName(e);
+    return e.corridor ? local(e.corridor) : roadName(e);
   }
 
   /** One instruction in the page language. */
   function stepText(step, r) {
-    if (step.kind === "arrive") return t("dir.arrive", { place: r.nodeNames[r.nodeNames.length - 1] });
+    if (step.kind === "arrive") return t("dir.arrive", { place: placeNameById(r.nodes[r.nodes.length - 1]) });
     var road = stepRoad(step);
     var text = step.kind === "depart"
       ? t("dir.depart", { dir: t("dir.compass." + step.compass), road: road })
@@ -1324,7 +1354,7 @@
     var o = nodeById[D.DEFAULTS.origin];
     var d = nodeById[D.DEFAULTS.destination];
     var tip = isReal()
-      ? t("empty.real", { from: o ? o.name : "", to: d ? d.name : "" })
+      ? t("empty.real", { from: placeName(o), to: placeName(d) })
       : t("empty.demo");
     return '<div class="empty-state">' +
         '<p class="state-title">' + esc(t("empty.title")) + "</p>" +
@@ -1338,13 +1368,13 @@
     var list = others.length
       ? "<p>" + esc(t("emg.others")) + " " + others.map(function (h) {
           return '<button type="button" class="link-btn inline" data-action="hospital" data-id="' + esc(h.hospital.id) + '">' +
-            esc(h.hospital.name) + "</button> (" + esc(t("fig.min", { min: fT(h.timeUnits) })) + ")";
+            esc(placeName(h.hospital)) + "</button> (" + esc(t("fig.min", { min: fT(h.timeUnits) })) + ")";
         }).join(", ") + ".</p>"
       : "";
     return '<div class="emergency-banner" role="alert">' +
-        '<p class="state-title">' + esc(t("emg.title", { hospital: res.hospital.name })) + "</p>" +
+        '<p class="state-title">' + esc(t("emg.title", { hospital: placeName(res.hospital) })) + "</p>" +
         "<p>" + t("emg.body", {
-          from: esc(res.origin.name), route: "<strong>" + esc(routeLabel(best)) + "</strong>", min: fT(best.timeUnits)
+          from: esc(placeName(res.origin)), route: "<strong>" + esc(routeLabel(best)) + "</strong>", min: fT(best.timeUnits)
         }) + (isReal() ? " " + esc(t("emg.check")) : "") + "</p>" + list +
         "<p><strong>" + esc(t("emg.call")) + "</strong> " + esc(t("emg.drive")) + "</p>" +
       "</div>";
@@ -1362,8 +1392,8 @@
     var q = state.query;
     var stale = state.stale
       ? '<p class="stale-banner">' + esc(t("results.stale", {
-          from: nodeById[q.origin] ? nodeById[q.origin].name : t("results.earlierStart"),
-          to: q.destination && nodeById[q.destination] ? nodeById[q.destination].name : t("results.nearestHospital")
+          from: nodeById[q.origin] ? placeName(nodeById[q.origin]) : t("results.earlierStart"),
+          to: q.destination && nodeById[q.destination] ? placeName(nodeById[q.destination]) : t("results.nearestHospital")
         })) + "</p>"
       : "";
 
@@ -1383,8 +1413,8 @@
     var best = res.recommended;
     var next = res.routes[1];
     var p = {
-      from: "<strong>" + esc(res.origin.name) + "</strong>",
-      to: "<strong>" + esc(res.destination.name) + "</strong>",
+      from: "<strong>" + esc(placeName(res.origin)) + "</strong>",
+      to: "<strong>" + esc(placeName(res.destination)) + "</strong>",
       cond: esc(conditionsPhrase()),
       by: esc(t("by." + state.vehicle)),
       route: esc(routeLabel(best)),

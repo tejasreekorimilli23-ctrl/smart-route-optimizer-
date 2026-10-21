@@ -290,12 +290,13 @@
     // Hospitals.
     data.NODES.forEach(function (n) {
       if (n.kind !== "hospital") return;
+      var label = opts.placeName ? opts.placeName(n) : n.name;
       root.L.marker([n.lat, n.lon], {
         icon: divIcon("mk-hospital" + (n.emergency === false ? " is-special" : ""), "H", 18),
-        title: n.name
-      }).bindTooltip(n.name).on("click", function (ev) {
+        title: label
+      }).bindTooltip(label).on("click", function (ev) {
         root.L.DomEvent.stopPropagation(ev);
-        root.L.popup().setLatLng([n.lat, n.lon]).setContent(menu(n.name, [
+        root.L.popup().setLatLng([n.lat, n.lon]).setContent(menu(label, [
           { text: tr("map.goHere"), run: function () { act("choose-destination", n.id); } },
           { text: tr("map.startHere"), run: function () { act("choose-start", n.id); } }
         ])).openOn(map);
@@ -307,8 +308,9 @@
       var n = opts.nodeById[opts[pair[0]]];
       if (!n) return;
       bounds.push([n.lat, n.lon]);
-      root.L.marker([n.lat, n.lon], { icon: divIcon(pair[1], "", 22), zIndexOffset: 1000, title: n.name })
-        .bindTooltip(tr(pair[0] === "origin" ? "map.tipStart" : "map.tipDestination", { name: n.name }))
+      var label = opts.placeName ? opts.placeName(n) : n.name;
+      root.L.marker([n.lat, n.lon], { icon: divIcon(pair[1], "", 22), zIndexOffset: 1000, title: label })
+        .bindTooltip(tr(pair[0] === "origin" ? "map.tipStart" : "map.tipDestination", { name: label }))
         .addTo(overlay);
     });
 
