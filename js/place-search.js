@@ -104,15 +104,9 @@
         .concat(rank(opts.items(), q))
         .concat(extras.filter(function (x) { return x.last; }));
       list.innerHTML = "";
-      if (!shown.length || (shown.length === extras.length && q.trim())) {
-        if (!q.trim()) { close(); return; }
-        var none = document.createElement("li");
-        none.className = "ps-empty";
-        none.setAttribute("role", "presentation");
-        none.textContent = opts.emptyText();
-        list.appendChild(none);
-      }
-      if (shown.length && !shown.some(function (x) { return !x.special; }) && q.trim()) {
+      if (!shown.length && !q.trim()) { close(); return; }
+      // Nothing but the special items (or nothing at all): say so once.
+      if (q.trim() && !shown.some(function (x) { return !x.special; })) {
         var nothing = document.createElement("li");
         nothing.className = "ps-empty";
         nothing.setAttribute("role", "presentation");

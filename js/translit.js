@@ -90,6 +90,8 @@
     andhra: "ఆంధ్ర", pradesh: "ప్రదేశ్", mandal: "మండలం", baba: "బాబా", syndicate: "సిండికేట్",
     lifestyle: "లైఫ్‌స్టైల్", tipsy: "టిప్సీ", topsy: "టాప్సీ", jewellers: "జ్యువెలర్స్", textiles: "టెక్స్‌టైల్స్",
     medical: "మెడికల్", hall: "హాల్", colony: "కాలనీ", ganesh: "గణేష్", nagar: "నగర్", visakhapatnam: "విశాఖపట్నం",
+    institute: "ఇన్‌స్టిట్యూట్", engineering: "ఇంజినీరింగ్", technology: "టెక్నాలజీ", lendi: "లెండి", jonnada: "జొన్నాడ",
+    sciences: "సైన్సెస్", science: "సైన్స్", management: "మేనేజ్‌మెంట్", pharmacy: "ఫార్మసీ",
     family: "ఫ్యామిలీ", lucky: "లక్కీ", chennai: "చెన్నై", south: "దక్షిణ", junction: "జంక్షన్",
     bund: "బండ్", upper: "అప్పర్", lower: "లోయర్", new: "న్యూ", old: "పాత", north: "ఉత్తర", south: "దక్షిణ",
     east: "తూర్పు", west: "పడమర", and: "మరియు", of: "", the: "", near: "దగ్గర", guest: "గెస్ట్", house: "హౌస్",

@@ -384,7 +384,8 @@
       selectedEdgeId: DEFAULT_ROAD,
       notice: null,
       fitKey: null,
-      manual: {} // roads the user set by hand: { edgeId: level }; kept on top of live updates
+      manual: {}, // roads the user set by hand: { edgeId: level }; kept on top of live updates
+      long: null // a long-distance trip from a routing service: { from, to, busy, res, error, focus }
     };
   }
 
@@ -642,6 +643,8 @@
         if (item.id === "__outside") {
           area.pending = { role: role };
           openAreaBox(input.value.trim());
+          var lab = els.areaBox.querySelector("label[for=area-query]");
+          if (lab) lab.textContent = t("area.labelPlace");
           return;
         }
         select.value = item.id;
@@ -654,8 +657,12 @@
 
   /** Shows the chosen place in each search box (unless the user is typing in it). */
   function syncSearchInputs() {
-    [[els.originSearch, els.origin], [els.destinationSearch, els.destination]].forEach(function (pair) {
+    [[els.originSearch, els.origin, "from"], [els.destinationSearch, els.destination, "to"]].forEach(function (pair) {
       if (document.activeElement === pair[0]) return;
+      if (state.long) {
+        pair[0].value = state.long[pair[2]].name || "";
+        return;
+      }
       var n = nodeById[pair[1].value];
       pair[0].value = n ? placeName(n) : "";
     });
@@ -851,6 +858,7 @@
       showFormError(t("area.waitLoading"));
       return;
     }
+    state.long = null;
     var query = { origin: els.origin.value, destination: els.destination.value, emergency: false };
     var res = compute(query);
     if (!res.ok && res.code !== "UNREACHABLE") {
@@ -957,6 +965,10 @@
   function setPriority(priority) {
     if (!E.PRIORITIES[priority] || priority === state.priority) return;
     state.priority = priority;
+    if (state.long) {
+      planLong(state.long.from, state.long.to);
+      return;
+    }
     // An emergency is always the fastest route; choosing "safest" turns it
     // into an ordinary search to the same hospital.
     if (state.query && state.query.emergency && priority !== "fastest") state.query.emergency = false;
@@ -966,6 +978,10 @@
   function setVehicle(vehicle) {
     if (!E.VEHICLES[vehicle] || vehicle === state.vehicle) return;
     state.vehicle = vehicle;
+    if (state.long) {
+      planLong(state.long.from, state.long.to);
+      return;
+    }
     recalc(t("cause.vehicle", { vehicle: vehicleLabel(vehicle) }), choiceNotice);
   }
 
@@ -1022,6 +1038,7 @@
       return false;
     }
     pinned.kind = kind;
+    state.long = null;
     pinned.node.name = kind === "gps" ? t("pin.myLocation") : kind === "place" && label ? label : t("pin.pointOn", { road: roadName(pinned.road) });
     pins[role] = pinned;
     routing = null;
@@ -1120,6 +1137,12 @@
         // Keep a chosen destination if it fits in one area with the user.
         var dest = tripEnd("destination");
         var both = dest ? AL.boxAround(dest, here) : null;
+        if (dest && !both && LR) {
+          // Too far for one area: plan the trip with a routing service.
+          locateSay(accuracyText(c.accuracy), c.accuracy > 1500);
+          planLong({ lat: here.lat, lon: here.lon, name: t("pin.myLocation"), gps: true, accuracy: c.accuracy }, dest);
+          return;
+        }
         var box = both || AL.square(here.lat, here.lon, AL.SETTINGS.squareKm / 2);
         AL.whereIs(here.lat, here.lon).then(function (name) { return name || t("gps.myArea"); }, function () { return t("gps.myArea"); })
         .then(function (name) {
@@ -2014,6 +2037,17 @@
       });
       return;
     }
+    if (other && LR) {
+      var point = { lat: lat, lon: lon, name: label || name };
+      showFormError(t("long.offer", { area: areaName, km: km, other: t("area.role." + otherRole) }), select, {
+        label: t("long.plan"),
+        run: function () {
+          if (role === "destination") planLong(other, point);
+          else planLong(point, other);
+        }
+      });
+      return;
+    }
     var msg = other
       ? t("area.outsideFar", { area: areaName, km: km, other: t("area.role." + otherRole) })
       : t("area.outsideNoOther", { area: areaName });
@@ -2092,6 +2126,15 @@
     var other = tripEnd(otherRole);
     var keep = null;
     var dropped = null;
+    if (other && role && !AL.boxAround(other, r)) {
+      // Too far apart for one area on the phone: a routing service plans it.
+      area.pending = null;
+      els.areaBox.hidden = true;
+      var picked = { lat: r.lat, lon: r.lon, name: local(r.name) };
+      if (role === "destination") planLong(other, picked);
+      else planLong(picked, other);
+      return;
+    }
     if (other) {
       var both = AL.boxAround(other, r);
       if (both) {
@@ -2300,8 +2343,8 @@
   function renderMap() {
     var res = state.result;
     var routes = res && res.ok ? res.routes : [];
-    var origin = state.query ? state.query.origin : els.origin.value || null;
-    var destination = state.query ? state.query.destination : els.destination.value || null;
+    var origin = state.long ? null : state.query ? state.query.origin : els.origin.value || null;
+    var destination = state.long ? null : state.query ? state.query.destination : els.destination.value || null;
     M.render(isReal() ? els.realMap : els.map, {
       data: D,
       levels: routeLevels(),
@@ -2322,11 +2365,164 @@
       reports: isReal() ? community.reports : [],
       reportInfo: reportInfo
     });
+    if (isReal() && VIEWS.real && VIEWS.real.setLongRoute) {
+      var L1 = state.long;
+      VIEWS.real.setLongRoute(L1 && L1.res ? {
+        routes: L1.res.routes, focus: L1.focus, from: L1.from, to: L1.to,
+        key: L1.from.lat + "," + L1.from.lon + ">" + L1.to.lat + "," + L1.to.lon
+      } : null);
+    }
+  }
+
+  // ---------- long-distance trips (routing service) ----------
+
+  var LR = window.LongRoute;
+  var longReq = 0;
+
+  /**
+   * Plans a trip that is too long for one downloaded area, with a routing
+   * service (TomTom with the saved key, else OpenStreetMap routing). The
+   * local road graph is not used for it, and the page says so.
+   */
+  function planLong(from, to) {
+    if (!LR) return;
+    var req = ++longReq;
+    clearFormError();
+    if (typeof trip !== "undefined" && trip.on) stopTrip();
+    state.query = null;
+    state.result = null;
+    state.notice = null;
+    state.long = { from: from, to: to, busy: true, res: null, error: null, focus: 0 };
+    renderAll();
+    els.originSearch.value = from.name || "";
+    els.destinationSearch.value = to.name || "";
+    els.resultsBody.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+    LR.plan({ from: from, to: to, vehicle: state.vehicle, priority: state.priority, tomtomKey: savedKey() || null }).then(function (res) {
+      if (req !== longReq || !state.long) return;
+      state.long.busy = false;
+      state.long.res = res;
+      renderAll();
+    }, function (err) {
+      if (req !== longReq || !state.long) return;
+      state.long.busy = false;
+      state.long.error = err;
+      renderAll();
+    });
+  }
+
+  function longProviderName(p) {
+    return t(p === "tomtom" ? "long.provider.tomtom" : "long.provider.osm");
+  }
+
+  function longErrorText(err) {
+    var code = err && err.code;
+    var known = ["nofetch", "badpoint", "same", "noroute", "denied", "limit", "timeout", "failed"];
+    return t("long.err." + (known.indexOf(code) >= 0 ? code : "failed"));
+  }
+
+  function minText(seconds) {
+    return (seconds / 60).toFixed(0);
+  }
+
+  function kmText(metres) {
+    return (metres / 1000).toFixed(1);
+  }
+
+  /** The road a long route follows furthest, for its name. */
+  function longMainRoad(r) {
+    var best = null;
+    r.steps.forEach(function (s) { if (s.road && (!best || s.distanceM > best.distanceM)) best = s; });
+    return best ? best.road : t("long.unnamedRoad");
+  }
+
+  function longStepText(s, to) {
+    var road = s.road || t("long.unnamedRoad");
+    if (s.kind === "arrive") return t("dir.arrive", { place: to.name });
+    var text = s.kind === "depart"
+      ? t("dir.depart", { dir: t("dir.compass." + (s.compass || "north")), road: road })
+      : t("dir.turn." + (s.turn || "straight"), { road: road });
+    return text + " " + t("dir.follow", { dist: metresText(s.distanceM) });
+  }
+
+  function longCard(r, i, L1) {
+    var res = L1.res;
+    var focused = i === L1.focus;
+    var badges = (i === 0 ? '<p class="rec-badge">' + esc(t("card.recommended")) + "</p>" : "") +
+      (r.isFastest ? '<p class="tag-badge">' + esc(t("card.fastest")) + "</p>" : "") +
+      (r.isShortest ? '<p class="tag-badge">' + esc(t("card.shortest")) + "</p>" : "") +
+      (r.isSafest ? '<p class="tag-badge is-safe">' + esc(t("card.safest")) + "</p>" : "");
+    var safety = E.classifySafety(r.distanceM > 0 ? r.riskUnits / r.distanceM : 0);
+    var traffic = res.traffic === "live"
+      ? (r.delayS ? t("long.delay", { min: minText(r.delayS) }) : t("long.noDelay"))
+      : t("long.noTraffic");
+    var why = [];
+    if (i === 0) why.push(res.routes.length === 1 ? t("long.why.only") : t("long.why.best." + res.priority, { n: res.routes.length }));
+    else why.push(t("why.alternative"));
+    why.push(t("long.why.highway", { km: kmText(r.highwayM) }));
+    why.push(t(res.provider === "tomtom" ? "long.why.srcTomtom" : "long.why.srcOsm"));
+    var steps = r.steps.map(function (s) { return "<li>" + esc(longStepText(s, L1.to)) + "</li>"; }).join("");
+    return '<article class="route-card' + (i === 0 ? " is-recommended" : "") + (focused ? " is-focused" : "") + '" aria-labelledby="long-title-' + i + '">' +
+      '<div class="route-head">' + swatchSvg(i + 1) +
+        '<h3 id="long-title-' + i + '"><span class="route-num">' + esc(t("route.num", { n: i + 1 })) + '</span> <span class="route-name">' +
+        esc(t("long.via", { road: longMainRoad(r) })) + "</span></h3>" + badges +
+      "</div>" +
+      '<dl class="route-metrics">' +
+        '<div class="metric metric-time"><dt>' + esc(t("card.time")) + '</dt><dd><span class="num">' + minText(r.durationS) + "</span> " + esc(t("unit.min")) + "</dd></div>" +
+        '<div class="metric"><dt>' + esc(t("card.distance")) + '</dt><dd><span class="num">' + kmText(r.distanceM) + "</span> " + esc(t("unit.km")) + "</dd></div>" +
+        '<div class="metric"><dt>' + esc(t("card.traffic")) + '</dt><dd class="cmp">' + esc(traffic) + "</dd></div>" +
+        '<div class="metric metric-safety"><dt>' + esc(t("long.riskTitle")) + '</dt><dd><span class="chip ' + safety.tone + '">' + esc(t("rating." + safety.key)) + "</span>" +
+          '<span class="sub">' + esc(t("card.risk", { risk: (r.riskUnits / 1000).toFixed(1) })) + "</span></dd></div>" +
+      "</dl>" +
+      '<p class="why"><strong>' + esc(t("why.title")) + "</strong> " + esc(why.join("; ")) + ".</p>" +
+      '<details class="directions"><summary>' + esc(t("dir.title", { n: r.steps.length })) + "</summary><ol>" + steps + "</ol></details>" +
+      '<div class="card-actions"><button type="button" class="map-toggle" data-action="long-focus" data-i="' + i + '" aria-pressed="' + focused + '">' +
+        esc(t(focused ? "card.shown" : "card.show")) + "</button></div>" +
+    "</article>";
+  }
+
+  function longHtml() {
+    var L1 = state.long;
+    var km = AL ? AL.distanceKm(L1.from, L1.to).toFixed(0) : "?";
+    var intro = '<p class="note">' + esc(t("long.why", { km: km })) + "</p>";
+    if (L1.busy) {
+      return '<div class="empty-state" role="status"><p class="state-title">' + esc(t("long.busy")) + "</p><p>" +
+        esc(t("long.fromTo", { from: L1.from.name, to: L1.to.name })) + "</p></div>" + intro;
+    }
+    if (L1.error) {
+      return '<div class="error-state" role="alert"><p class="state-title">' + esc(t("long.failTitle")) + "</p><p>" +
+        esc(longErrorText(L1.error)) + "</p><p>" + esc(t("long.notLocal")) + '</p><button type="button" class="btn-secondary" data-action="long-retry">' +
+        esc(t("area.retry")) + "</button></div>" + intro;
+    }
+    var res = L1.res;
+    var best = res.routes[0];
+    var head = t("long.head", {
+      from: L1.from.name, to: L1.to.name, min: minText(best.durationS), km: kmText(best.distanceM),
+      word: t("long.obj." + res.priority), by: t("by." + res.vehicle)
+    });
+    var src = res.provider === "tomtom"
+      ? t("long.srcTomtom", { time: clockText(res.fetchedAt) })
+      : t("long.srcOsm", { time: clockText(res.fetchedAt) });
+    var notes = [src];
+    if (res.fellBack) notes.unshift(t("long.fellBack", { reason: longErrorText(res.fellBack) }));
+    if (res.vehicle === "auto" || res.vehicle === "twowheeler") notes.push(t("long.capNote", { kmh: res.vehicle === "auto" ? 35 : 50 }));
+    if (res.vehicle === "twowheeler" && res.provider === "osm") notes.push(t("long.carProfile"));
+    if (res.routes.length === 1) notes.push(t("long.single"));
+    return '<p class="results-summary">' + esc(head) + "</p>" +
+      notes.map(function (n) { return '<p class="note">' + esc(n) + "</p>"; }).join("") + intro +
+      '<div class="route-list">' + res.routes.map(function (r, i) { return longCard(r, i, L1); }).join("") + "</div>" +
+      '<p class="assumption">' + esc(t("long.riskNote")) + " " + esc(t("long.noTrip")) + "</p>";
   }
 
   function renderSummary() {
     var res = state.result;
     var html;
+    if (state.long) {
+      var Ls = state.long;
+      els.mapSummary.innerHTML = esc(Ls.res
+        ? t("long.summary", { min: minText(Ls.res.routes[Ls.focus].durationS), km: kmText(Ls.res.routes[Ls.focus].distanceM), provider: longProviderName(Ls.res.provider) })
+        : Ls.busy ? t("long.busy") : t("long.failTitle"));
+      return;
+    }
     if (!state.query || !res) {
       html = t("summary.empty");
     } else if (!res.ok) {
@@ -2568,6 +2764,11 @@
 
   function renderResults() {
     var body = els.resultsBody;
+    if (state.long) {
+      body.innerHTML = longHtml();
+      els.calc.hidden = true;
+      return;
+    }
     if (!state.query || !state.result) {
       body.innerHTML = emptyStateHtml();
       els.calc.hidden = true;
@@ -2793,6 +2994,7 @@
 
   function onSelectionChange() {
     clearFormError();
+    state.long = null;
     state.stale = !!state.query &&
       (els.origin.value !== state.query.origin || els.destination.value !== state.query.destination);
     renderAll();
@@ -2810,6 +3012,8 @@
   els.locate.addEventListener("click", locateMe);
   els.areaChange.addEventListener("click", function () {
     area.pending = null;
+    var lab = els.areaBox.querySelector("label[for=area-query]");
+    if (lab) lab.textContent = t("area.label");
     if (els.areaBox.hidden) openAreaBox();
     else els.areaBox.hidden = true;
   });
@@ -2992,6 +3196,13 @@
         VIEWS.real.focusOn(step.point.lat, step.point.lon);
         els.mapPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
       }
+    } else if (action === "long-focus" && state.long && state.long.res) {
+      state.long.focus = Number(btn.getAttribute("data-i")) || 0;
+      renderMap();
+      renderResults();
+      renderSummary();
+    } else if (action === "long-retry" && state.long) {
+      planLong(state.long.from, state.long.to);
     } else if (action === "focus") {
       state.focusedSig = btn.getAttribute("data-sig");
       renderMap();

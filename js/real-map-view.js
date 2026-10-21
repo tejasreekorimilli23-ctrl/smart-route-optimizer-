@@ -203,7 +203,8 @@
     });
     roadLayer.addTo(map);
     var b = data.AREA.bbox;
-    map.setMaxBounds(root.L.latLngBounds([b[0] - 0.02, b[1] - 0.02], [b[2] + 0.02, b[3] + 0.02]));
+    areaBounds = root.L.latLngBounds([b[0] - 0.02, b[1] - 0.02], [b[2] + 0.02, b[3] + 0.02]);
+    if (!longShown) map.setMaxBounds(areaBounds);
     map.setView(data.AREA.center, data.AREA.zoom, { animate: false });
   }
 
@@ -439,6 +440,60 @@
     if (follow) map.setView([pos.lat, pos.lon], Math.max(map.getZoom(), 17), { animate: false });
   }
 
+  var longLayer = null;
+  var lastLongKey = null;
+  var longShown = false;
+  var areaBounds = null; // the loaded area (the map is kept inside it, except for a long route)
+
+  /**
+   * Draws a long-distance route (from a routing service, not the local road
+   * network): info = { routes: [{ coords: [[lat, lon], ...] }], focus,
+   * from: { lat, lon, name }, to: {...}, key } or null to remove it.
+   */
+  function setLongRoute(info) {
+    if (!map) return;
+    if (!longLayer) longLayer = root.L.layerGroup().addTo(map);
+    longLayer.clearLayers();
+    if (!info || !info.routes || !info.routes.length) {
+      lastLongKey = null;
+      if (longShown) {
+        // Back to the loaded area only.
+        longShown = false;
+        map.setMinZoom(12);
+        if (areaBounds) {
+          map.setMaxBounds(areaBounds);
+          map.fitBounds(areaBounds, { animate: false });
+        }
+      }
+      return;
+    }
+    if (!longShown) {
+      // A long route goes beyond the loaded area: let the map show all of it.
+      longShown = true;
+      map.setMaxBounds(null);
+      map.setMinZoom(6);
+    }
+    info.routes.forEach(function (r, i) {
+      if (i === info.focus || !r.coords.length) return;
+      root.L.polyline(r.coords, { color: "#5B6B85", weight: 5, opacity: 0.85, dashArray: "9 6", interactive: false }).addTo(longLayer);
+    });
+    var f = info.routes[info.focus] || info.routes[0];
+    if (f.coords.length) {
+      root.L.polyline(f.coords, { color: "#FFFFFF", weight: 11, opacity: 0.9, interactive: false }).addTo(longLayer);
+      root.L.polyline(f.coords, { color: "#3FD8EA", weight: 6, interactive: false }).addTo(longLayer);
+    }
+    [[info.from, "mk-start", "map.tipStart"], [info.to, "mk-end", "map.tipDestination"]].forEach(function (m) {
+      if (!m[0]) return;
+      root.L.marker([m[0].lat, m[0].lon], { icon: divIcon(m[1], "", 22), zIndexOffset: 1000, keyboard: false })
+        .bindTooltip(plain(tr(m[2], { name: m[0].name || "" })))
+        .addTo(longLayer);
+    });
+    if (info.key !== lastLongKey && f.coords.length) {
+      lastLongKey = info.key;
+      map.fitBounds(root.L.latLngBounds(f.coords), { padding: [30, 30], animate: false });
+    }
+  }
+
   /** Centres the map on a point (e.g. an incident chosen from the list). */
   function focusOn(lat, lon) {
     if (map) map.setView([lat, lon], 17, { animate: false });
@@ -447,6 +502,7 @@
   api.render = render;
   api.focusOn = focusOn;
   api.setPosition = setPosition;
+  api.setLongRoute = setLongRoute;
   api.setLiveOverlay = setLiveOverlay;
   api.invalidate = function () {
     if (map) map.invalidateSize();

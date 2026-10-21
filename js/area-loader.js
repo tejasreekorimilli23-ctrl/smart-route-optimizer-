@@ -193,10 +193,11 @@
     }).catch(function () { return null; });
   }
 
-  /** Looks a place up by name. countryCodes e.g. "in" to prefer India (optional). */
-  function find(query, opts, fetchImpl) {
-    var doFetch = getFetch(fetchImpl);
-    opts = opts || {};
+  var PHOTON = "https://photon.komoot.io/api/";
+  var INDIA_BOX = "68.1,6.5,97.5,37.1"; // west,south,east,north for Photon
+
+  /** One Nominatim search. */
+  function nominatim(query, opts, doFetch) {
     var url = SEARCH + "?format=jsonv2&limit=6&q=" + encodeURIComponent(query) +
       (opts.countryCodes ? "&countrycodes=" + encodeURIComponent(opts.countryCodes) : "") +
       "&accept-language=" + encodeURIComponent(opts.language || "en");
@@ -206,6 +207,67 @@
     }, function () {
       throw failure("offline");
     }).then(parseSearch);
+  }
+
+  /**
+   * Spelling people use that OpenStreetMap names often write differently:
+   * "and" -> "&" ("Lendi Institute of Engineering and Technology" is mapped
+   * as "... Engineering & Technology"). Returns the query unchanged if
+   * there is nothing to change.
+   */
+  function altQuery(query) {
+    return String(query).replace(/\s+and\s+/gi, " & ").replace(/\s+/g, " ").trim();
+  }
+
+  /** Photon (komoot) answer -> the same shape as parseSearch. */
+  function parsePhoton(json) {
+    return ((json && json.features) || []).map(function (f) {
+      var p = f.properties || {};
+      var c = (f.geometry && f.geometry.coordinates) || [];
+      var parts = [];
+      [p.name, p.street && (p.housenumber ? p.housenumber + " " + p.street : p.street), p.district, p.city, p.county, p.state, p.postcode, p.country]
+        .forEach(function (x) { if (x && parts.indexOf(x) < 0) parts.push(String(x)); });
+      var ex = p.extent; // [west, north, east, south]
+      return {
+        name: p.name || parts[0] || "",
+        label: parts.join(", "),
+        lat: Number(c[1]),
+        lon: Number(c[0]),
+        box: Array.isArray(ex) && ex.length === 4 ? [ex[3], ex[0], ex[1], ex[2]] : null,
+        source: "photon"
+      };
+    }).filter(function (r) { return isFinite(r.lat) && isFinite(r.lon) && r.name; });
+  }
+
+  /** One Photon search (OpenStreetMap data, tolerant of spelling). */
+  function photon(query, opts, doFetch) {
+    var url = PHOTON + "?limit=6&lang=en&q=" + encodeURIComponent(query) +
+      (opts.countryCodes === "in" ? "&bbox=" + INDIA_BOX : "");
+    return Promise.resolve().then(function () { return doFetch(url); }).then(function (res) {
+      if (!res.ok) throw failure(res.status === 429 ? "busy" : "search");
+      return res.json();
+    }, function () {
+      throw failure("offline");
+    }).then(parsePhoton);
+  }
+
+  /**
+   * Looks a place or address up. countryCodes e.g. "in" to prefer India
+   * (optional). Tries OpenStreetMap's Nominatim; if it finds nothing, the
+   * same query with "&" for "and"; then Photon, which finds places with
+   * slightly different spelling. All three use OpenStreetMap data.
+   */
+  function find(query, opts, fetchImpl) {
+    var doFetch = getFetch(fetchImpl);
+    opts = opts || {};
+    return nominatim(query, opts, doFetch).then(function (rows) {
+      if (rows.length) return rows;
+      var alt = altQuery(query);
+      return (alt !== query ? nominatim(alt, opts, doFetch) : Promise.resolve([])).then(function (rows2) {
+        if (rows2.length) return rows2;
+        return photon(query, opts, doFetch).catch(function () { return []; });
+      });
+    });
   }
 
   function wait(seconds) {
@@ -373,6 +435,8 @@
     session: session,
     contains: contains,
     parseSearch: parseSearch,
+    parsePhoton: parsePhoton,
+    altQuery: altQuery,
     find: find,
     whereIs: whereIs,
     load: load,

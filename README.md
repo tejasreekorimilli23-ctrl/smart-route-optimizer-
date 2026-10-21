@@ -79,6 +79,30 @@ The first download of an area usually takes 40–90 seconds, depending on how bu
 
 Everything works the same in every area: fastest and safest routes, vehicle types, directions, emergency (nearest hospital), live TomTom traffic and incidents, and Telugu.
 
+## Long-distance trips (between towns)
+
+The app's own road map and Dijkstra work inside one downloaded area (at most about 12 × 12 km); a phone cannot download and hold the road network between two cities. When the two ends of a trip are too far apart for one area, the route comes from a **routing service** instead, and the page says so:
+
+| | TomTom Routing API | OpenStreetMap routing (FOSSGIS OSRM) |
+| --- | --- | --- |
+| Used when | a TomTom key is saved (the same key as live traffic; the Routing API must be enabled for it) | no key, or TomTom fails (the page shows why) |
+| Traffic | live and typical traffic, delay shown | none: typical speeds from OpenStreetMap |
+| Alternatives | up to 2 | when the service finds them |
+| Vehicles | car, motorcycle (two-wheeler), pedestrian; autos as car | car and foot profiles |
+
+What the app still does itself: it ranks the service's candidate routes by your objective (fastest / shortest / safest), caps speeds for autos (35 km/h) and two-wheelers (50 km/h) as on the local map, and gives a **limited safety score**: 1 point per km plus 2 per km on national highways (the local model's heavy-vehicle weight). Schools, markets, junctions, reports and alerts are only known inside a downloaded area, so this is a rough comparison, not a rating. Trip mode with re-routing works on downloaded areas; for long routes, follow the directions.
+
+**How to start one.** Any of these, when the two ends are too far apart for one area:
+- *Use my location*, with a destination already chosen;
+- type the destination in *Destination*, choose **Search "…" outside this area**, and pick the place;
+- tap a far point on the map, and press **Plan a long-distance route**.
+
+**Place search.** OpenStreetMap's Nominatim first; if it finds nothing, the same words with "&" for "and" (OpenStreetMap names *Lendi Institute of Engineering **&** Technology* that way, so the full name with "and" found nothing before); then Photon (komoot), which allows small spelling differences. All three use OpenStreetMap data; full addresses are listed to choose from.
+
+**Tested with the real services:** a (simulated) GPS position in Visakhapatnam to Lendi Institute of Engineering & Technology, Jonnada: the full name was found, and OpenStreetMap routing returned 41.9 km, about 40 min by car via Old NH16 and NH16, in about 1.5 s; the route is drawn on the map. A request to TomTom with an invalid key got HTTP 401, and the page said so and used OpenStreetMap routing instead. Not tested: TomTom routing with a valid key (no key was available).
+
+**Fair use.** The FOSSGIS routing service and Photon are free, shared services: the app sends one request per plan, never in a loop. A public service with many users should run its own routing server or use a paid API.
+
 **Tested in the browser with the real OpenStreetMap servers:**
 - Srikakulam: searched, downloaded and routed (3,938 junctions, 201 places, 56 hospitals).
 - Visakhapatnam (city centre): downloaded and built in 56 s; 4,400 junctions, 6,389 road sections, 399 places; route Old Post Office area → RK Beach (5.6 min via Beach Road); the "only the centre is covered" note was shown.
@@ -375,7 +399,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ```
 npm run check         # syntax of every JS file; page ids and file references are consistent
-npm test              # 78 automated tests (Node's built-in test runner, no dependencies)
+npm test              # 88 automated tests (Node's built-in test runner, no dependencies)
 npm run build         # builds the single-file version
 npm run verify        # all three
 ```
@@ -439,6 +463,7 @@ js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, pena
 js/live-traffic.js             Live traffic and incidents from TomTom (optional, your own key)
 js/osm-network.js              Builds a road network from OpenStreetMap data (used by the build script and the browser)
 js/area-loader.js              Finds and downloads any town in the browser; keeps areas on the device
+js/long-route.js               Long-distance routes from TomTom Routing or OpenStreetMap routing
 js/translit.js                 English -> Telugu writing of place and road names
 js/directions.js               Turn-by-turn directions
 js/community.js                Community reports, official alerts, shared trip speeds (Firebase or this device only)
@@ -472,6 +497,8 @@ tests/area-loader.test.js      Loading other towns (fake servers)
 tests/i18n.test.js             English / Telugu text checks
 tests/objectives.test.js       Fastest / shortest / safest, GPS accuracy, time-outs
 tests/areas.test.js            Area sizes, trips across a city, newest load wins, no mixing of areas
+tests/long-route.test.js       Long-distance routes and place search (real saved answers + mocked TomTom)
+tests/fixtures/                Real answers saved from OpenStreetMap routing and Photon
 tests/browser-smoke.cjs        Optional browser test
 ```
 
