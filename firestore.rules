@@ -6,6 +6,9 @@
 // - alerts: anyone may read; only admins (a document admins/<uid> exists) may write.
 // - speeds: anyone may read and add a well-formed, short-lived reading; never edit.
 // - admins: nobody can read or write from the app (manage in the console).
+// - users/{uid}: each signed-in user can read and write ONLY their own
+//   document (saved places, recent destinations, trip history), as one
+//   JSON text of at most 200 KB. Nobody else can read it, not even admins.
 //
 // Turn on TTL (Firestore > TTL policies) on reports.expiresAt, alerts.endsAt and
 // speeds.expiresAt so old documents are deleted automatically.
@@ -59,6 +62,15 @@ service cloud.firestore {
 
     match /admins/{uid} {
       allow read, write: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 200000
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }

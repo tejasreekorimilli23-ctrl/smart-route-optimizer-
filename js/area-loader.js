@@ -48,7 +48,8 @@
     // Order of attempts: the main server recovers quickly when busy, the
     // backups are tried in between. [server index, seconds to wait first]
     attempts: [[0, 0], [0, 5], [1, 0], [0, 15], [2, 0], [0, 30]],
-    timeoutSeconds: 75 // a request taking longer than this is abandoned
+    timeoutSeconds: 75, // a request taking longer than this is abandoned
+    limitPauseSeconds: 20 // after "too many requests" (HTTP 429), wait at least this long
   };
   var KM_LAT = 110.574;
 
@@ -275,9 +276,15 @@
   }
 
   /** One request, abandoned after timeoutSeconds. */
-  function post(url, query, doFetch) {
+  function post(url, query, doFetch, signal) {
     var controller = typeof AbortController === "function" ? new AbortController() : null;
     var timer = setTimeout(function () { if (controller) controller.abort(); }, SETTINGS.timeoutSeconds * 1000);
+    // The user chose something else: stop this request, freeing the server slot.
+    var stop = function () { if (controller) controller.abort(); };
+    if (signal) {
+      if (signal.aborted) stop();
+      else signal.addEventListener("abort", stop);
+    }
     return Promise.resolve().then(function () {
       return doFetch(url, {
         method: "POST",
@@ -286,13 +293,17 @@
         signal: controller ? controller.signal : undefined
       });
     }).then(function (res) {
-      if (!res.ok) throw failure(res.status === 429 || res.status >= 500 || res.status === 504 ? "busy" : "download");
+      if (res.status === 429) throw failure("limit"); // too many requests from this connection
+      if (!res.ok) throw failure(res.status >= 500 ? "busy" : "download");
       return res.json();
     }).then(function (json) {
       clearTimeout(timer);
+      if (signal) signal.removeEventListener("abort", stop);
       return json;
     }, function (err) {
       clearTimeout(timer);
+      if (signal) signal.removeEventListener("abort", stop);
+      if (signal && signal.aborted) throw failure("cancelled");
       throw err && err.code ? err : failure("busy");
     });
   }
@@ -301,21 +312,29 @@
    * Runs an Overpass query following SETTINGS.attempts.
    * retrying(seconds) is called before each wait.
    */
-  function overpass(query, doFetch, retrying) {
+  function overpass(query, doFetch, retrying, signal) {
     var n = 0;
     var lastError = null;
     function attempt() {
+      if (signal && signal.aborted) return Promise.reject(failure("cancelled"));
       if (n >= SETTINGS.attempts.length) return Promise.reject(lastError || failure("busy"));
       var step = SETTINGS.attempts[n++];
+      var server = step[0];
       var pause = step[1];
+      // "Too many requests": wait longer before asking again.
+      if (lastError && lastError.code === "limit") pause = Math.max(pause, SETTINGS.limitPauseSeconds);
+      var number = n;
       var go = function () {
-        return post(OVERPASS[step[0]], query, doFetch).catch(function (err) {
+        if (signal && signal.aborted) return Promise.reject(failure("cancelled"));
+        if (number > 1 && retrying) retrying(-1, number);
+        return post(OVERPASS[server], query, doFetch, signal).catch(function (err) {
+          if (err.code === "cancelled") throw err;
           lastError = err;
           return attempt();
         });
       };
       if (!pause) return go();
-      if (retrying) retrying(pause);
+      if (retrying) retrying(pause, number);
       return wait(pause).then(go);
     }
     return attempt();
@@ -328,21 +347,25 @@
    * Roads and places are downloaded at the same time (two requests, the
    * number Overpass allows at once), which roughly halves the wait.
    */
-  function load(name, box, progress, fetchImpl) {
+  function load(name, box, progress, fetchImpl, signal) {
     var doFetch = getFetch(fetchImpl);
     var q = OSM.queries(box);
     var tell = progress || function () {};
-    var retrying = function (seconds) { tell("retry", seconds); };
+    // seconds > 0: waiting before the next try; -1: trying again now (attempt number).
+    var retrying = function (seconds, attempt) {
+      if (seconds > 0) tell("retry", seconds);
+      else tell("retrying", attempt + " / " + SETTINGS.attempts.length);
+    };
     var center = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2];
     var roadsDone = false;
     var placesDone = false;
     tell("roads");
-    var roadsReq = overpass(q.roads, doFetch, retrying).then(function (r) {
+    var roadsReq = overpass(q.roads, doFetch, retrying, signal).then(function (r) {
       roadsDone = true;
       if (!placesDone) tell("places");
       return r;
     });
-    var placesReq = overpass(q.places, doFetch, retrying).then(function (p) {
+    var placesReq = overpass(q.places, doFetch, retrying, signal).then(function (p) {
       placesDone = true;
       return p;
     });

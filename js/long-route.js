@@ -206,12 +206,25 @@
 
   var TOMTOM_MODE = { car: "car", auto: "car", twowheeler: "motorcycle", walk: "pedestrian" };
 
-  function tomtomUrl(from, to, vehicle, key) {
+  /** Local date-time with its UTC offset, as TomTom's departAt wants it (2026-10-22T08:30:00+05:30). */
+  function isoLocal(d) {
+    var pad = function (n) { return String(Math.abs(n)).padStart(2, "0"); };
+    var off = -d.getTimezoneOffset();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":00" +
+      (off >= 0 ? "+" : "-") + pad(Math.floor(Math.abs(off) / 60)) + ":" + pad(Math.abs(off) % 60);
+  }
+
+  /** opts: { avoidTolls, departAt (Date, used when in the future) } */
+  function tomtomUrl(from, to, vehicle, key, opts) {
+    opts = opts || {};
+    var later = opts.departAt instanceof Date && opts.departAt.getTime() > Date.now() + 60000;
     return TOMTOM_BASE + from.lat.toFixed(6) + "," + from.lon.toFixed(6) + ":" + to.lat.toFixed(6) + "," + to.lon.toFixed(6) +
       "/json?key=" + encodeURIComponent(key) +
       "&traffic=true&routeType=fastest&travelMode=" + (TOMTOM_MODE[vehicle] || "car") +
       "&maxAlternatives=" + SETTINGS.tomtomAlternatives +
-      "&computeTravelTimeFor=all&instructionsType=coded&language=en-GB";
+      "&computeTravelTimeFor=all&instructionsType=coded&language=en-GB" +
+      (opts.avoidTolls ? "&avoid=tollRoads" : "") +
+      (later ? "&departAt=" + encodeURIComponent(isoLocal(opts.departAt)) : "");
   }
 
   function fromTomtom(json, vehicle) {
@@ -289,13 +302,20 @@
     var viaOsm = function (fellBack) {
       return getJson(doFetch, osmUrl(from, to, vehicle), "osm").then(function (json) {
         var routes = rank(fromOsrm(json, vehicle), priority);
-        return { provider: "osm", traffic: "none", fetchedAt: new Date(), routes: routes, fellBack: fellBack || null, vehicle: vehicle, priority: priority };
+        return {
+          provider: "osm", traffic: "none", fetchedAt: new Date(), routes: routes, fellBack: fellBack || null, vehicle: vehicle, priority: priority,
+          tollsNotAvoided: !!opts.avoidTolls, departAtUsed: false
+        };
       });
     };
     if (!opts.tomtomKey) return viaOsm(null);
-    return getJson(doFetch, tomtomUrl(from, to, vehicle, opts.tomtomKey), "tomtom").then(function (json) {
+    var later = opts.departAt instanceof Date && opts.departAt.getTime() > Date.now() + 60000;
+    return getJson(doFetch, tomtomUrl(from, to, vehicle, opts.tomtomKey, opts), "tomtom").then(function (json) {
       var routes = rank(fromTomtom(json, vehicle), priority);
-      return { provider: "tomtom", traffic: "live", fetchedAt: new Date(), routes: routes, fellBack: null, vehicle: vehicle, priority: priority };
+      return {
+        provider: "tomtom", traffic: later ? "predicted" : "live", fetchedAt: new Date(), routes: routes, fellBack: null, vehicle: vehicle, priority: priority,
+        tollsNotAvoided: false, departAtUsed: later
+      };
     }, function (err) {
       // TomTom failed (wrong key, limit, no answer): say so, and use the free OpenStreetMap routing instead.
       if (err.code === "noroute") throw err;
@@ -312,6 +332,7 @@
     fromTomtom: fromTomtom,
     osmUrl: osmUrl,
     tomtomUrl: tomtomUrl,
+    isoLocal: isoLocal,
     isHighway: isHighway
   };
 });

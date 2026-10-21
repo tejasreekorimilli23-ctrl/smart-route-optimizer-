@@ -55,7 +55,7 @@ test("a busy server is retried, then the area is built and routable", async () =
     const data = await A.load("Test town", box, (s) => steps.push(s), fake);
     assert.ok(steps.includes("retry"), "the user is told about the retry");
     // Roads and places download at the same time; "places" only shows if roads finish first.
-    assert.deepEqual(steps.filter((s) => s !== "retry" && s !== "places"), ["roads", "building", "validating"]);
+    assert.deepEqual(steps.filter((s) => s !== "retry" && s !== "retrying" && s !== "places"), ["roads", "building", "validating"]);
     assert.ok(data.STATS.sectionsKept > 1000 && data.STATS.sectionsKept <= data.STATS.sectionsFound, "build statistics");
     assert.ok(data.STATS.placesOnRoads > 100 && data.STATS.placesOnRoads <= data.STATS.placesFound);
     assert.ok(data.NODES.length > 1000 && data.EDGES.length > 1000);
@@ -79,6 +79,40 @@ test("a download that never works ends with a clear error", async () => {
     await assert.rejects(A.load("X", [18, 83, 18.05, 83.05], null, offline), (e) => e.code === "busy");
     const none = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ elements: [] }) });
     await assert.rejects(A.load("X", [18, 83, 18.05, 83.05], null, none), (e) => e.code === "noroads");
+  } finally {
+    Object.assign(A.SETTINGS, saved);
+  }
+});
+
+test("a cancelled download stops at once and frees the server", async () => {
+  const saved = { ...A.SETTINGS };
+  let aborted = 0;
+  const hanging = (url, opts) => new Promise((resolve, reject) => {
+    opts.signal.addEventListener("abort", () => { aborted++; reject(new Error("aborted")); });
+  });
+  try {
+    const ctl = new AbortController();
+    const job = A.load("X", [18, 83, 18.05, 83.05], null, hanging, ctl.signal);
+    setTimeout(() => ctl.abort(), 20);
+    await assert.rejects(job, (e) => e.code === "cancelled");
+    assert.equal(aborted, 2, "both requests (roads and places) were stopped");
+  } finally {
+    Object.assign(A.SETTINGS, saved);
+  }
+});
+
+test("'too many requests' (429) waits longer and is reported as a limit", async () => {
+  const saved = { ...A.SETTINGS };
+  A.SETTINGS.attempts = [[0, 0], [1, 0]];
+  A.SETTINGS.limitPauseSeconds = 0.05;
+  const steps = [];
+  try {
+    const limited = () => Promise.resolve({ ok: false, status: 429, json: () => Promise.resolve({}) });
+    const t0 = Date.now();
+    await assert.rejects(A.load("X", [18, 83, 18.05, 83.05], (s, v) => steps.push(s + ":" + v), limited), (e) => e.code === "limit");
+    assert.ok(Date.now() - t0 >= 45, "it waited before asking again");
+    assert.ok(steps.includes("retry:0.05"), "the wait is shown");
+    assert.ok(steps.some((s) => s.startsWith("retrying:2 / 2")), "the new attempt is shown");
   } finally {
     Object.assign(A.SETTINGS, saved);
   }

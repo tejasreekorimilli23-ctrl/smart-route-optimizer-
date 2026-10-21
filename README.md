@@ -79,6 +79,34 @@ The first download of an area usually takes 40–90 seconds, depending on how bu
 
 Everything works the same in every area: fastest and safest routes, vehicle types, directions, emergency (nearest hospital), live TomTom traffic and incidents, and Telugu.
 
+## Leaving time, saved places, accounts and the dashboard
+
+**Departure date and time.** *Leaving at* is filled in automatically from the device's clock and moves on by itself every 30 seconds while *Now* is ticked; the traffic estimate follows to the next hour on its own. Untick *Now* (or pick a date and time) to plan a later trip: the estimate uses that hour, results say "Leaving Thursday 8:30 AM, you arrive about 8:37 AM", and TomTom long routes use predicted traffic for that time. The estimate covers 6 AM–10 PM and does not tell weekdays from weekends.
+
+**Saved places and recent destinations.** *☆ Save this destination* keeps a place; tapping into an empty Start or Destination box lists saved places and the last 8 destinations. Choosing one outside the loaded map offers to load an area or plan a long-distance route.
+
+**Accounts (optional): Sign in / Sign up** at the top of the page. With an account (Firebase Authentication, email + password), saved places, recent destinations and trip history are kept in the user's own Firestore document and come back on any device; *Forgot password?* sends Firebase's reset email. Without an account everything works on the device. Setup: Firebase console → Authentication → Email/Password enabled (already done for the admin page) and the new `users/{uid}` rule in `firestore.rules` published. Nobody else, admins included, can read a user's document. The admin sign-in on admin.html is separate.
+
+**Live position.** *Show me moving on the map* follows the GPS (one watcher; stops when pressed again or when Trip mode starts).
+
+**Theme.** The theme button switches auto (follows the phone) → light → dark, and remembers the choice.
+
+**Tolls.** *Avoid toll roads where supported* works for long routes with TomTom (`avoid=tollRoads`). The OpenStreetMap data of the areas has no toll roads, and the free OpenStreetMap routing service rejects toll exclusion, so the page says when tolls could not be avoided.
+
+**Trip analytics (under the routes).**
+- *Routes compared*: distance, time, no-traffic time, delay, share in heavy traffic, risk, fuel and CO₂ for each route.
+- *Time saved by using traffic information*: against a clearly defined baseline, the route a planner without traffic data would pick (quickest with all roads empty), timed under today's conditions.
+- *Traffic along the recommended route*: light / moderate / heavy shares by length, with the data source.
+- *Travel time by departure hour*: a bar chart for 6 AM–10 PM from the time-of-day estimates (best time to leave), plus a *reliability* rating from the spread of those times, or from the user's own recorded trips once there are 3.
+- *How the estimate changed*: every new estimate this session (live data, reports, time changes) as a line chart.
+- *Your recorded trips*: Trip mode keeps how long each trip really took; with 2 or more on the same route, their median is shown as a prediction next to the estimate.
+- *Fuel and emissions*: litres = km ÷ typical mileage (car 15, auto 25, two-wheeler 45 km/l) + idling 0.8 / 0.5 / 0.25 l per hour of delay; CO₂ = 2.31 kg per litre. A planning estimate.
+- *Download report (CSV)* and *Print or save as PDF* for project evaluation.
+
+**Admin analytics** (admin.html): counts of active reports by type, road and hour, active alerts, and shared speeds per road (number of readings and median speed) for the chosen area. Only aggregates are shown: no reporter, position or trip.
+
+**Downloads that look stuck.** The free Overpass servers allow about 2 downloads at a time per internet connection and answer "too many requests" (HTTP 429) beyond that. The app now stops a download as soon as the user cancels or chooses another place (so it frees its slot), waits at least 20 s after a 429, shows each new attempt ("attempt 3 / 6"), highlights the chosen place with *loading…* and offers *Cancel*.
+
 ## Long-distance trips (between towns)
 
 The app's own road map and Dijkstra work inside one downloaded area (at most about 12 × 12 km); a phone cannot download and hold the road network between two cities. When the two ends of a trip are too far apart for one area, the route comes from a **routing service** instead, and the page says so:
@@ -399,7 +427,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ```
 npm run check         # syntax of every JS file; page ids and file references are consistent
-npm test              # 88 automated tests (Node's built-in test runner, no dependencies)
+npm test              # 101 automated tests (Node's built-in test runner, no dependencies)
 npm run build         # builds the single-file version
 npm run verify        # all three
 ```
@@ -464,6 +492,8 @@ js/live-traffic.js             Live traffic and incidents from TomTom (optional,
 js/osm-network.js              Builds a road network from OpenStreetMap data (used by the build script and the browser)
 js/area-loader.js              Finds and downloads any town in the browser; keeps areas on the device
 js/long-route.js               Long-distance routes from TomTom Routing or OpenStreetMap routing
+js/analytics.js                Trip analytics: baseline, hourly times, reliability, fuel/CO2, CSV
+js/accounts.js                 Optional user accounts (Firebase Authentication) and synced saved places
 js/translit.js                 English -> Telugu writing of place and road names
 js/directions.js               Turn-by-turn directions
 js/community.js                Community reports, official alerts, shared trip speeds (Firebase or this device only)
@@ -497,6 +527,7 @@ tests/area-loader.test.js      Loading other towns (fake servers)
 tests/i18n.test.js             English / Telugu text checks
 tests/objectives.test.js       Fastest / shortest / safest, GPS accuracy, time-outs
 tests/areas.test.js            Area sizes, trips across a city, newest load wins, no mixing of areas
+tests/analytics.test.js        Time saved, hourly times, reliability, fuel model, accounts (fake Firebase), admin aggregates
 tests/long-route.test.js       Long-distance routes and place search (real saved answers + mocked TomTom)
 tests/fixtures/                Real answers saved from OpenStreetMap routing and Photon
 tests/browser-smoke.cjs        Optional browser test

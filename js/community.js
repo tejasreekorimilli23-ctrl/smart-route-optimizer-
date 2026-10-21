@@ -162,6 +162,52 @@
   }
 
   /**
+   * Aggregated, anonymous figures for the admin page: no positions, people
+   * or trips, only counts and medians.
+   * roadOf(edgeId) -> road name for shared-speed readings of this area (or
+   * null to leave a reading out). Returns { reports: { total, byType,
+   * byRoad: [[road, n]], byHour: [24 counts] }, alerts, speeds: { readings,
+   * roads: [{ road, n, medianKmh }] } }.
+   */
+  function aggregate(reports, alerts, speeds, now, roadOf) {
+    var active = (reports || []).filter(function (r) { return isActive(r, now); });
+    var byType = {};
+    var byRoad = {};
+    var byHour = [];
+    for (var h = 0; h < 24; h++) byHour.push(0);
+    active.forEach(function (r) {
+      byType[r.type] = (byType[r.type] || 0) + 1;
+      var road = r.roadName || "?";
+      byRoad[road] = (byRoad[road] || 0) + 1;
+      if (r.createdAt instanceof Date) byHour[r.createdAt.getHours()]++;
+    });
+    var perRoad = {};
+    var readings = 0;
+    (speeds || []).forEach(function (sp) {
+      if (!sp || (sp.expiresAt && sp.expiresAt <= now) || !(sp.kmh >= 0)) return;
+      var road = roadOf(sp.edgeId);
+      if (!road) return;
+      readings++;
+      (perRoad[road] = perRoad[road] || []).push(sp.kmh);
+    });
+    var roads = Object.keys(perRoad).map(function (road) {
+      var list = perRoad[road].sort(function (a, b) { return a - b; });
+      var mid = list.length % 2 ? list[(list.length - 1) / 2] : (list[list.length / 2 - 1] + list[list.length / 2]) / 2;
+      return { road: road, n: list.length, medianKmh: Math.round(mid * 10) / 10 };
+    }).sort(function (a, b) { return b.n - a.n || a.medianKmh - b.medianKmh; }).slice(0, 10);
+    return {
+      reports: {
+        total: active.length,
+        byType: byType,
+        byRoad: Object.keys(byRoad).map(function (k) { return [k, byRoad[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 10),
+        byHour: byHour
+      },
+      alerts: (alerts || []).filter(function (a) { return isAlertActive(a, now); }).length,
+      speeds: { readings: readings, roads: roads }
+    };
+  }
+
+  /**
    * Shared speeds -> traffic levels. For each road with at least
    * speedMinReadings fresh readings, the median speed is compared with the
    * road's free-flow speed (for cars), with the same thresholds as live
@@ -435,6 +481,7 @@
     fromDoc: fromDoc,
     firebaseStore: firebaseStore,
     forArea: forArea,
+    aggregate: aggregate,
     localStore: localStore,
     connect: connect
   };

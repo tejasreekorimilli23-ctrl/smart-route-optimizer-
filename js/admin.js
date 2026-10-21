@@ -132,12 +132,14 @@
       if (sel.value === "builtin") {
         data = BUILT_IN;
         drawRoads();
+        refreshAnalytics();
         return;
       }
       AL.recall(sel.value).then(function (d) {
         if (d) {
           data = d;
           drawRoads();
+          refreshAnalytics();
         }
       });
     });
@@ -223,6 +225,41 @@
     });
   });
 
+  /** Same tag the app puts in front of shared speed readings (see app.js speedTag). */
+  function areaTag() {
+    var key = data === BUILT_IN ? "builtin" : data.AREA.key;
+    var h = 5381;
+    for (var i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  /** Aggregated figures only: counts and medians, no positions or people. */
+  function refreshAnalytics() {
+    var box = $("analytics");
+    var now = new Date();
+    var tag = areaTag() + ":";
+    var nameOf = {};
+    data.EDGES.forEach(function (e) { nameOf[e.id] = e.corridor || e.name; });
+    box.textContent = "Loading…";
+    Promise.all([store.listReports(now), store.listAlerts(now), store.listSpeeds(now)]).then(function (out) {
+      var agg = C.aggregate(out[0], out[1], out[2], now, function (id) {
+        return typeof id === "string" && id.indexOf(tag) === 0 ? nameOf[id.slice(tag.length)] || null : null;
+      });
+      var types = Object.keys(agg.reports.byType).map(function (k) { return esc(k) + ": " + agg.reports.byType[k]; }).join(", ") || "none";
+      var roads = agg.reports.byRoad.map(function (r) { return "<li>" + esc(r[0]) + ": " + r[1] + "</li>"; }).join("") || "<li>No active reports.</li>";
+      var hours = agg.reports.byHour.map(function (n, h) { return n ? h + ":00 – " + n : null; }).filter(Boolean).join(", ") || "none";
+      var speeds = agg.speeds.roads.map(function (r) {
+        return "<li>" + esc(r.road) + ": " + r.n + " readings, median " + r.medianKmh + " km/h</li>";
+      }).join("") || "<li>No shared speeds for this area in the last 20 minutes.</li>";
+      box.innerHTML = "<p><strong>" + agg.reports.total + "</strong> active public reports (" + types + "); <strong>" + agg.alerts + "</strong> active official alerts.</p>" +
+        "<h3>Reports by road</h3><ul>" + roads + "</ul>" +
+        "<p>Reports by hour of the day: " + esc(hours) + ".</p>" +
+        "<h3>Shared speeds on " + esc(data.AREA.name) + " (" + agg.speeds.readings + " readings)</h3><ul>" + speeds + "</ul>";
+    }, function (e) {
+      box.textContent = errorText(e);
+    });
+  }
+
   function start() {
     var now = new Date();
     $("alert-start").value = localInput(now);
@@ -230,5 +267,7 @@
     fillAreas();
     drawRoads();
     refreshLists();
+    refreshAnalytics();
+    $("analytics-refresh").addEventListener("click", refreshAnalytics);
   }
 })();

@@ -23,7 +23,7 @@
     <div class="wrap header-inner">
       <div class="header-text">
         <h1 data-i18n="title">Smart Traffic Route Optimization System for Safer and More Efficient Urban Travel</h1>
-        <p class="lede" data-i18n="lede">Pick two places on the real map of Vizianagaram or in the offline demo town, compare the alternative routes by journey time, distance, traffic and road-safety hazards, and choose the fastest or the safest one for the time of day.</p>
+        <p class="lede" data-i18n="lede">Pick two places on the real map of any town, compare the alternative routes by journey time, distance, traffic and road-safety hazards, and choose the fastest or the safest one for the time of day.</p>
       </div>
       <div class="header-side">
         <div class="switches">
@@ -35,6 +35,10 @@
             </div>
           </fieldset>
           <button type="button" id="demo-exit" class="install-btn demo-only" data-i18n="mode.demoExit">← Back to the real map</button>
+        </div>
+        <div class="header-tools">
+          <button type="button" id="theme-toggle" class="install-btn"></button>
+          <button type="button" id="account-open" class="install-btn" hidden></button>
         </div>
         <button type="button" id="install-app" class="install-btn" data-i18n="install.button" hidden>Install app</button>
         <p id="mode-badge" class="demo-badge"><span class="pulse" aria-hidden="true"></span><span id="mode-badge-text">Demo mode: traffic is simulated, not live</span></p>
@@ -92,6 +96,7 @@
               <span data-i18n="plan.locate">Use my location</span>
             </button>
             <span id="locate-status" class="locate-status" role="status" aria-live="polite"></span>
+            <button type="button" id="follow-me" class="link-btn" aria-pressed="false" data-i18n="follow.start">Show me moving on the map</button>
           </div>
           <button type="button" id="swap" class="swap-btn" data-i18n-attr="aria-label:plan.swapLabel" aria-label="Swap start and destination">
             <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M6 3v12M6 15l-3-3M6 15l3-3M14 17V5M14 5l-3 3M14 5l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -104,7 +109,20 @@
               <input id="destination-search" type="text" class="combo-input" aria-labelledby="destination-label" aria-describedby="form-error" enterkeyhint="search">
               <ul id="destination-list" class="ps-list" hidden></ul>
             </div>
+            <div class="dest-tools real-only">
+              <button type="button" id="save-place" class="link-btn" data-i18n="places.save">☆ Save this destination</button>
+              <span id="places-status" class="locate-status" role="status" aria-live="polite"></span>
+            </div>
           </div>
+          <div class="field depart-field real-only">
+            <label for="depart-at" data-i18n="depart.label">Leaving at</label>
+            <div class="depart-row">
+              <input type="datetime-local" id="depart-at" step="60">
+              <label class="check"><input type="checkbox" id="depart-now" checked> <span data-i18n="depart.now">Now (updates automatically)</span></label>
+            </div>
+            <p id="clock-now" class="note"></p>
+          </div>
+          <label class="check tolls-check real-only"><input type="checkbox" id="avoid-tolls"> <span data-i18n="tolls.label">Avoid toll roads where supported</span></label>
           <fieldset class="choice-set">
             <legend data-i18n="vehicle.legend">Travelling by</legend>
             <div id="vehicle-options" class="choice-grid is-four">
@@ -274,6 +292,10 @@
           <summary data-i18n="calc.summary">How this was calculated</summary>
           <div id="calc-body"></div>
         </details>
+        <section id="analytics" class="analytics" aria-labelledby="analytics-title" hidden>
+          <h3 id="analytics-title" data-i18n="an.title">Trip analytics</h3>
+          <div id="analytics-body"></div>
+        </section>
       </section>
     </div>
   </main>
@@ -341,6 +363,30 @@
     </div>
   </footer>
 
+  <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
+    <form id="account-form" method="dialog" novalidate>
+      <h2 id="account-title" data-i18n="acct.title">Your account</h2>
+      <p class="note" data-i18n="acct.why">Optional. With an account, your saved places, recent destinations and trip history follow you to other devices. Everything else works without one.</p>
+      <div id="account-out">
+        <label for="acct-email" data-i18n="acct.email">Email</label>
+        <input id="acct-email" type="email" autocomplete="email" required>
+        <label for="acct-password" data-i18n="acct.password">Password (at least 6 characters)</label>
+        <input id="acct-password" type="password" autocomplete="current-password" minlength="6" required>
+        <div class="acct-actions">
+          <button type="button" id="acct-signin" class="btn-primary" data-i18n="acct.signin">Sign in</button>
+          <button type="button" id="acct-signup" class="btn-secondary" data-i18n="acct.signup">Create account</button>
+        </div>
+        <button type="button" id="acct-reset" class="link-btn" data-i18n="acct.reset">Forgot password?</button>
+      </div>
+      <div id="account-in" hidden>
+        <p id="acct-who"></p>
+        <button type="button" id="acct-signout" class="btn-secondary" data-i18n="acct.signout">Sign out</button>
+      </div>
+      <p id="acct-status" class="live-status" role="status" aria-live="polite"></p>
+      <button type="button" id="acct-close" class="link-btn" data-i18n="area.close">Close</button>
+    </form>
+  </dialog>
+
   <script src="js/vendor/leaflet.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/network-data.js"></script>
@@ -354,6 +400,8 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/community.js"></script>
   <script src="js/long-route.js"></script>
+  <script src="js/analytics.js"></script>
+  <script src="js/accounts.js"></script>
   <script src="js/translit.js"></script>
   <script src="js/place-search.js"></script>
   <script src="js/directions.js"></script>

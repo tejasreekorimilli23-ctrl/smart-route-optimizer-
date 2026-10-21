@@ -12,7 +12,7 @@
  */
 "use strict";
 
-var APP_CACHE = "route-app-v2";
+var APP_CACHE = "route-app-v3";
 var TILE_CACHE = "route-tiles-v1";
 var MAX_TILES = 800;
 var APP_FILES = [
@@ -21,7 +21,7 @@ var APP_FILES = [
   "js/vendor/leaflet.js", "js/i18n.js", "js/network-data.js", "js/real-network-data.js", "js/osm-network.js",
   "js/area-loader.js", "js/blackspots.js", "js/route-engine.js", "js/geo-tools.js", "js/live-traffic.js",
   "js/firebase-config.js", "js/community.js", "js/translit.js", "js/place-search.js", "js/directions.js",
-  "js/trip.js", "js/long-route.js", "js/map-view.js", "js/real-map-view.js", "js/app.js",
+  "js/trip.js", "js/long-route.js", "js/analytics.js", "js/accounts.js", "js/map-view.js", "js/real-map-view.js", "js/app.js",
   "icons/icon-192.png", "icons/icon-512.png"
 ];
 

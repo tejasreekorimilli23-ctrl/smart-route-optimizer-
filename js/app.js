@@ -73,6 +73,18 @@
     demoExit: $("demo-exit"),
     modeBadgeText: $("mode-badge-text"),
     form: $("route-form"),
+    themeToggle: $("theme-toggle"),
+    accountOpen: $("account-open"),
+    accountDialog: $("account-dialog"),
+    followMe: $("follow-me"),
+    savePlace: $("save-place"),
+    placesStatus: $("places-status"),
+    departAt: $("depart-at"),
+    departNow: $("depart-now"),
+    clockNow: $("clock-now"),
+    avoidTolls: $("avoid-tolls"),
+    analytics: $("analytics"),
+    analyticsBody: $("analytics-body"),
     areaInfo: $("area-info"),
     areaRetry: $("area-retry"),
     formAction: $("form-action"),
@@ -190,6 +202,13 @@
     document.title = t("docTitle");
   }
 
+  function setLangExtras() {
+    if (typeof applyTheme === "function" && els.themeToggle) applyTheme();
+    if (typeof renderClock === "function") renderClock();
+    if (typeof renderAccount === "function") renderAccount();
+    if (els.followMe) els.followMe.textContent = t(follow && follow.watch !== undefined ? "follow.stop" : "follow.start");
+  }
+
   function setLang(next) {
     lang = I18N[next] ? next : "en";
     try { window.localStorage.setItem("route-lang", lang); } catch (err) { /* ignore */ }
@@ -199,6 +218,7 @@
       renderAll();
       updateLiveStatus();
     }
+    setLangExtras();
   }
 
   // ---------- units and formatting ----------
@@ -630,7 +650,7 @@
       items: searchItems,
       extras: function (q) {
         q = q.trim();
-        if (!q) return role === "start" ? [{ id: "__locate", label: t("plan.locate"), special: true }] : [];
+        if (!q) return (role === "start" ? [{ id: "__locate", label: t("plan.locate"), special: true }] : []).concat(placeExtras());
         if (q.length < 3 || !AL) return [];
         return [{ id: "__outside", label: t("search.outside", { q: q }), special: true, last: true }];
       },
@@ -638,6 +658,10 @@
       onPick: function (item) {
         if (item.id === "__locate") {
           locateMe();
+          return;
+        }
+        if (item.place) {
+          usePlace(role, item.place);
           return;
         }
         if (item.id === "__outside") {
@@ -1746,6 +1770,7 @@
     }
     var st = TR.status(trip.ln, trip.alongs, at);
     if (st.arrived) {
+      recordTrip();
       els.tripNext.textContent = t("trip.arrived");
       els.tripLeft.textContent = "";
       speak(t("trip.arrived"));
@@ -1804,6 +1829,11 @@
     prepareTrip(route);
     trip.on = true;
     trip.weakShown = false;
+    trip.startedAt = Date.now();
+    trip.predictedUnits = route.timeUnits;
+    trip.pairKey = pairKey(route.nodes[0], route.nodes[route.nodes.length - 1]);
+    trip.names = { from: placeNameById(route.nodes[0]), to: placeNameById(route.nodes[route.nodes.length - 1]) };
+    stopFollow();
     els.tripPanel.hidden = false;
     els.tripNext.textContent = t("trip.waiting");
     els.tripLeft.textContent = "";
@@ -1967,6 +1997,9 @@
   function loadBox(name, box, opts) {
     opts = opts || {};
     var token = areaSession.begin();
+    // A newer choice replaces an older download: stop it, so it does not keep a server slot busy.
+    if (area.abort) area.abort.abort();
+    area.abort = typeof AbortController === "function" ? new AbortController() : null;
     area.busy = true;
     area.lastLoad = { name: name, box: box, opts: opts };
     els.areaRetry.hidden = true;
@@ -1976,7 +2009,7 @@
     setAreaStatus(t("area.step.roads"));
     AL.load(name, box, function (step, seconds) {
       if (areaSession.isCurrent(token)) setAreaStatus(t("area.step." + step, { s: seconds }));
-    }).then(function (data) {
+    }, null, area.abort ? area.abort.signal : null).then(function (data) {
       if (!areaSession.isCurrent(token)) return; // the user chose another area since
       var bad = checkArea(data);
       if (bad) throw bad;
@@ -2397,7 +2430,10 @@
     els.originSearch.value = from.name || "";
     els.destinationSearch.value = to.name || "";
     els.resultsBody.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
-    LR.plan({ from: from, to: to, vehicle: state.vehicle, priority: state.priority, tomtomKey: savedKey() || null }).then(function (res) {
+    LR.plan({
+      from: from, to: to, vehicle: state.vehicle, priority: state.priority, tomtomKey: savedKey() || null,
+      avoidTolls: !!els.avoidTolls.checked, departAt: departure.now ? null : departTime()
+    }).then(function (res) {
       if (req !== longReq || !state.long) return;
       state.long.busy = false;
       state.long.res = res;
@@ -2507,6 +2543,10 @@
     if (res.vehicle === "auto" || res.vehicle === "twowheeler") notes.push(t("long.capNote", { kmh: res.vehicle === "auto" ? 35 : 50 }));
     if (res.vehicle === "twowheeler" && res.provider === "osm") notes.push(t("long.carProfile"));
     if (res.routes.length === 1) notes.push(t("long.single"));
+    if (res.tollsNotAvoided) notes.push(t("tolls.notOsm"));
+    if (res.departAtUsed) notes.push(t("depart.tomtomLater", { time: dateTimeText(departTime()) }));
+    else if (!departure.now && res.provider === "osm") notes.push(t("depart.osmIgnored"));
+    notes.push(arrivalText(best.durationS * E.unitsOf(D).perMin / 60));
     return '<p class="results-summary">' + esc(head) + "</p>" +
       notes.map(function (n) { return '<p class="note">' + esc(n) + "</p>"; }).join("") + intro +
       '<div class="route-list">' + res.routes.map(function (r, i) { return longCard(r, i, L1); }).join("") + "</div>" +
@@ -2764,9 +2804,14 @@
 
   function renderResults() {
     var body = els.resultsBody;
+    els.analytics.hidden = true;
     if (state.long) {
       body.innerHTML = longHtml();
       els.calc.hidden = true;
+      if (state.long.res) {
+        rememberRecent(state.long.to);
+        renderLongAnalytics();
+      }
       return;
     }
     if (!state.query || !state.result) {
@@ -2823,6 +2868,7 @@
           : " " + t("results.tailQuicker", { min: fT(next.extraTimeUnits), route: esc(routeLabel(next)) });
       }
     }
+    if (isReal() && !res.emergency) headline += " " + esc(arrivalText(best.timeUnits));
     var summary = '<p class="results-summary">' + headline +
       (res.routes.length > 1 ? " " + esc(tradeoffText(res)) : "") + "</p>" + shareRow(res);
     var emergency = res.emergency ? emergencyHtml(res, best) : "";
@@ -2833,6 +2879,11 @@
       res.routes.map(function (r) { return routeCard(r, res); }).join("") + "</div>" +
       '<p class="assumption">' + esc(t(isReal() ? "results.assumptionReal" : "results.assumptionDemo")) + "</p>";
     renderCalc();
+    if (!res.emergency) {
+      rememberRecent(res.destination);
+      logEta(res);
+    }
+    renderAnalytics();
   }
 
   /** Joins consecutive segments that share keyFn's value, summing their units. */
@@ -3030,9 +3081,24 @@
     }
   });
   els.areaBox.addEventListener("click", function (ev) {
-    var b = ev.target.closest ? ev.target.closest("[data-area-result],[data-area-key]") : null;
+    var b = ev.target.closest ? ev.target.closest("[data-area-result],[data-area-key],[data-area-cancel]") : null;
     if (!b) return;
-    if (b.hasAttribute("data-area-result")) loadResult(area.results[Number(b.getAttribute("data-area-result"))]);
+    if (b.hasAttribute("data-area-cancel")) {
+      areaSession.cancel();
+      if (area.abort) area.abort.abort();
+      area.busy = false;
+      setAreaLoading(false);
+      els.areaResults.innerHTML = "";
+      setAreaStatus(t("area.cancelled", { name: local(D.AREA.name) }));
+      return;
+    }
+    if (b.hasAttribute("data-area-result")) {
+      var chosen = area.results[Number(b.getAttribute("data-area-result"))];
+      // Show which place was chosen; the other results go away.
+      els.areaResults.innerHTML = '<li><span class="area-pick is-loading" aria-current="true">' + esc(local(chosen.label)) + " · " + esc(t("area.loadingChosen")) +
+        '</span></li><li><button type="button" class="link-btn" data-area-cancel="1">' + esc(t("area.cancel")) + "</button></li>";
+      loadResult(chosen);
+    }
     else pickSavedArea(b.getAttribute("data-area-key"));
   });
 
@@ -3057,10 +3123,18 @@
     var band = E.bandForHour(D, hour);
     if (band) els.hourLabel.textContent = hourText(hour) + " · " + bandName(band);
     clearTimeout(hourTimer);
-    hourTimer = setTimeout(function () { setHour(hour); }, 180);
+    hourTimer = setTimeout(function () {
+      var d = new Date(departTime().getTime());
+      d.setHours(hour, 0, 0, 0);
+      departure.now = false;
+      departure.at = d;
+      renderClock();
+      setHour(hour);
+    }, 180);
   });
 
   els.now.addEventListener("click", function () {
+    setDeparture(true, null);
     setHour(currentHour());
   });
 
@@ -3201,6 +3275,10 @@
       renderMap();
       renderResults();
       renderSummary();
+    } else if (action === "export-csv") {
+      exportCsv();
+    } else if (action === "print") {
+      window.print();
     } else if (action === "long-retry" && state.long) {
       planLong(state.long.from, state.long.to);
     } else if (action === "focus") {
@@ -3248,6 +3326,479 @@
   });
   window.addEventListener("appinstalled", function () { $("install-app").hidden = true; });
 
+  // ---------- departure date and time (from the device clock) ----------
+
+  var departure = { now: true, at: null };
+
+  /** The departure: the device's current date and time, or the one the user chose. */
+  function departTime() {
+    return departure.now || !departure.at ? new Date() : departure.at;
+  }
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  /** Date -> value for <input type="datetime-local"> in local time. */
+  function inputValue(d) {
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+
+  function dateTimeText(d) {
+    var date = d.toLocaleDateString(lang === "te" ? "te-IN" : "en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return date + ", " + clockText(d);
+  }
+
+  /** "Arrive about 11:45 PM" (with the date when it is not today). */
+  function arrivalText(timeUnits) {
+    var start = departTime();
+    var at = new Date(start.getTime() + (timeUnits / E.unitsOf(D).perMin) * 60000);
+    var sameDay = at.toDateString() === new Date().toDateString();
+    return t(departure.now ? "eta.arriveNow" : "eta.arriveLater", { time: sameDay ? clockText(at) : dateTimeText(at), leave: dateTimeText(start) });
+  }
+
+  /** The hour the traffic estimate uses for a departure (the day runs 6 AM-10 PM). */
+  function departHour(d) {
+    return Math.min(D.DAY_END_HOUR, Math.max(D.DAY_START_HOUR, d.getHours()));
+  }
+
+  function renderClock() {
+    if (!els.clockNow) return;
+    var now = new Date();
+    if (departure.now) els.departAt.value = inputValue(now);
+    els.departNow.checked = departure.now;
+    var parts = [t("depart.clock", { now: dateTimeText(now) })];
+    var dep = departTime();
+    if (dep.getHours() < D.DAY_START_HOUR || dep.getHours() > D.DAY_END_HOUR) parts.push(t("depart.outsideDay"));
+    parts.push(t("depart.weekNote"));
+    els.clockNow.textContent = parts.join(" ");
+  }
+
+  /**
+   * Every 30 s: update the clock; when leaving "now", move the traffic
+   * estimate on to the new hour by itself (live data keeps its own timing).
+   */
+  function clockTick() {
+    renderClock();
+    if (!departure.now || !isReal() || liveActive() || state.hour === null || Object.keys(state.manual || {}).length) return;
+    var h = departHour(new Date());
+    if (h !== state.hour) setHour(h);
+  }
+
+  function setDeparture(now, at) {
+    departure.now = now;
+    departure.at = now ? null : at;
+    renderClock();
+    if (!isReal()) return;
+    var h = departHour(departTime());
+    if (state.long) planLong(state.long.from, state.long.to);
+    else if (h !== state.hour && !liveActive()) setHour(h);
+    else renderAll();
+  }
+
+  // ---------- saved places, recent destinations, trip history ----------
+
+  var USER_KEY = "user-data";
+  var userData = { places: [], recent: [], trips: [] };
+  try {
+    var storedUser = JSON.parse(window.localStorage.getItem(USER_KEY) || "null");
+    if (storedUser) userData = { places: storedUser.places || [], recent: storedUser.recent || [], trips: storedUser.trips || [] };
+  } catch (err) { /* ignore */ }
+
+  function placeKey(p) {
+    return p.lat.toFixed(4) + "," + p.lon.toFixed(4);
+  }
+
+  function saveUserData() {
+    try { window.localStorage.setItem(USER_KEY, JSON.stringify(userData)); } catch (err) { /* ignore */ }
+    if (ACC && ACC.current()) {
+      ACC.store(userData).then(function () { account.syncError = null; renderAccount(); }, function (err) { account.syncError = err; renderAccount(); });
+    }
+  }
+
+  /** Saved places first, then recent destinations, for an empty search box. */
+  function placeExtras() {
+    if (!isReal()) return [];
+    var out = userData.places.map(function (p, i) {
+      return { id: "__saved" + i, label: "★ " + p.name, sub: t("places.saved"), special: true, place: p };
+    });
+    userData.recent.forEach(function (p, i) {
+      if (userData.places.some(function (s) { return placeKey(s) === placeKey(p); })) return;
+      out.push({ id: "__recent" + i, label: "🕘 " + p.name, sub: t("places.recent"), special: true, place: p });
+    });
+    return out.slice(0, 10);
+  }
+
+  function rememberRecent(n) {
+    if (!n || !isReal() || n.lat === undefined) return;
+    var p = { name: n.name ? (n.id ? placeName(n) : n.name) : "", lat: n.lat, lon: n.lon };
+    if (!p.name) return;
+    var k = placeKey(p);
+    if (userData.recent[0] && placeKey(userData.recent[0]) === k) return;
+    userData.recent = [p].concat(userData.recent.filter(function (x) { return placeKey(x) !== k; })).slice(0, 8);
+    saveUserData();
+  }
+
+  /** Uses a saved or recent place as the start or destination (loading or planning as needed). */
+  function usePlace(role, p) {
+    var select = role === "start" ? els.origin : els.destination;
+    if (setPin(role, p.lat, p.lon, "place", p.name)) {
+      (role === "start" ? els.originSearch : els.destinationSearch).value = p.name;
+      searchIfReady();
+    } else {
+      select.value = select.value; // the error with "load" / "long-distance" choices is already shown
+    }
+  }
+
+  function placesSay(text) {
+    els.placesStatus.textContent = text;
+    clearTimeout(placesSay.timer);
+    placesSay.timer = setTimeout(function () { els.placesStatus.textContent = ""; }, 5000);
+  }
+
+  function saveDestination() {
+    var p = null;
+    if (state.long) p = state.long.to;
+    else {
+      var n = nodeById[els.destination.value];
+      if (n) p = { name: placeName(n), lat: n.lat, lon: n.lon };
+    }
+    if (!p) { placesSay(t("places.none")); return; }
+    var k = placeKey(p);
+    if (userData.places.some(function (x) { return placeKey(x) === k; })) { placesSay(t("places.already", { name: p.name })); return; }
+    userData.places = [{ name: p.name, lat: p.lat, lon: p.lon }].concat(userData.places).slice(0, 20);
+    saveUserData();
+    placesSay(t(ACC && ACC.current() ? "places.savedAccount" : "places.savedDevice", { name: p.name }));
+  }
+
+  function pairKey(a, b) {
+    var na = nodeById[a];
+    var nb = nodeById[b];
+    return na && nb ? placeKey(na) + ">" + placeKey(nb) : "";
+  }
+
+  /** On arrival in Trip mode: keep how long the trip really took. */
+  function recordTrip() {
+    if (!trip.startedAt || !trip.pairKey) return;
+    var seconds = Math.round((Date.now() - trip.startedAt) / 1000);
+    if (seconds < 30) return;
+    userData.trips = [{
+      key: trip.pairKey, vehicle: state.vehicle, from: trip.names.from, to: trip.names.to,
+      at: new Date().toISOString(), hour: new Date(trip.startedAt).getHours(),
+      seconds: seconds, predictedSeconds: Math.round(trip.predictedUnits / E.unitsOf(D).perMin * 60)
+    }].concat(userData.trips).slice(0, 100);
+    trip.startedAt = null;
+    saveUserData();
+  }
+
+  function tripsFor(key) {
+    return userData.trips.filter(function (x) { return x.key === key && x.vehicle === state.vehicle; });
+  }
+
+  // ---------- accounts (optional) ----------
+
+  var ACC = window.Accounts ? window.Accounts.create(window.FIREBASE_CONFIG, window.localStorage) : null;
+  var account = { syncError: null };
+
+  function accountErrorText(err) {
+    var known = ["exists", "wrong", "email", "password", "weak", "disabled", "toomany", "notenabled", "rules", "offline", "signedout"];
+    return t("acct.err." + (err && known.indexOf(err.code) >= 0 ? err.code : "failed"));
+  }
+
+  function accountSay(text, isError) {
+    var el = $("acct-status");
+    el.textContent = text || "";
+    el.classList.toggle("is-error", !!isError);
+  }
+
+  function renderAccount() {
+    if (!ACC) return;
+    var me = ACC.current();
+    els.accountOpen.hidden = false;
+    els.accountOpen.textContent = me ? t("acct.button.in", { email: me.email.replace(/^(.).*(@.*)$/, "$1…$2") }) : t("acct.button.out");
+    $("account-out").hidden = !!me;
+    $("account-in").hidden = !me;
+    $("acct-who").textContent = me ? t("acct.who", { email: me.email }) : "";
+    if (me && account.syncError) accountSay(accountErrorText(account.syncError) + " " + t("acct.localStill"), true);
+  }
+
+  /** After signing in: merge this device's places and trips with the account's. */
+  function syncAccount() {
+    if (!ACC || !ACC.current()) return Promise.resolve();
+    return ACC.load().then(function (remote) {
+      var merge = function (a, b, keyFn, max) {
+        var seen = {};
+        return (a || []).concat(b || []).filter(function (x) {
+          var k = keyFn(x);
+          if (seen[k]) return false;
+          seen[k] = true;
+          return true;
+        }).slice(0, max);
+      };
+      userData = {
+        places: merge(remote.places, userData.places, placeKey, 20),
+        recent: merge(remote.recent, userData.recent, placeKey, 8),
+        trips: merge(remote.trips, userData.trips, function (x) { return x.key + "|" + x.at; }, 100)
+      };
+      account.syncError = null;
+      saveUserData();
+      renderAccount();
+      renderResults();
+    }, function (err) {
+      account.syncError = err;
+      renderAccount();
+    });
+  }
+
+  function accountAction(kind) {
+    var email = $("acct-email").value.trim();
+    var password = $("acct-password").value;
+    accountSay(t("acct.working"));
+    var job = kind === "signup" ? ACC.signUp(email, password) : kind === "signin" ? ACC.signIn(email, password) : ACC.resetPassword(email);
+    job.then(function () {
+      $("acct-password").value = "";
+      if (kind === "reset") { accountSay(t("acct.resetSent", { email: email })); return; }
+      accountSay(t(kind === "signup" ? "acct.created" : "acct.signedIn"));
+      renderAccount();
+      syncAccount();
+    }, function (err) {
+      accountSay(accountErrorText(err), true);
+    });
+  }
+
+  // ---------- light / dark theme ----------
+
+  var THEMES = ["auto", "light", "dark"];
+  var theme = "auto";
+  try { theme = window.localStorage.getItem("theme") || "auto"; } catch (err) { /* ignore */ }
+
+  function applyTheme() {
+    if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
+    els.themeToggle.textContent = t("theme." + theme);
+    els.themeToggle.setAttribute("aria-label", t("theme.label", { now: t("theme." + theme) }));
+  }
+
+  // ---------- following the user's position on the map (without a trip) ----------
+
+  var follow = { watch: undefined };
+
+  function stopFollow() {
+    if (follow.watch !== undefined && navigator.geolocation) navigator.geolocation.clearWatch(follow.watch);
+    follow.watch = undefined;
+    els.followMe.setAttribute("aria-pressed", "false");
+    els.followMe.textContent = t("follow.start");
+    if (!(typeof trip !== "undefined" && trip.on) && VIEWS.real && VIEWS.real.setPosition) VIEWS.real.setPosition(null);
+  }
+
+  function toggleFollow() {
+    if (follow.watch !== undefined) { stopFollow(); locateSay(""); return; }
+    if (!navigator.geolocation) { locateSay(t("gps.unsupported"), true); return; }
+    if (!window.isSecureContext) { locateSay(t("gps.insecure"), true); return; }
+    if (typeof trip !== "undefined" && trip.on) { locateSay(t("follow.inTrip")); return; }
+    locateSay(t("gps.finding"));
+    els.followMe.setAttribute("aria-pressed", "true");
+    els.followMe.textContent = t("follow.stop");
+    var first = true;
+    follow.watch = navigator.geolocation.watchPosition(function (pos) {
+      var c = pos.coords;
+      VIEWS.real.setPosition({ lat: c.latitude, lon: c.longitude, accuracy: c.accuracy }, first);
+      first = false;
+      locateSay(t("follow.on", { m: Math.round(c.accuracy), time: clockText(new Date()) }), c.accuracy > 1500);
+    }, function (err) {
+      locateSay(t(err.code === 1 ? "gps.denied" : err.code === 3 ? "gps.timeout" : "gps.failed"), true);
+      stopFollow();
+    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }
+
+  // ---------- trip analytics (dashboard under the routes) ----------
+
+  var TA = window.TripAnalytics;
+  var etaLog = {};
+  var hourCache = {};
+
+  function queryKey(res) {
+    return currentAreaKeySafe() + "|" + res.origin.id + ">" + res.destination.id + "|" + state.vehicle;
+  }
+
+  function currentAreaKeySafe() {
+    return isReal() ? currentAreaKey() : "demo";
+  }
+
+  /** Keeps each new estimate for this trip, to show how the ETA changed. */
+  function logEta(res) {
+    var k = queryKey(res);
+    var list = etaLog[k] = etaLog[k] || [];
+    var last = list[list.length - 1];
+    var units = res.recommended.timeUnits;
+    if (last && last.units === units && Date.now() - last.at < 60000) return;
+    list.push({ at: Date.now(), units: units, tag: trafficTag() });
+    if (list.length > 40) list.shift();
+  }
+
+  function fmtMin(units) {
+    return fT(units);
+  }
+
+  function hourChart(hourly, nowHour) {
+    var max = Math.max.apply(null, hourly.map(function (x) { return x.timeUnits || 0; }).concat([1]));
+    var w = 340, h = 120, pad = 18, bw = (w - pad) / hourly.length;
+    var bars = hourly.map(function (x, i) {
+      var bh = x.timeUnits ? Math.max(2, ((h - 30) * x.timeUnits) / max) : 0;
+      var y = h - 16 - bh;
+      return '<rect class="bar' + (x.hour === nowHour ? " is-now" : "") + '" x="' + (pad + i * bw + 1).toFixed(1) + '" y="' + y.toFixed(1) +
+        '" width="' + (bw - 2).toFixed(1) + '" height="' + bh.toFixed(1) + '"><title>' + esc(hourText(x.hour) + ": " + (x.timeUnits ? fmtMin(x.timeUnits) + " " + t("unit.min") : "-")) + "</title></rect>" +
+        (x.hour % 4 === 2 ? '<text class="axis" x="' + (pad + i * bw + bw / 2).toFixed(1) + '" y="' + (h - 3) + '" text-anchor="middle">' + x.hour + "</text>" : "");
+    }).join("");
+    return '<svg class="an-chart" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="' + esc(t("an.hourAria")) + '">' +
+      '<text class="axis" x="0" y="10">' + esc(fmtMin(max) + " " + t("unit.min")) + "</text>" + bars + "</svg>";
+  }
+
+  function etaChart(list) {
+    var w = 340, h = 90, pad = 8;
+    var vals = list.map(function (x) { return x.units; });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var span = Math.max(1, max - min);
+    var pts = list.map(function (x, i) {
+      var px = pad + (i * (w - 2 * pad)) / Math.max(1, list.length - 1);
+      var py = h - 18 - ((x.units - min) * (h - 36)) / span;
+      return [px, py];
+    });
+    return '<svg class="an-chart" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="' + esc(t("an.etaAria")) + '">' +
+      '<polyline class="line" points="' + pts.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ") + '"/>' +
+      pts.map(function (p, i) { return '<circle class="dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"><title>' + esc(clockText(new Date(list[i].at)) + ": " + fmtMin(list[i].units) + " " + t("unit.min") + " (" + t(list[i].tag) + ")") + "</title></circle>"; }).join("") +
+      '<text class="axis" x="' + pad + '" y="' + (h - 3) + '">' + esc(clockText(new Date(list[0].at))) + "</text>" +
+      '<text class="axis" x="' + (w - pad) + '" y="' + (h - 3) + '" text-anchor="end">' + esc(clockText(new Date(list[list.length - 1].at))) + "</text></svg>";
+  }
+
+  function ecoFor(r) {
+    var perMin = E.unitsOf(D).perMin;
+    return TA.eco(r.distanceUnits / E.unitsOf(D).perKm, (r.delayUnits || 0) / perMin / 60, state.vehicle);
+  }
+
+  function renderAnalytics() {
+    var res = state.result;
+    if (!TA || !res || !res.ok || res.emergency || state.long) { els.analytics.hidden = true; return; }
+    var best = res.recommended;
+    var data = routeData();
+    var levels = routeLevels();
+    var blocks = [];
+
+    // 1. Comparison table.
+    var rows = res.routes.map(function (r) {
+      var e = ecoFor(r);
+      var dist = TA.distribution(r.levelDistanceUnits);
+      return "<tr><td>" + esc(routeLabel(r)) + "</td><td>" + fD(r.distanceUnits) + "</td><td>" + fmtMin(r.timeUnits) + "</td><td>" + fmtMin(r.freeFlowUnits) +
+        "</td><td>+" + fmtMin(r.delayUnits) + "</td><td>" + dist.heavy + "%</td><td>" + fR(r.riskUnits) + "</td><td>" + (state.vehicle === "walk" ? "–" : e.litres.toFixed(2)) +
+        "</td><td>" + (state.vehicle === "walk" ? "0" : e.co2Kg.toFixed(2)) + "</td></tr>";
+    }).join("");
+    blocks.push('<div class="an-block"><h4>' + esc(t("an.compare")) + '</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>' + esc(t("an.col.route")) + "</th><th>" +
+      esc(t("an.col.km")) + "</th><th>" + esc(t("an.col.min")) + "</th><th>" + esc(t("an.col.free")) + "</th><th>" + esc(t("an.col.delay")) + "</th><th>" +
+      esc(t("an.col.heavy")) + "</th><th>" + esc(t("an.col.risk")) + "</th><th>" + esc(t("an.col.fuel")) + "</th><th>" + esc(t("an.col.co2")) +
+      "</th></tr></thead><tbody>" + rows + "</tbody></table></div></div>");
+
+    // 2. Time saved against a traffic-unaware planner.
+    var base = TA.baseline(E, data, levels, res.origin.id, res.destination.id, state.vehicle, best);
+    var savedText;
+    if (!base) savedText = t("an.baseNone");
+    else if (base.blocked) savedText = t("an.baseBlocked", { route: routeName(base.route), free: fmtMin(base.freeUnits) });
+    else if (base.same) savedText = t("an.baseSame", { free: fmtMin(base.freeUnits), now: fmtMin(base.nowTimeUnits) });
+    else savedText = t("an.baseSaved", { free: fmtMin(base.freeUnits), now: fmtMin(base.nowTimeUnits), rec: fmtMin(best.timeUnits), saved: fmtMin(base.savedUnits) });
+    blocks.push('<div class="an-block"><h4>' + esc(t("an.saved")) + "</h4><p>" + esc(savedText) + '</p><p class="note">' + esc(t("an.baseHow")) + "</p></div>");
+
+    // 3. Congestion along the recommended route.
+    var d = TA.distribution(best.levelDistanceUnits);
+    blocks.push('<div class="an-block"><h4>' + esc(t("an.dist")) + '</h4><div class="an-dist" role="img" aria-label="' +
+      esc(t("an.distAria", { l: d.light, m: d.moderate, h: d.heavy })) + '"><span class="light" style="width:' + d.light + '%"></span><span class="moderate" style="width:' + d.moderate +
+      '%"></span><span class="heavy" style="width:' + d.heavy + '%"></span></div><p>' + esc(t("an.distText", { l: d.light, m: d.moderate, h: d.heavy, src: t(trafficTag()) })) + "</p></div>");
+
+    // 4. ETA by departure hour (estimates) + reliability.
+    var hk = queryKey(res);
+    if (!hourCache[hk]) hourCache[hk] = TA.byHour(E, data, res.origin.id, res.destination.id, state.vehicle);
+    var hourly = hourCache[hk];
+    var mine = isReal() ? tripsFor(pairKey(res.origin.id, res.destination.id)) : [];
+    var rel = TA.reliability(hourly, mine.map(function (x) { return x.seconds / 60 * E.unitsOf(D).perMin; }));
+    var depH = isReal() ? departHour(departTime()) : state.hour;
+    var bestHour = hourly.filter(function (x) { return x.timeUnits; }).sort(function (a, b) { return a.timeUnits - b.timeUnits; })[0];
+    blocks.push('<div class="an-block"><h4>' + esc(t("an.byHour")) + "</h4>" + hourChart(hourly, depH) + "<p>" +
+      esc(t("an.byHourText", { best: hourText(bestHour.hour), min: fmtMin(bestHour.timeUnits) })) + '</p><p class="note">' + esc(t("an.byHourNote")) + "</p>" +
+      (rel ? "<p><strong>" + esc(t("an.rel." + rel.key)) + "</strong> " + esc(t(rel.source === "trips" ? "an.relTrips" : "an.relEst", { min: fmtMin(rel.min), max: fmtMin(rel.max), pct: rel.spreadPct })) + "</p>" : "") +
+      "</div>");
+
+    // 5. ETA changes over time (this session).
+    var log = etaLog[hk] || [];
+    blocks.push('<div class="an-block"><h4>' + esc(t("an.etaTitle")) + "</h4>" + (log.length >= 2 ? etaChart(log) + "<p>" +
+      esc(t("an.etaText", { n: log.length, first: fmtMin(log[0].units), last: fmtMin(log[log.length - 1].units) })) + "</p>" : "<p>" + esc(t("an.etaOne")) + "</p>") + "</div>");
+
+    // 6. The user's own trips (travel-time prediction).
+    if (mine.length) {
+      var med = TA.median(mine.map(function (x) { return x.seconds; }));
+      blocks.push('<div class="an-block"><h4>' + esc(t("an.mine")) + "</h4><p>" + esc(t(mine.length >= 2 ? "an.minePredict" : "an.mineOne", {
+        n: mine.length, med: (med / 60).toFixed(1), est: fmtMin(best.timeUnits)
+      })) + "</p></div>");
+    }
+
+    // 7. Fuel and CO2.
+    var eb = ecoFor(best);
+    blocks.push('<div class="an-block"><h4>' + esc(t("an.eco")) + "</h4><p>" + esc(state.vehicle === "walk" ? t("an.ecoWalk") : t("an.ecoText", { l: eb.litres.toFixed(2), co2: eb.co2Kg.toFixed(2) })) +
+      '</p><p class="note">' + esc(t("an.ecoModel")) + "</p></div>");
+
+    blocks.push('<div class="an-actions"><button type="button" class="btn-secondary" data-action="export-csv">' + esc(t("an.csv")) +
+      '</button><button type="button" class="btn-secondary" data-action="print">' + esc(t("an.print")) + "</button></div>");
+    els.analyticsBody.innerHTML = blocks.join("");
+    els.analytics.hidden = false;
+  }
+
+  function renderLongAnalytics() {
+    var L1 = state.long;
+    if (!TA || !L1 || !L1.res) return;
+    var rows = L1.res.routes.map(function (r, i) {
+      var e = TA.eco(r.distanceM / 1000, (r.delayS || 0) / 3600, state.vehicle);
+      return "<tr><td>" + esc(t("route.num", { n: i + 1 }) + " " + t("long.via", { road: longMainRoad(r) })) + "</td><td>" + kmText(r.distanceM) + "</td><td>" + minText(r.durationS) +
+        "</td><td>" + (r.noTrafficS !== null ? minText(r.noTrafficS) : "–") + "</td><td>" + (r.delayS !== null ? "+" + minText(r.delayS) : "–") + "</td><td>" + (r.riskUnits / 1000).toFixed(1) +
+        "</td><td>" + (state.vehicle === "walk" ? "–" : e.litres.toFixed(2)) + "</td><td>" + (state.vehicle === "walk" ? "0" : e.co2Kg.toFixed(2)) + "</td></tr>";
+    }).join("");
+    els.analyticsBody.innerHTML = '<div class="an-block"><h4>' + esc(t("an.compare")) + '</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>' + esc(t("an.col.route")) +
+      "</th><th>" + esc(t("an.col.km")) + "</th><th>" + esc(t("an.col.min")) + "</th><th>" + esc(t("an.col.free")) + "</th><th>" + esc(t("an.col.delay")) + "</th><th>" + esc(t("an.col.risk")) +
+      "</th><th>" + esc(t("an.col.fuel")) + "</th><th>" + esc(t("an.col.co2")) + "</th></tr></thead><tbody>" + rows + '</tbody></table></div><p class="note">' +
+      esc(t(L1.res.provider === "tomtom" ? "an.longTomtom" : "an.longOsm")) + " " + esc(t("an.ecoModel")) + '</p></div><div class="an-actions"><button type="button" class="btn-secondary" data-action="export-csv">' +
+      esc(t("an.csv")) + '</button><button type="button" class="btn-secondary" data-action="print">' + esc(t("an.print")) + "</button></div>";
+    els.analytics.hidden = false;
+  }
+
+  /** The comparison report as a CSV file (opens in Excel / Google Sheets). */
+  function exportCsv() {
+    var rows = [[t("an.report.title")], [t("an.report.made"), dateTimeText(new Date())], [t("an.report.leave"), dateTimeText(departTime())],
+      [t("an.report.vehicle"), vehicleLabel(state.vehicle)], [t("an.report.objective"), priorityWord()], []];
+    if (state.long && state.long.res) {
+      var L1 = state.long;
+      rows.push([t("an.report.from"), L1.from.name], [t("an.report.to"), L1.to.name], [t("an.report.source"), longProviderName(L1.res.provider)], []);
+      rows.push([t("an.col.route"), t("an.col.km"), t("an.col.min"), t("an.col.free"), t("an.col.delay"), t("an.col.risk"), t("an.col.fuel"), t("an.col.co2")]);
+      L1.res.routes.forEach(function (r, i) {
+        var e = TA.eco(r.distanceM / 1000, (r.delayS || 0) / 3600, state.vehicle);
+        rows.push([t("route.num", { n: i + 1 }) + " " + t("long.via", { road: longMainRoad(r) }), kmText(r.distanceM), minText(r.durationS),
+          r.noTrafficS !== null ? minText(r.noTrafficS) : "", r.delayS !== null ? minText(r.delayS) : "", (r.riskUnits / 1000).toFixed(1), e.litres.toFixed(2), e.co2Kg.toFixed(2)]);
+      });
+    } else if (state.result && state.result.ok) {
+      var res = state.result;
+      rows.push([t("an.report.from"), placeName(res.origin)], [t("an.report.to"), placeName(res.destination)], [t("an.report.source"), t(trafficTag())], [t("an.report.area"), local(D.AREA.name)], []);
+      rows.push([t("an.col.route"), t("an.col.km"), t("an.col.min"), t("an.col.free"), t("an.col.delay"), t("an.col.heavy"), t("an.col.risk"), t("an.col.fuel"), t("an.col.co2"), t("an.report.badges")]);
+      res.routes.forEach(function (r) {
+        var e = ecoFor(r);
+        var badges = [r.isRecommended ? t("card.recommended") : "", r.isFastest ? t("card.fastest") : "", r.isShortest ? t("card.shortest") : "", r.isSafest ? t("card.safest") : ""].filter(Boolean).join(" / ");
+        rows.push([routeLabel(r), fD(r.distanceUnits), fmtMin(r.timeUnits), fmtMin(r.freeFlowUnits), fmtMin(r.delayUnits), TA.distribution(r.levelDistanceUnits).heavy + "%", fR(r.riskUnits), e.litres.toFixed(2), e.co2Kg.toFixed(2), badges]);
+      });
+      var base = TA.baseline(E, routeData(), routeLevels(), res.origin.id, res.destination.id, state.vehicle, res.recommended);
+      if (base && !base.blocked) rows.push([], [t("an.saved"), base.same ? "0" : fmtMin(base.savedUnits) + " " + t("unit.min")]);
+    } else return;
+    rows.push([], [t("an.ecoModel")]);
+    var blob = new Blob([TA.toCsv(rows)], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "trip-comparison-" + inputValue(new Date()).replace(/[:T]/g, "-") + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
   // ---------- online / offline ----------
 
   function updateOnline() {
@@ -3273,6 +3824,48 @@
   applyStaticText();
   setMode(hashMode ? hashMode[1] : "real");
   updateOnline();
+  applyTheme();
+  renderClock();
+  renderAccount();
+  setInterval(clockTick, 30000);
+  if (ACC && ACC.current()) syncAccount();
+
+  els.themeToggle.addEventListener("click", function () {
+    theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    try { window.localStorage.setItem("theme", theme); } catch (err) { /* ignore */ }
+    applyTheme();
+  });
+  els.followMe.addEventListener("click", toggleFollow);
+  els.savePlace.addEventListener("click", saveDestination);
+  els.departNow.addEventListener("change", function () {
+    setDeparture(els.departNow.checked, els.departNow.checked ? null : departTime());
+  });
+  els.departAt.addEventListener("change", function () {
+    var d = new Date(els.departAt.value);
+    if (!isNaN(d)) setDeparture(false, d);
+  });
+  els.avoidTolls.addEventListener("change", function () {
+    if (state.long) planLong(state.long.from, state.long.to);
+    else if (els.avoidTolls.checked) placesSay(t("tolls.local"));
+  });
+  if (ACC) {
+    els.accountOpen.addEventListener("click", function () {
+      accountSay("");
+      renderAccount();
+      if (els.accountDialog.showModal) els.accountDialog.showModal();
+      else els.accountDialog.setAttribute("open", "");
+    });
+    $("acct-close").addEventListener("click", function () { els.accountDialog.close ? els.accountDialog.close() : els.accountDialog.removeAttribute("open"); });
+    $("acct-signin").addEventListener("click", function () { accountAction("signin"); });
+    $("acct-signup").addEventListener("click", function () { accountAction("signup"); });
+    $("acct-reset").addEventListener("click", function () { accountAction("reset"); });
+    $("acct-signout").addEventListener("click", function () {
+      ACC.signOut();
+      account.syncError = null;
+      accountSay(t("acct.signedOut"));
+      renderAccount();
+    });
+  }
   var shared = realAvailable ? sharedTrip() : null;
   if (shared && mode === "real") openShared(shared);
   else restoreArea();
