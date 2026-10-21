@@ -377,6 +377,7 @@ function readPlaces(placesJson, extra) {
     if (cat === "Markets and shopping") markets.push({ lat, lon });
     if (!cat || !t.name) continue;
     const place = { name: t.name.trim(), category: cat, lat, lon, osm: el.type + "/" + el.id };
+    if (t["name:te"]) place.nameTe = t["name:te"].trim();
     if (cat === "Hospitals") {
       place.kind = "hospital";
       // Eye and dental hospitals do not take accident emergencies.
@@ -529,6 +530,7 @@ function buildNetwork(roadsJson, placesJson, area) {
   snapped.forEach((s, i) => {
     const p = s.place;
     const node = { id: "p" + i, name: p.label, lat: r5(p.lat), lon: r5(p.lon), category: p.category, osm: p.osm };
+    if (p.nameTe) node.nameTe = p.nameTe;
     if (p.kind) node.kind = p.kind;
     if (p.emergency === false) node.emergency = false;
     NODES.push(node);

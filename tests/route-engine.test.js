@@ -342,3 +342,59 @@ test("emergency route is the fastest to the nearest hospital from everywhere, un
     }
   }
 });
+
+test("vehicle types: walking ignores traffic, two-wheelers lose less time in jams, autos are capped", () => {
+  const rush = levelsFor("rush");
+  const off = levelsFor("offpeak");
+  // Walking: traffic makes no difference, and the time is distance at 4.5 km/h.
+  const walkRush = E.findRoutes(D, rush, "BUS", "COL", { vehicle: "walk" });
+  const walkOff = E.findRoutes(D, off, "BUS", "COL", { vehicle: "walk" });
+  assert.equal(walkRush.vehicle, "walk");
+  assert.equal(walkRush.recommended.timeUnits, walkOff.recommended.timeUnits);
+  for (const s of walkRush.recommended.segments) {
+    assert.equal(s.freeFlowKmh, 4.5);
+    assert.equal(s.factor, 1);
+  }
+  assert.equal(walkRush.recommended.congestion.key, "light");
+  // Two-wheeler in the rush: heavy x2.5 becomes x1.9, so never slower than a car.
+  const car = E.findRoutes(D, rush, "BUS", "COL", { vehicle: "car" });
+  const bike = E.findRoutes(D, rush, "BUS", "COL", { vehicle: "twowheeler" });
+  assert.ok(bike.recommended.timeUnits <= car.recommended.timeUnits);
+  const heavy = bike.recommended.segments.concat(...bike.routes.map((r) => r.segments)).find((s) => s.level === "heavy");
+  if (heavy) assert.equal(heavy.factor, 1.9);
+  // Auto-rickshaw: the 50 km/h bypass is capped at 35 km/h.
+  const auto = E.findRoutes(D, off, "BUS", "RNG", { vehicle: "auto" });
+  assert.ok(auto.recommended.segments.every((s) => s.freeFlowKmh <= 35));
+  // Unknown vehicle falls back to car.
+  assert.equal(E.findRoutes(D, off, "BUS", "COL", { vehicle: "rocket" }).vehicle, "car");
+  assert.deepEqual(E.findRoutes(D, off, "BUS", "COL", { vehicle: "rocket" }).recommended.nodes, ["BUS", "CLK", "TWN", "COL"]);
+});
+
+test("every pair, every vehicle: the recommendation is truly fastest for that vehicle", () => {
+  const levels = levelsFor("rush");
+  for (const vehicle of Object.keys(E.VEHICLES)) {
+    const graph = E.buildGraph(D, levels, "fastest", vehicle);
+    for (const o of D.NODES) {
+      for (const d of D.NODES) {
+        if (o.id === d.id) continue;
+        const res = E.findRoutes(D, levels, o.id, d.id, { vehicle });
+        const where = `${vehicle} ${o.id}->${d.id}`;
+        // Brute force over simple paths with this vehicle's edge times.
+        let best = Infinity;
+        (function dfs(node, seen, time) {
+          if (node === d.id) { best = Math.min(best, time); return; }
+          for (const { to, edgeId } of graph.adj[node]) {
+            if (seen.has(to)) continue;
+            seen.add(to);
+            dfs(to, seen, time + graph.edgeInfo[edgeId].timeUnits);
+            seen.delete(to);
+          }
+        })(o.id, new Set([o.id]), 0);
+        if (best === Infinity) { assert.equal(res.ok, false, where); continue; }
+        assert.equal(res.recommended.timeUnits, best, where);
+        const em = E.findEmergencyRoute(D, levels, o.id, { vehicle });
+        if (o.kind !== "hospital") assert.equal(em.vehicle, vehicle, where + " emergency vehicle");
+      }
+    }
+  }
+});

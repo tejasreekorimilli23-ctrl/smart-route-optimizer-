@@ -21,8 +21,8 @@ try {
 }
 
 const PAGE = "file://" + path.resolve(__dirname, "..", "index.html");
-const DEMO = PAGE + "#mode=demo";
-const REAL = PAGE + "#mode=real";
+const DEMO = PAGE + "#mode=demo&lang=en";
+const REAL = PAGE + "#mode=real&lang=en";
 const SHOTS = path.resolve(__dirname, "screenshots");
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -264,8 +264,31 @@ async function step(name, fn) {
     assert.match(await r.$eval("#destination", (s) => s.selectedOptions[0].text), /^Point on /);
     assert.match(await r.textContent("#map-summary"), /Recommended/);
 
+    // Search box: type part of a name and pick a suggestion with the keyboard.
+    await r.fill("#destination-search", "maharaja dist");
+    await r.waitForSelector("#destination-list:not([hidden]) .ps-option");
+    await r.keyboard.press("Enter");
+    assert.match(await r.$eval("#destination", (s) => s.selectedOptions[0].text), /Maharaja District Hospital/);
+
+    // Vehicle type: walking takes much longer than a two-wheeler.
+    await r.click("button:has-text('Find Best Route')");
+    await r.click("label.tile:has-text('Two-wheeler')");
+    const bike = parseFloat(await r.textContent(".route-card.is-recommended .metric-time .num"));
+    await r.click("label.tile:has-text('Walking')");
+    const walk = parseFloat(await r.textContent(".route-card.is-recommended .metric-time .num"));
+    assert.ok(walk > bike * 2, `walking ${walk} min vs two-wheeler ${bike} min`);
+    await r.click("label.tile:has-text('Car')");
+
+    // Telugu interface.
+    await r.click("label.mode:has-text('తెలుగు')");
+    assert.match(await r.textContent("#planner-title"), /మార్గం/);
+    assert.match(await r.textContent("#map-summary"), /సిఫార్సు/);
+    await r.click("label.mode:has-text('English')");
+
     // Emergency from Thotapalem lists nearby hospitals.
-    await r.selectOption("#origin", { label: "Thotapalem" });
+    await r.fill("#origin-search", "thotapalem");
+    await r.waitForSelector("#origin-list:not([hidden]) .ps-option");
+    await r.keyboard.press("Enter");
     await r.click("#emergency");
     assert.match(await r.textContent(".emergency-banner"), /Emergency route to/);
     assert.match(await r.textContent(".emergency-banner"), /Other hospitals nearby/);

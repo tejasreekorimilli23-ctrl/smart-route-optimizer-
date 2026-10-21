@@ -36,7 +36,7 @@
   --radius-s: 6px;
   --radius-m: 10px;
   --radius-l: 14px;
-  --font: "Overpass", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font: "Overpass", "Noto Sans Telugu", "Nirmala UI", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
@@ -209,6 +209,17 @@ a {
   display: grid;
   gap: 10px;
   justify-items: end;
+}
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+/* Telugu text is taller: give it room. */
+:lang(te) body,
+html[lang="te"] body {
+  line-height: 1.6;
 }
 .mode-grid {
   display: inline-grid;
@@ -502,6 +513,186 @@ select[aria-invalid="true"] {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+.choice-grid.is-four .tile-body {
+  min-height: 42px;
+  font-size: 0.9rem;
+}
+
+/* ---------- place search ---------- */
+
+.combo {
+  position: relative;
+}
+.combo-input {
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 10px 12px 9px;
+  min-height: 44px;
+}
+.combo-input:hover {
+  border-color: var(--ink-2);
+}
+.combo-input[aria-invalid="true"] {
+  border-color: var(--heavy);
+  box-shadow: 0 0 0 3px var(--heavy-bg);
+}
+.ps-list {
+  position: absolute;
+  z-index: 1000;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+  box-shadow: 0 8px 24px rgba(13, 28, 54, 0.18);
+}
+.ps-list[hidden] {
+  display: none;
+}
+.ps-option {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.ps-option[aria-selected="true"],
+.ps-option:hover {
+  background: var(--accent-soft);
+}
+.ps-option.is-special .ps-name {
+  color: var(--accent);
+}
+.ps-name {
+  font-weight: 700;
+}
+.ps-sub {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.ps-empty {
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+
+/* ---------- live traffic ---------- */
+
+.live-box {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+}
+.live-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 0.15s;
+}
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.15s;
+}
+.switch input:checked + .switch-track {
+  background: var(--accent);
+}
+.switch input:checked + .switch-track::after {
+  transform: translateX(18px);
+}
+.switch input:focus-visible + .switch-track {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.switch input:disabled + .switch-track {
+  opacity: 0.5;
+}
+.live-status {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.live-status.is-error {
+  color: var(--heavy-ink);
+  font-weight: 600;
+}
+.live-key {
+  margin-top: 8px;
+}
+.live-key summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--accent);
+}
+.key-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.key-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 8px 10px;
+  min-height: 42px;
+}
+.key-row .btn-secondary {
+  min-height: 42px;
+  padding: 8px 14px;
+}
+.time-field input[type="range"]:disabled {
+  cursor: not-allowed;
 }
 
 .emergency {
@@ -1460,6 +1651,9 @@ fieldset {
 @media (max-width: 900px) {
   .header-side {
     justify-items: start;
+  }
+  .switches {
+    justify-content: flex-start;
   }
   .real-map {
     height: 440px;

@@ -57,6 +57,26 @@
     return Object.prototype.hasOwnProperty.call(PRIORITIES, priority) ? priority : "fastest";
   }
 
+  /*
+   * Vehicle profiles. Free-flow speeds in the data are for cars.
+   *  - maxKmh caps the road's free-flow speed (autos are slower on fast roads);
+   *  - fixedKmh replaces it (walking pace);
+   *  - congestionScale shrinks the traffic delay: factor = 1 + (factor - 1) x scale.
+   *    Two-wheelers filter through jams, so they lose less time; walkers none.
+   *  - ignoresOneway: walkers may use one-way streets in both directions;
+   *  - excludedTypes: road types this vehicle may not use.
+   */
+  var VEHICLES = {
+    car: { label: "Car", congestionScale: 1 },
+    twowheeler: { label: "Two-wheeler", maxKmh: 50, congestionScale: 0.6 },
+    auto: { label: "Auto-rickshaw", maxKmh: 35, congestionScale: 0.85 },
+    walk: { label: "Walking", fixedKmh: 4.5, congestionScale: 0, ignoresOneway: true, excludedTypes: ["motorway", "motorway_link"] }
+  };
+
+  function normalizeVehicle(vehicle) {
+    return Object.prototype.hasOwnProperty.call(VEHICLES, vehicle) ? vehicle : "car";
+  }
+
   // ---------- small helpers ----------
 
   function tenthsToText(tenths) {
@@ -188,14 +208,28 @@
     };
   }
 
-  /** Assumed free-flow speed: the road's own value if set, else its type's. */
-  function freeFlowSpeed(data, edge) {
+  /**
+   * Assumed free-flow speed for a vehicle: the road's own value if set, else
+   * its type's, then adjusted for the vehicle.
+   */
+  function freeFlowSpeed(data, edge, vehicle) {
+    var v = VEHICLES[normalizeVehicle(vehicle)];
+    if (v.fixedKmh) return v.fixedKmh;
     var type = data.ROAD_TYPES[edge.type];
-    return edge.freeFlowKmh || (type && type.freeFlowKmh);
+    var kmh = edge.freeFlowKmh || (type && type.freeFlowKmh);
+    return v.maxKmh ? Math.min(kmh, v.maxKmh) : kmh;
   }
 
-  function edgeTimes(data, edge, level) {
-    var kmh = freeFlowSpeed(data, edge);
+  /** Traffic factor for a vehicle, rounded to 0.01 so it can be shown exactly. */
+  function trafficFactor(data, level, vehicle) {
+    var f = data.CONGESTION_LEVELS[level].factor;
+    if (f === null) return null;
+    var scale = VEHICLES[normalizeVehicle(vehicle)].congestionScale;
+    return Math.round((1 + (f - 1) * scale) * 100) / 100;
+  }
+
+  function edgeTimes(data, edge, level, vehicle) {
+    var kmh = freeFlowSpeed(data, edge, vehicle);
     if (!(kmh > 0) || !(edge.distanceKm > 0)) {
       throw new Error("Invalid road data for " + edge.id);
     }
@@ -203,16 +237,18 @@
     // demo); the estimated time is that value times the factor, so every
     // table row can be checked by hand: 4.5 min x 1.6 = 7.2 min.
     var freeFlowUnits = Math.round((edge.distanceKm / kmh) * 60 * unitsOf(data).perMin);
-    var factor = data.CONGESTION_LEVELS[level].factor;
+    var factor = trafficFactor(data, level, vehicle);
     return {
       freeFlowUnits: freeFlowUnits,
       timeUnits: factor === null ? null : Math.round(freeFlowUnits * factor + 1e-9)
     };
   }
 
-  function buildGraph(data, levels, priority) {
+  function buildGraph(data, levels, priority, vehicle) {
     var lv = normalizeLevels(data, levels);
     var pr = PRIORITIES[normalizePriority(priority)];
+    var vk = normalizeVehicle(vehicle);
+    var v = VEHICLES[vk];
     var perKm = unitsOf(data).perKm;
     var adj = {};
     var edgeInfo = {};
@@ -221,13 +257,16 @@
     });
     data.EDGES.forEach(function (e) {
       if (!adj[e.from] || !adj[e.to]) throw new Error("Road " + e.id + " references an unknown location");
-      var t = edgeTimes(data, e, lv[e.id]);
+      var t = edgeTimes(data, e, lv[e.id], vk);
+      var allowed = !(v.excludedTypes && v.excludedTypes.indexOf(e.type) >= 0);
       var risk = edgeRisk(data, e);
       var distanceUnits = Math.round(e.distanceKm * perKm);
       var info = {
         edge: e,
         level: lv[e.id],
-        factor: data.CONGESTION_LEVELS[lv[e.id]].factor,
+        factor: trafficFactor(data, lv[e.id], vk),
+        freeFlowKmh: freeFlowSpeed(data, e, vk),
+        allowed: allowed,
         distanceUnits: distanceUnits,
         freeFlowUnits: t.freeFlowUnits,
         timeUnits: t.timeUnits,
@@ -238,9 +277,9 @@
       info.cost = info[pr.cost];
       info.tie = info[pr.tie];
       edgeInfo[e.id] = info;
-      if (t.timeUnits !== null) {
+      if (t.timeUnits !== null && allowed) {
         adj[e.from].push({ to: e.to, edgeId: e.id });
-        if (!e.oneway) adj[e.to].push({ to: e.from, edgeId: e.id });
+        if (!e.oneway || v.ignoresOneway) adj[e.to].push({ to: e.from, edgeId: e.id });
       }
     });
     Object.keys(adj).forEach(function (id) {
@@ -253,6 +292,7 @@
       edgeInfo: edgeInfo,
       levels: lv,
       priority: normalizePriority(priority),
+      vehicle: vk,
       nodeIds: Object.keys(adj).sort()
     };
   }
@@ -526,7 +566,7 @@
         roadName: info.edge.name,
         corridor: info.edge.corridor,
         roadType: type.label,
-        freeFlowKmh: freeFlowSpeed(data, info.edge),
+        freeFlowKmh: info.freeFlowKmh,
         level: info.level,
         levelLabel: data.CONGESTION_LEVELS[info.level].label,
         factor: info.factor,
@@ -606,10 +646,14 @@
       }
       var name = "via " + (pick || named[0] || "local streets");
       var base = name;
-      var n = 2;
-      while (usedNames[name]) name = base + " (" + n++ + ")";
+      var n = 1;
+      while (usedNames[name]) name = base + " (" + ++n + ")";
       usedNames[name] = true;
       r.name = name;
+      // For other languages: the road the name uses (null = local streets)
+      // and its number when several routes share it.
+      r.via = pick || named[0] || null;
+      r.viaNumber = n;
       r.corridors.forEach(function (c) {
         usedCorridors[c] = true;
       });
@@ -618,17 +662,18 @@
 
   /**
    * Re-times an existing path (list of edge ids) under new traffic levels.
-   * Returns { closed: true } if any of its roads is now closed.
+   * Returns { closed: true } if any of its roads is now closed (or not
+   * allowed for options.vehicle).
    */
-  function evaluatePath(data, levels, edgeIds) {
-    var graph = buildGraph(data, levels);
+  function evaluatePath(data, levels, edgeIds, options) {
+    var graph = buildGraph(data, levels, "fastest", options && options.vehicle);
     var time = 0;
     var dist = 0;
     var risk = 0;
     for (var i = 0; i < edgeIds.length; i++) {
       var info = graph.edgeInfo[edgeIds[i]];
       if (!info) throw new Error("Unknown road " + edgeIds[i]);
-      if (info.timeUnits === null) return { closed: true, timeUnits: null, distanceUnits: null, riskUnits: null };
+      if (info.timeUnits === null || !info.allowed) return { closed: true, timeUnits: null, distanceUnits: null, riskUnits: null };
       time += info.timeUnits;
       dist += info.distanceUnits;
       risk += info.riskUnits;
@@ -657,10 +702,12 @@
   /**
    * Main entry point.
    * options.priority: "fastest" (default) or "safest".
+   * options.vehicle: "car" (default), "twowheeler", "auto" or "walk".
    * @returns {{ok:true, routes:Array, recommended:Object} | {ok:false, code:string, message:string}}
    */
   function findRoutes(data, levels, originId, destinationId, options) {
     var priority = normalizePriority(options && options.priority);
+    var vehicle = normalizeVehicle(options && options.vehicle);
     var nodeById = indexBy(data.NODES, "id");
     if (!originId) return fail("MISSING_ORIGIN", "Choose a starting point.");
     if (!destinationId) return fail("MISSING_DESTINATION", "Choose a destination.");
@@ -670,7 +717,7 @@
       return fail("SAME_LOCATION", "Start and destination are the same place. Choose a different destination.");
     }
 
-    var graph = buildGraph(data, levels, priority);
+    var graph = buildGraph(data, levels, priority, vehicle);
     var paths = candidatePaths(graph, originId, destinationId);
 
     if (!paths.length) {
@@ -686,7 +733,7 @@
     // Best route under the other priority, re-built on this graph so its
     // cost fields are comparable. It is always shown alongside.
     var otherPriority = priority === "fastest" ? "safest" : "fastest";
-    var otherFound = dijkstra(buildGraph(data, levels, otherPriority), originId, destinationId);
+    var otherFound = dijkstra(buildGraph(data, levels, otherPriority, vehicle), originId, destinationId);
     var otherBest = makePath(graph, otherFound.nodes, otherFound.edges);
     var bestSig = {};
     bestSig[priority] = paths[0].signature;
@@ -711,6 +758,7 @@
     return {
       ok: true,
       priority: priority,
+      vehicle: vehicle,
       origin: nodeById[originId],
       destination: nodeById[destinationId],
       routes: routes,
@@ -728,7 +776,8 @@
    * hospital: the chosen location, and nearestHospitals: up to three
    * { hospital, timeUnits } in order of journey time.
    */
-  function findEmergencyRoute(data, levels, originId) {
+  function findEmergencyRoute(data, levels, originId, options) {
+    var vehicle = normalizeVehicle(options && options.vehicle);
     var nodeById = indexBy(data.NODES, "id");
     if (!originId) return fail("MISSING_ORIGIN", "Choose where you are now as the Start, then press Emergency again.");
     if (!nodeById[originId]) return fail("INVALID_LOCATION", "The starting point is not in this road network.");
@@ -738,13 +787,13 @@
       return fail("AT_HOSPITAL", "You are already at " + nodeById[originId].name + ".");
     }
 
-    var tree = search(buildGraph(data, levels, "fastest"), originId, null);
+    var tree = search(buildGraph(data, levels, "fastest", vehicle), originId, null);
     var reachable = hospitals.filter(function (h) {
       return tree.best[h.id] !== undefined;
     }).sort(function (a, b) {
       return tree.best[a.id] - tree.best[b.id] || (a.id < b.id ? -1 : 1);
     });
-    var best = reachable.length ? findRoutes(data, levels, originId, reachable[0].id, { priority: "fastest" }) : null;
+    var best = reachable.length ? findRoutes(data, levels, originId, reachable[0].id, { priority: "fastest", vehicle: vehicle }) : null;
     if (best && best.ok) {
       best.nearestHospitals = reachable.slice(0, 3).map(function (h) {
         return { hospital: h, timeUnits: tree.best[h.id] };
@@ -769,6 +818,7 @@
   return {
     SETTINGS: SETTINGS,
     PRIORITIES: PRIORITIES,
+    VEHICLES: VEHICLES,
     findRoutes: findRoutes,
     findEmergencyRoute: findEmergencyRoute,
     evaluatePath: evaluatePath,

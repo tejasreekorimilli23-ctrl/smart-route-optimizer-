@@ -159,10 +159,13 @@
       var g = el("g", { class: "road" + (selected ? " is-selected" : ""), "data-edge": e.id }, gRoads);
       var title = el("title", null, g);
       var hazards = (e.hazards || []).map(function (h) {
+        if (opts.hazardLabel) return opts.hazardLabel(h);
         return data.HAZARDS && data.HAZARDS[h] ? data.HAZARDS[h].label.toLowerCase() : h;
       });
-      title.textContent = e.name + ": " + data.CONGESTION_LEVELS[level].label.toLowerCase() +
-        " traffic (simulated)" + (hazards.length ? "; hazards: " + hazards.join(", ") : "") + ". Click to change.";
+      title.textContent = opts.t
+        ? opts.t("map.roadTip", { road: e.name, level: opts.t("level." + level), hazards: hazards.join(", ") || "–" })
+        : e.name + ": " + data.CONGESTION_LEVELS[level].label.toLowerCase() +
+          " traffic (simulated)" + (hazards.length ? "; hazards: " + hazards.join(", ") : "") + ". Click to change.";
       if (selected) {
         // White casing marks the road chosen in the "change traffic" editor.
         el("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: "#FFFFFF", "stroke-width": 15, "stroke-linecap": "round" }, g);

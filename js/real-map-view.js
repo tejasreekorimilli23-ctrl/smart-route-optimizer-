@@ -40,7 +40,31 @@
   var overlay = null; // routes, markers, selection
   var dataRef = null;
   var lastFitKey = null;
-  var api = { onAction: null };
+  // Text comes from the app (api.t), so the map follows the page language.
+  var api = { onAction: null, t: null, roadName: null, hazardLabel: null };
+  var liveLayer = null;
+  var liveUrl = null;
+  var FALLBACK = {
+    "map.thisPoint": "This point",
+    "map.startHere": "Start here",
+    "map.goHere": "Go here (destination)",
+    "map.trafficOnSection": "Traffic on this section:",
+    "map.tipStart": "Start: {name}",
+    "map.tipDestination": "Destination: {name}",
+    "map.tipHazard": "{hazard} on {road}",
+    "map.tipBlackspot": "Accident black spot: {name}"
+  };
+
+  function tr(key, params) {
+    if (api.t) return api.t(key, params);
+    var s = FALLBACK[key] || key;
+    Object.keys(params || {}).forEach(function (k) { s = s.replace("{" + k + "}", params[k]); });
+    return s;
+  }
+
+  function roadName(edge) {
+    return api.roadName ? api.roadName(edge) : edge.name;
+  }
 
   function latLngs(geom) {
     var out = [];
@@ -83,26 +107,26 @@
 
   function pointMenu(latlng, title) {
     return menu(title, [
-      { text: "Start here", run: function () { act("set-start", latlng); } },
-      { text: "Go here (destination)", run: function () { act("set-destination", latlng); } }
+      { text: tr("map.startHere"), run: function () { act("set-start", latlng); } },
+      { text: tr("map.goHere"), run: function () { act("set-destination", latlng); } }
     ]);
   }
 
   function roadMenu(edge, latlng) {
     var items = [
-      { text: "Start here", run: function () { act("set-start", latlng); } },
-      { text: "Go here (destination)", run: function () { act("set-destination", latlng); } },
-      { label: "Traffic on this section:" }
+      { text: tr("map.startHere"), run: function () { act("set-start", latlng); } },
+      { text: tr("map.goHere"), run: function () { act("set-destination", latlng); } },
+      { label: tr("map.trafficOnSection") }
     ];
     dataRef.CONGESTION_ORDER.forEach(function (lv) {
       items.push({
-        text: dataRef.CONGESTION_LEVELS[lv].label,
+        text: api.t ? api.t("level." + lv) : dataRef.CONGESTION_LEVELS[lv].label,
         className: "lv-" + lv,
         pressed: drawnLevels[edge.id] === lv,
         run: function () { act("set-level", { edgeId: edge.id, level: lv }); }
       });
     });
-    return menu(edge.name, items);
+    return menu(roadName(edge), items);
   }
 
   function init(container, data) {
@@ -135,7 +159,7 @@
     });
 
     map.on("click", function (ev) {
-      root.L.popup().setLatLng(ev.latlng).setContent(pointMenu(ev.latlng, "This point")).openOn(map);
+      root.L.popup().setLatLng(ev.latlng).setContent(pointMenu(ev.latlng, tr("map.thisPoint"))).openOn(map);
     });
     overlay = root.L.layerGroup().addTo(map);
   }
@@ -162,7 +186,12 @@
    */
   function render(container, opts) {
     if (!root.L) return false;
-    if (!map) init(container, opts.data);
+    if (!map) {
+      init(container, opts.data);
+      var pending = liveUrl;
+      liveUrl = null;
+      setLiveOverlay(pending);
+    }
     var data = opts.data;
 
     // Road colours: only restyle roads whose level changed.
@@ -218,7 +247,7 @@
           var ll = latLngs(e.geom);
           var mid = ll[Math.floor(ll.length / 2)];
           root.L.marker(mid, { icon: divIcon("mk-hazard" + (h.id === "blackspot" ? " is-blackspot" : ""), "!", 20), keyboard: false })
-            .bindTooltip(h.label + " on " + s.roadName)
+            .bindTooltip(tr("map.tipHazard", { hazard: api.hazardLabel ? api.hazardLabel(h.id) : h.label, road: roadName(e) }))
             .addTo(overlay);
         });
       });
@@ -229,7 +258,7 @@
       root.L.circle([b.lat, b.lon], { radius: b.radiusMetres || 100, color: "#DD4545", weight: 2, fillOpacity: 0.12, interactive: false })
         .addTo(overlay);
       root.L.marker([b.lat, b.lon], { icon: divIcon("mk-hazard is-blackspot", "!", 22), keyboard: false })
-        .bindTooltip("Accident black spot: " + b.name)
+        .bindTooltip(tr("map.tipBlackspot", { name: b.name }))
         .addTo(overlay);
     });
 
@@ -242,8 +271,8 @@
       }).bindTooltip(n.name).on("click", function (ev) {
         root.L.DomEvent.stopPropagation(ev);
         root.L.popup().setLatLng([n.lat, n.lon]).setContent(menu(n.name, [
-          { text: "Go here (destination)", run: function () { act("choose-destination", n.id); } },
-          { text: "Start here", run: function () { act("choose-start", n.id); } }
+          { text: tr("map.goHere"), run: function () { act("choose-destination", n.id); } },
+          { text: tr("map.startHere"), run: function () { act("choose-start", n.id); } }
         ])).openOn(map);
       }).addTo(overlay);
     });
@@ -254,7 +283,7 @@
       if (!n) return;
       bounds.push([n.lat, n.lon]);
       root.L.marker([n.lat, n.lon], { icon: divIcon(pair[1], "", 22), zIndexOffset: 1000, title: n.name })
-        .bindTooltip((pair[0] === "origin" ? "Start: " : "Destination: ") + n.name)
+        .bindTooltip(tr(pair[0] === "origin" ? "map.tipStart" : "map.tipDestination", { name: n.name }))
         .addTo(overlay);
     });
 
@@ -265,7 +294,25 @@
     return true;
   }
 
+  /** Shows TomTom's live traffic tiles over the map (url) or removes them (null). */
+  function setLiveOverlay(url) {
+    if (url === liveUrl) return;
+    liveUrl = url;
+    if (!map) return;
+    if (liveLayer) {
+      map.removeLayer(liveLayer);
+      liveLayer = null;
+    }
+    if (url) {
+      liveLayer = root.L.tileLayer(url, {
+        maxZoom: 19, opacity: 0.75, zIndex: 5,
+        attribution: 'Live traffic &copy; <a href="https://www.tomtom.com/">TomTom</a>'
+      }).addTo(map);
+    }
+  }
+
   api.render = render;
+  api.setLiveOverlay = setLiveOverlay;
   api.invalidate = function () {
     if (map) map.invalidateSize();
   };

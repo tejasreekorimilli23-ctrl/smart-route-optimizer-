@@ -4,169 +4,216 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Smart Traffic Route Optimization System</title>
-  <meta name="description" content="Classroom prototype that compares alternative routes on a sample town road network using distance, estimated journey time and simulated traffic.">
+  <meta name="description" content="Route planner for Vizianagaram and an offline demo town: compares routes by journey time, distance, traffic and road-safety hazards, and finds the fastest or safest one.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;700;800&family=Overpass:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="css/vendor/leaflet.css">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#planner">Skip to the route planner</a>
+  <a class="skip-link" href="#planner" data-i18n="skip">Skip to the route planner</a>
 
   <header class="site-header">
     <div class="wrap header-inner">
       <div class="header-text">
-        <h1>Smart Traffic Route Optimization System for Safer and More Efficient Urban Travel</h1>
-        <p class="lede">Pick two places on the real map of Vizianagaram or in the offline demo town, compare the alternative routes by journey time, distance, traffic and road-safety hazards, and choose the fastest or the safest one for the time of day.</p>
+        <h1 data-i18n="title">Smart Traffic Route Optimization System for Safer and More Efficient Urban Travel</h1>
+        <p class="lede" data-i18n="lede">Pick two places on the real map of Vizianagaram or in the offline demo town, compare the alternative routes by journey time, distance, traffic and road-safety hazards, and choose the fastest or the safest one for the time of day.</p>
       </div>
       <div class="header-side">
-        <fieldset class="mode-set">
-          <legend class="visually-hidden">Map</legend>
-          <div id="mode-options" class="mode-grid">
-            <label class="mode"><input type="radio" name="mode" value="real"><span class="mode-body">Real map</span></label>
-            <label class="mode"><input type="radio" name="mode" value="demo"><span class="mode-body">Demo town</span></label>
-          </div>
-        </fieldset>
+        <div class="switches">
+          <fieldset class="mode-set">
+            <legend class="visually-hidden" data-i18n="lang.legend">Language</legend>
+            <div id="lang-options" class="mode-grid">
+              <label class="mode"><input type="radio" name="lang" value="en"><span class="mode-body" lang="en">English</span></label>
+              <label class="mode"><input type="radio" name="lang" value="te"><span class="mode-body" lang="te">తెలుగు</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="mode-set">
+            <legend class="visually-hidden" data-i18n="mode.legend">Map</legend>
+            <div id="mode-options" class="mode-grid">
+              <label class="mode"><input type="radio" name="mode" value="real"><span class="mode-body" data-i18n="mode.real">Real map</span></label>
+              <label class="mode"><input type="radio" name="mode" value="demo"><span class="mode-body" data-i18n="mode.demo">Demo town</span></label>
+            </div>
+          </fieldset>
+        </div>
         <p id="mode-badge" class="demo-badge"><span class="pulse" aria-hidden="true"></span><span id="mode-badge-text">Demo mode: traffic is simulated, not live</span></p>
       </div>
     </div>
-    <nav class="wrap site-nav" aria-label="Page sections">
-      <a href="#planner">Plan a route</a>
-      <a href="#results">Compare routes</a>
-      <a href="#safety">Road safety</a>
-      <a href="#about">About this prototype</a>
+    <nav class="wrap site-nav" data-i18n-attr="aria-label:nav.label" aria-label="Page sections">
+      <a href="#planner" data-i18n="nav.plan">Plan a route</a>
+      <a href="#results" data-i18n="nav.compare">Compare routes</a>
+      <a href="#safety" data-i18n="nav.safety">Road safety</a>
+      <a href="#about" data-i18n="nav.about">About this prototype</a>
     </nav>
   </header>
 
   <noscript>
-    <p class="wrap noscript">This demo needs JavaScript to calculate routes. Please enable JavaScript and reload the page.</p>
+    <p class="wrap noscript">This planner needs JavaScript to calculate routes. Please enable JavaScript and reload the page.</p>
   </noscript>
   <p id="app-error" class="wrap app-error" role="alert" hidden></p>
 
   <main class="wrap layout">
     <div class="sidebar">
       <section id="planner" class="panel" aria-labelledby="planner-title">
-        <h2 id="planner-title">Plan a route</h2>
+        <h2 id="planner-title" data-i18n="plan.title">Plan a route</h2>
         <form id="route-form" class="route-form" novalidate>
           <div class="field">
-            <label for="origin">Start</label>
-            <select id="origin" name="origin" aria-describedby="form-error"></select>
+            <label id="origin-label" for="origin" data-i18n="plan.start">Start</label>
+            <select id="origin" name="origin" class="demo-only" aria-describedby="form-error"></select>
+            <div class="combo real-only">
+              <input id="origin-search" type="text" class="combo-input" aria-labelledby="origin-label" aria-describedby="form-error" enterkeyhint="search">
+              <ul id="origin-list" class="ps-list" hidden></ul>
+            </div>
           </div>
           <div class="start-tools real-only">
             <button type="button" id="locate" class="link-btn">
               <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="3.2" fill="currentColor"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              Use my location
+              <span data-i18n="plan.locate">Use my location</span>
             </button>
             <span id="locate-status" class="locate-status" role="status" aria-live="polite"></span>
           </div>
-          <button type="button" id="swap" class="swap-btn" aria-label="Swap start and destination">
+          <button type="button" id="swap" class="swap-btn" data-i18n-attr="aria-label:plan.swapLabel" aria-label="Swap start and destination">
             <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M6 3v12M6 15l-3-3M6 15l3-3M14 17V5M14 5l-3 3M14 5l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Swap
+            <span data-i18n="plan.swap">Swap</span>
           </button>
           <div class="field">
-            <label for="destination">Destination</label>
-            <select id="destination" name="destination" aria-describedby="form-error"></select>
+            <label id="destination-label" for="destination" data-i18n="plan.destination">Destination</label>
+            <select id="destination" name="destination" class="demo-only" aria-describedby="form-error"></select>
+            <div class="combo real-only">
+              <input id="destination-search" type="text" class="combo-input" aria-labelledby="destination-label" aria-describedby="form-error" enterkeyhint="search">
+              <ul id="destination-list" class="ps-list" hidden></ul>
+            </div>
           </div>
           <fieldset class="choice-set">
-            <legend>Recommend the</legend>
+            <legend data-i18n="vehicle.legend">Travelling by</legend>
+            <div id="vehicle-options" class="choice-grid is-four">
+              <label class="tile"><input type="radio" name="vehicle" value="twowheeler"><span class="tile-body" data-i18n="vehicle.twowheeler">Two-wheeler</span></label>
+              <label class="tile"><input type="radio" name="vehicle" value="car"><span class="tile-body" data-i18n="vehicle.car">Car</span></label>
+              <label class="tile"><input type="radio" name="vehicle" value="auto"><span class="tile-body" data-i18n="vehicle.auto">Auto</span></label>
+              <label class="tile"><input type="radio" name="vehicle" value="walk"><span class="tile-body" data-i18n="vehicle.walk">Walking</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="choice-set">
+            <legend data-i18n="priority.legend">Recommend the</legend>
             <div id="priority-options" class="choice-grid">
-              <label class="tile"><input type="radio" name="priority" value="fastest"><span class="tile-body">Fastest route</span></label>
-              <label class="tile"><input type="radio" name="priority" value="safest"><span class="tile-body">Safest route</span></label>
+              <label class="tile"><input type="radio" name="priority" value="fastest"><span class="tile-body" data-i18n="priority.fastest">Fastest route</span></label>
+              <label class="tile"><input type="radio" name="priority" value="safest"><span class="tile-body" data-i18n="priority.safest">Safest route</span></label>
             </div>
           </fieldset>
           <p id="form-error" class="form-error" role="alert" hidden></p>
-          <button type="submit" class="btn-primary">Find Best Route</button>
+          <button type="submit" class="btn-primary" data-i18n="plan.find">Find Best Route</button>
         </form>
         <div class="emergency">
           <button type="button" id="emergency" class="btn-emergency">
             <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M7.5 2.5h5v5h5v5h-5v5h-5v-5h-5v-5h5z" fill="currentColor"/></svg>
-            Emergency: nearest hospital
+            <span data-i18n="emergency.button">Emergency: nearest hospital</span>
           </button>
-          <p class="note">Finds the fastest route from your Start to the nearest hospital. In a real emergency, call <strong>108</strong> for an ambulance or <strong>112</strong>.</p>
+          <p class="note" data-i18n-html="emergency.note">Finds the fastest route from your Start to the nearest hospital. In a real emergency, call <strong>108</strong> for an ambulance or <strong>112</strong>.</p>
         </div>
-        <p id="planner-note" class="note">Traffic in this demo is simulated from fixed sample values. It is not live traffic information.</p>
+        <p id="planner-note" class="note"></p>
       </section>
 
       <section class="panel" aria-labelledby="traffic-title">
-        <h2 id="traffic-title">Traffic conditions <span class="sim-tag">Simulated</span></h2>
+        <h2 id="traffic-title"><span data-i18n="traffic.title">Traffic conditions</span> <span id="sim-tag" class="sim-tag">Simulated</span></h2>
+        <div id="live-box" class="live-box real-only">
+          <div class="live-head">
+            <label class="switch">
+              <input type="checkbox" id="live-toggle">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span data-i18n="live.toggle">Live traffic (TomTom)</span>
+            </label>
+            <button type="button" id="live-refresh" class="link-btn" data-i18n="live.refresh" hidden>Update now</button>
+          </div>
+          <p id="live-status" class="live-status" role="status" aria-live="polite"></p>
+          <details id="live-key-box" class="live-key">
+            <summary data-i18n="live.keySummary">TomTom API key</summary>
+            <p class="note" data-i18n-html="live.keyHelp">Live traffic needs your own free key from <a href="https://developer.tomtom.com/" target="_blank" rel="noopener">developer.tomtom.com</a>. It is saved only in this browser on this device, never in the project files.</p>
+            <div class="key-row">
+              <label for="live-key" class="visually-hidden" data-i18n="live.keyLabel">TomTom API key</label>
+              <input id="live-key" type="password" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:live.keyPlaceholder" placeholder="Paste your key">
+              <button type="button" id="live-key-save" class="btn-secondary" data-i18n="live.keySave">Save</button>
+            </div>
+            <button type="button" id="live-key-clear" class="link-btn" data-i18n="live.keyClear">Remove saved key</button>
+          </details>
+        </div>
         <div class="time-field">
           <div class="time-head">
-            <label for="hour">Time of day</label>
+            <label for="hour" data-i18n="time.label">Time of day</label>
             <output id="hour-label" for="hour"></output>
           </div>
           <input type="range" id="hour" min="6" max="22" step="1">
-          <div class="time-scale" aria-hidden="true"><span>6 AM</span><span>10 AM</span><span>2 PM</span><span>6 PM</span><span>10 PM</span></div>
-          <button type="button" id="now" class="link-btn real-only">Use the time now</button>
+          <div class="time-scale" aria-hidden="true"><span>6</span><span>10</span><span>14</span><span>18</span><span>22</span></div>
+          <button type="button" id="now" class="link-btn real-only" data-i18n="time.now">Use the time now</button>
         </div>
         <fieldset id="scenario-set" class="scenario-set">
-          <legend>Or choose a scenario</legend>
+          <legend data-i18n="scenario.legend">Or choose a scenario</legend>
           <div id="scenario-options" class="scenario-grid"></div>
         </fieldset>
         <p id="scenario-desc" class="scenario-desc" aria-live="polite"></p>
-        <p id="traffic-note" class="note">To change a single road, click it on the map or use the road controls under the map.</p>
-        <button type="button" id="reset" class="btn-secondary">Start over</button>
+        <p id="traffic-note" class="note"></p>
+        <button type="button" id="reset" class="btn-secondary" data-i18n="reset">Start over</button>
       </section>
     </div>
 
     <div class="main-col">
       <section class="map-panel" aria-labelledby="map-title">
         <div class="map-head">
-          <h2 id="map-title">Road network</h2>
+          <h2 id="map-title" data-i18n="map.title">Road network</h2>
           <p id="map-summary" class="map-summary"></p>
         </div>
         <div id="change-notice" class="change-notice" role="status" aria-live="polite" hidden></div>
-        <p class="swipe-hint">Swipe sideways on the map to see all of it.</p>
-        <div id="real-map" class="real-map" role="region" aria-label="Real map of the area. Click a road or a point for options." hidden></div>
+        <p class="swipe-hint" data-i18n="map.swipe">Swipe sideways on the map to see all of it.</p>
+        <div id="real-map" class="real-map" role="region" data-i18n-attr="aria-label:map.realLabel" aria-label="Real map of the area. Click a road or a point for options." hidden></div>
         <div id="demo-map" class="map-scroll">
           <svg id="map" class="map" viewBox="0 0 1000 640" role="img" aria-labelledby="map-svg-title map-svg-desc">
-            <title id="map-svg-title">Schematic map of the sample road network</title>
-            <desc id="map-svg-desc">Roads are coloured by simulated traffic. The recommended route is drawn as a cyan band; alternative routes are dashed and dotted lines.</desc>
+            <title id="map-svg-title" data-i18n="map.svgTitle">Schematic map of the sample road network</title>
+            <desc id="map-svg-desc" data-i18n="map.svgDesc">Roads are coloured by simulated traffic. The recommended route is drawn as a cyan band; alternative routes are dashed and dotted lines.</desc>
             <g id="map-layer"></g>
           </svg>
         </div>
-        <div class="legend" aria-label="Map legend">
+        <div class="legend" data-i18n-attr="aria-label:legend.label" aria-label="Map legend">
           <ul class="legend-group">
-            <li><svg width="34" height="14" aria-hidden="true"><line x1="3" y1="7" x2="31" y2="7" stroke="#3FD8EA" stroke-width="12" stroke-linecap="round"/><line x1="3" y1="7" x2="31" y2="7" stroke="#22A565" stroke-width="4" stroke-linecap="round"/></svg>Recommended route</li>
-            <li><svg width="34" height="14" aria-hidden="true"><line x1="3" y1="7" x2="31" y2="7" stroke="#F1F5FB" stroke-width="3.5" stroke-dasharray="9 5"/></svg>Route 2</li>
-            <li><svg width="34" height="14" aria-hidden="true"><line x1="4" y1="7" x2="31" y2="7" stroke="#9FB2D0" stroke-width="5" stroke-dasharray="0.1 8" stroke-linecap="round"/></svg>Route 3</li>
+            <li><svg width="34" height="14" aria-hidden="true"><line x1="3" y1="7" x2="31" y2="7" stroke="#3FD8EA" stroke-width="12" stroke-linecap="round"/><line x1="3" y1="7" x2="31" y2="7" stroke="#22A565" stroke-width="4" stroke-linecap="round"/></svg><span data-i18n="legend.recommended">Recommended route</span></li>
+            <li><svg width="34" height="14" aria-hidden="true"><line x1="3" y1="7" x2="31" y2="7" stroke="#F1F5FB" stroke-width="3.5" stroke-dasharray="9 5"/></svg><span data-i18n="legend.route2">Route 2</span></li>
+            <li><svg width="34" height="14" aria-hidden="true"><line x1="4" y1="7" x2="31" y2="7" stroke="#9FB2D0" stroke-width="5" stroke-dasharray="0.1 8" stroke-linecap="round"/></svg><span data-i18n="legend.route3">Route 3</span></li>
           </ul>
           <ul class="legend-group">
-            <li><span class="swatch light"></span>Light</li>
-            <li><span class="swatch moderate"></span>Moderate</li>
-            <li><span class="swatch heavy"></span>Heavy</li>
-            <li><span class="swatch closed"></span>Closed</li>
-            <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2l7.5 13h-15z" fill="#FFD23F" stroke="#0D1C36" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 7v3.6M9 12.6v.2" stroke="#0D1C36" stroke-width="1.8" stroke-linecap="round"/></svg>Safety hazard</li>
+            <li><span class="swatch light"></span><span data-i18n="level.light">Light</span></li>
+            <li><span class="swatch moderate"></span><span data-i18n="level.moderate">Moderate</span></li>
+            <li><span class="swatch heavy"></span><span data-i18n="level.heavy">Heavy</span></li>
+            <li><span class="swatch closed"></span><span data-i18n="level.closed">Closed</span></li>
+            <li><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2l7.5 13h-15z" fill="#FFD23F" stroke="#0D1C36" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 7v3.6M9 12.6v.2" stroke="#0D1C36" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="legend.hazard">Safety hazard</span></li>
           </ul>
           <ul class="legend-group">
-            <li><svg width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="#3FD8EA" stroke="#0D1C36" stroke-width="2"/></svg>Start</li>
-            <li><svg width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="6.5" fill="#0D1C36" stroke="#3FD8EA" stroke-width="3"/><circle cx="9" cy="9" r="2.2" fill="#3FD8EA"/></svg>Destination</li>
-            <li><svg width="34" height="14" aria-hidden="true"><line x1="4" y1="7" x2="30" y2="7" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/><line x1="4" y1="7" x2="30" y2="7" stroke="#22A565" stroke-width="5" stroke-linecap="round"/></svg>Road being edited</li>
+            <li><svg width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="#3FD8EA" stroke="#0D1C36" stroke-width="2"/></svg><span data-i18n="legend.start">Start</span></li>
+            <li><svg width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="6.5" fill="#0D1C36" stroke="#3FD8EA" stroke-width="3"/><circle cx="9" cy="9" r="2.2" fill="#3FD8EA"/></svg><span data-i18n="legend.destination">Destination</span></li>
+            <li><svg width="34" height="14" aria-hidden="true"><line x1="4" y1="7" x2="30" y2="7" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/><line x1="4" y1="7" x2="30" y2="7" stroke="#22A565" stroke-width="5" stroke-linecap="round"/></svg><span data-i18n="legend.edited">Road being edited</span></li>
           </ul>
         </div>
 
         <div class="road-editor">
           <div class="field field-dark demo-only">
-            <label for="road-select">Change traffic on one road</label>
+            <label for="road-select" data-i18n="editor.demoLabel">Change traffic on one road</label>
             <select id="road-select"></select>
           </div>
           <div class="field field-dark real-only">
-            <p class="picked-label">Change traffic on one road section</p>
-            <p id="road-picked" class="road-picked">Click a road on the map to choose it.</p>
+            <p class="picked-label" data-i18n="editor.realLabel">Change traffic on one road section</p>
+            <p id="road-picked" class="road-picked"></p>
           </div>
           <fieldset class="level-set">
-            <legend class="visually-hidden">Simulated traffic level for the selected road</legend>
+            <legend class="visually-hidden" data-i18n="editor.levelLegend">Traffic level for the selected road</legend>
             <div id="level-options" class="level-grid"></div>
           </fieldset>
         </div>
-        <p id="map-note" class="map-note">Schematic diagram: positions, road lengths and names are illustrative, not a real street map. Do not use it for navigation.</p>
+        <p id="map-note" class="map-note"></p>
       </section>
 
       <section id="results" class="results" aria-labelledby="results-title">
-        <h2 id="results-title">Compare routes</h2>
+        <h2 id="results-title" data-i18n="results.title">Compare routes</h2>
         <div id="results-body" aria-live="polite"></div>
         <details id="calc" class="calc" hidden>
-          <summary>How this was calculated</summary>
+          <summary data-i18n="calc.summary">How this was calculated</summary>
           <div id="calc-body"></div>
         </details>
       </section>
@@ -175,24 +222,24 @@
 
   <section id="safety" class="safety" aria-labelledby="safety-title">
     <div class="wrap">
-      <h2 id="safety-title">Road safety comes first</h2>
-      <p class="safety-intro">A better route saves time by avoiding congestion. It never means driving faster. Route suggestions help you plan; they do not prevent accidents, and road signs, signals and traffic police instructions always come first.</p>
+      <h2 id="safety-title" data-i18n="safety.title">Road safety comes first</h2>
+      <p class="safety-intro" data-i18n="safety.intro">A better route saves time by avoiding congestion. It never means driving faster. Route suggestions help you plan; they do not prevent accidents, and road signs, signals and traffic police instructions always come first.</p>
       <div class="safety-grid">
         <article class="safety-item">
-          <h3>Keep to the speed limit</h3>
-          <p>Follow the posted limit for your road and vehicle. Slow down further near schools, hospitals and markets, in rain and at night.</p>
+          <h3 data-i18n="safety.speedTitle">Keep to the speed limit</h3>
+          <p data-i18n="safety.speed">Follow the posted limit for your road and vehicle. Slow down further near schools, hospitals and markets, in rain and at night.</p>
         </article>
         <article class="safety-item">
-          <h3>Leave a safe gap</h3>
-          <p>Keep at least three seconds behind the vehicle ahead: when it passes a fixed point, count three seconds before you reach it. Double the gap in rain or poor light.</p>
+          <h3 data-i18n="safety.gapTitle">Leave a safe gap</h3>
+          <p data-i18n="safety.gap">Keep at least three seconds behind the vehicle ahead: when it passes a fixed point, count three seconds before you reach it. Double the gap in rain or poor light.</p>
         </article>
         <article class="safety-item">
-          <h3>Obey traffic signals</h3>
-          <p>Red means stop behind the stop line. Amber means stop if you safely can, not speed up. Give way to pedestrians at crossings.</p>
+          <h3 data-i18n="safety.signalsTitle">Obey traffic signals</h3>
+          <p data-i18n="safety.signals">Red means stop behind the stop line. Amber means stop if you safely can, not speed up. Give way to pedestrians at crossings.</p>
         </article>
         <article class="safety-item">
-          <h3>Drive responsibly</h3>
-          <p>Helmets for every two-wheeler rider and pillion, seat belts for everyone in a car. No phone while driving, no drink-driving, and no riding against traffic or on footpaths to take a shortcut.</p>
+          <h3 data-i18n="safety.responsibleTitle">Drive responsibly</h3>
+          <p data-i18n="safety.responsible">Helmets for every two-wheeler rider and pillion, seat belts for everyone in a car. No phone while driving, no drink-driving, and no riding against traffic or on footpaths to take a shortcut.</p>
         </article>
       </div>
     </div>
@@ -201,35 +248,38 @@
   <footer id="about" class="site-footer">
     <div class="wrap footer-inner">
       <div>
-        <h2>About this prototype</h2>
-        <p>A Community Service Project software prototype that shows how comparing routes by journey time, distance and traffic can support better travel decisions.</p>
+        <h2 data-i18n="about.title">About this prototype</h2>
+        <p data-i18n="about.text">A Community Service Project software prototype that shows how comparing routes by journey time, distance, traffic and safety can support better travel decisions.</p>
       </div>
       <div>
-        <h3>Real map mode</h3>
+        <h3 data-i18n="about.realTitle">Real map mode</h3>
         <ul>
-          <li>Roads, one-way rules, speed limits, hospitals, schools, markets and place names come from OpenStreetMap (© OpenStreetMap contributors, ODbL).</li>
-          <li>Traffic is estimated from the time of day and the type of road. It is not live traffic data.</li>
-          <li>Safety hazards are worked out from the map (school zones, markets, highways, busy junctions). Accident black spots come from the list in <code>js/blackspots.js</code>.</li>
-          <li>Map data can have gaps. Always follow road signs, signals and the traffic police.</li>
+          <li data-i18n="about.real1">Roads, one-way rules, speed limits, hospitals, schools, markets and place names come from OpenStreetMap (© OpenStreetMap contributors, ODbL).</li>
+          <li data-i18n="about.real2">Traffic is estimated from the time of day and the type of road, or comes live from TomTom if you add your own key.</li>
+          <li data-i18n-html="about.real3">Safety hazards are worked out from the map (school zones, markets, highways, busy junctions). Accident black spots come from the list in <code>js/blackspots.js</code>.</li>
+          <li data-i18n="about.real4">Map data can have gaps. Always follow road signs, signals and the traffic police.</li>
         </ul>
-        <h3>Demo town mode</h3>
+        <h3 data-i18n="about.demoTitle">Demo town mode</h3>
         <ul>
-          <li>The town, its 12 locations and 19 roads are a sample network, not real streets.</li>
-          <li>Road lengths, free-flow speeds and traffic levels are fixed demo values.</li>
-          <li>Road hazards (black spots, school zones, markets, lighting, footpaths) and their risk weights are sample values, not accident records.</li>
-          <li>Journey times are estimates and ignore signals, turns and stops.</li>
-          <li>No live traffic, GPS or map service is used, so the demo works offline.</li>
+          <li data-i18n="about.demo1">The town, its 12 locations and 19 roads are a sample network, not real streets.</li>
+          <li data-i18n="about.demo2">Road lengths, free-flow speeds and traffic levels are fixed demo values.</li>
+          <li data-i18n="about.demo3">Road hazards (black spots, school zones, markets, lighting, footpaths) and their risk weights are sample values, not accident records.</li>
+          <li data-i18n="about.demo4">Journey times are estimates and ignore signals, turns and stops.</li>
+          <li data-i18n="about.demo5">No live traffic, GPS or map service is used, so the demo works offline.</li>
         </ul>
       </div>
     </div>
   </footer>
 
   <script src="js/vendor/leaflet.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/network-data.js"></script>
   <script src="js/real-network-data.js"></script>
   <script src="js/blackspots.js"></script>
   <script src="js/route-engine.js"></script>
   <script src="js/geo-tools.js"></script>
+  <script src="js/live-traffic.js"></script>
+  <script src="js/place-search.js"></script>
   <script src="js/map-view.js"></script>
   <script src="js/real-map-view.js"></script>
   <script src="js/app.js"></script>

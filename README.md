@@ -1,6 +1,6 @@
 # Smart Traffic Route Optimization System for Safer and More Efficient Urban Travel
 
-A Community Service Project software prototype. A road user picks a start and a destination, compares alternative routes by **estimated journey time, distance, traffic and road-safety hazards**, and gets the **fastest** or the **safest** route recommended. Traffic follows a **time-of-day slider**, and an **Emergency** button finds the fastest route to the nearest hospital.
+A Community Service Project software prototype. A road user picks a start and a destination, compares alternative routes by **estimated journey time, distance, traffic and road-safety hazards**, and gets the **fastest** or the **safest** route recommended for their **vehicle** (two-wheeler, car, auto or walking). Traffic follows a **time-of-day slider** or comes **live from TomTom**, an **Emergency** button finds the fastest route to the nearest hospital, and the whole interface works in **English or Telugu (తెలుగు)**.
 
 **Open the app:** <https://tejasreekorimilli23-ctrl.github.io/smart-route-optimizer-/> (works on phones; allow location access for *Use my location*).
 
@@ -11,7 +11,7 @@ It has two modes, switched at the top of the page:
 | **Real map** (default) | The real road network of **Vizianagaram around Thotapalem** from OpenStreetMap: 6,165 junctions, 8,419 road sections, one-way streets and posted speed limits, plus 280 searchable places including 45 hospitals. Shown on a zoomable map. Works with your phone's GPS. |
 | **Demo town** | A small invented town (12 places, 19 roads) on a schematic map. Works fully offline. Good for explaining the algorithm in class. |
 
-> **Traffic is estimated, not live.** In real-map mode, traffic comes from the time of day and the type of road (main roads are jammed at rush hour, roads near schools at school time, markets in the evening). It is a planning estimate, not a live feed. Map data can have gaps: always follow road signs, signals and the traffic police.
+> **Traffic.** In real-map mode, traffic is estimated from the time of day and the type of road (main roads are jammed at rush hour, roads near schools at school time, markets in the evening). Add your own free TomTom key to switch on **live traffic** for the main roads. Map data can have gaps: always follow road signs, signals and the traffic police.
 
 ## Run it
 
@@ -27,11 +27,14 @@ It has two modes, switched at the top of the page:
 
 ## Using the real map
 
-- **Choose places** from the Start and Destination lists. They are grouped into areas and junctions, hospitals, schools and colleges, transport, markets, temples and landmarks.
+- **Search for places.** Type part of a name in Start or Destination (for example *thota*, *maharaja*, *hospital*) and pick a suggestion with a tap, or with the arrow keys and Enter. The 280 places include areas and junctions, hospitals, schools and colleges, transport, markets, temples and landmarks.
+- **Choose your vehicle.** Two-wheeler, car, auto or walking (see *Vehicle types* below).
 - **Or click the map.** Clicking anywhere opens a menu: *Start here* or *Go here*. The point is joined to the nearest road, keeping one-way rules, and the route is worked out immediately.
 - **Use my location** sets the start to where you are, if you are inside the mapped area.
 - **Change traffic on a road.** Click a road, then choose Light, Moderate, Heavy or Closed, for example to mark a road blocked by a procession or road works. The recommendation updates at once.
 - **Time of day.** Drag the slider, or press *Use the time now*.
+- **Live traffic.** Switch on *Live traffic (TomTom)* once you have added a key (see below).
+- **Language.** Press **తెలుగు** at the top for Telugu, **English** to switch back. The choice is remembered on that device.
 - **Emergency.** Press *Emergency: nearest hospital*. It searches every hospital (except eye and dental hospitals) and routes to the one with the shortest journey time. It also lists the next two nearest, in case the first cannot treat the emergency. Hospitals show as red **H** markers.
 
 ### Two-minute demo (real map)
@@ -42,6 +45,37 @@ It has two modes, switched at the top of the page:
 4. Open **How this was calculated** to show the road-by-road time and risk.
 5. Press **Emergency: nearest hospital**. From Thotapalem at midday it routes to Tirumala Medicover Hospitals (2.4 min) and lists the next two nearest, with the 108 / 112 helpline numbers.
 6. Click any point on the map and choose **Go here** to show routing to an arbitrary place.
+
+## Live traffic (TomTom)
+
+Live traffic is optional and uses your own free TomTom key.
+
+1. Sign up at <https://developer.tomtom.com/> and create an API key. The free plan includes the Traffic API.
+2. In the app, open *Traffic conditions → TomTom API key*, paste the key and press **Save**.
+3. Live traffic switches on. The status line says when it was updated and how many road sections it covered. Press **Update now** to refresh.
+
+**How it works.**
+- The app asks TomTom for the current and free-flow speed at up to 80 points along the main roads. That's 80 requests per update, well inside the free daily allowance.
+- Each reading becomes a traffic level: current ÷ free-flow of 0.8 or more is *light*, 0.5 or more is *moderate*, lower is *heavy*, and closed roads are removed.
+- Each level is applied to the main-road sections along TomTom's matched stretch of road. Small lanes keep the time-of-day estimate.
+- TomTom's live traffic colours are also drawn over the map.
+
+**Your key stays private.** It is stored only in that browser on that device (`localStorage`). It is never written into the project files or sent anywhere except TomTom. *Remove saved key* deletes it. Because the page runs in the browser, anyone using your device can read the key in the developer tools. TomTom lets you restrict a key to your website's address in its dashboard.
+
+## Vehicle types
+
+| Vehicle | Speed | Traffic delay | Other rules |
+| --- | --- | --- | --- |
+| Car | Road's free-flow speed | Full | Follows one-way streets |
+| Two-wheeler | Same, at most 50 km/h | 60% of a car's (filters through jams) | Follows one-way streets |
+| Auto | At most 35 km/h | 85% of a car's | Follows one-way streets |
+| Walking | Always 4.5 km/h | None | May use one-way streets both ways; no expressways |
+
+## Language
+
+The interface is available in English and Telugu (`js/i18n.js`). Place and road names come from OpenStreetMap and are mostly in English, as on local signboards. The six places that also have a Telugu name in OpenStreetMap can be found by either name.
+
+**The Telugu text was written for this project and should be checked by a native speaker before wider use.** To fix a translation, edit the `te` section of `js/i18n.js`. `npm test` checks that every English text has a Telugu version with the same `{placeholders}`.
 
 ## Demo town
 
@@ -112,7 +146,7 @@ The base 1 point per km means a long detour is not "free": the safest route has 
 
 **Algorithm.**
 
-1. The user chooses **Fastest** or **Safest**. For Fastest, each road is weighted by its estimated time; for Safest, by its risk score.
+1. The user chooses **Fastest** or **Safest** and a vehicle. For Fastest, each road is weighted by its estimated time for that vehicle; for Safest, by its risk score.
 2. **Dijkstra's algorithm** (with a binary-heap priority queue) finds the best route for that weight. Ties on time go to the shorter distance; ties on risk go to the quicker route; then to location id, so results are fully deterministic.
 3. **Alternatives.**
    - **Demo town:** **Yen's k-shortest-paths algorithm** (k = 8) lists the next-best loop-free routes by re-running Dijkstra with parts of earlier routes blocked.
@@ -149,7 +183,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ## Known limitations
 
-- **No live traffic.** Traffic is estimated from time of day and road type. A live feed (TomTom, HERE or Google) could replace the estimate later. The engine already accepts any traffic level per road.
+- **Live traffic needs your own key, and covers main roads only.** Without a key, traffic is estimated from time of day and road type. With a TomTom key, main roads use live readings and small lanes still use the estimate.
 - **Simplified journey times.** They ignore signal waits, turns and vehicle type. Traffic is constant along each road section.
 - **Map data gaps.** OpenStreetMap data for smaller towns can miss lanes, have wrong one-way tags, or name places inconsistently. Only the largest connected part of the network is used, so every route found is drivable on the map data.
 - **Inferred hazards.** Apart from your black spot list, hazards are worked out from the map, not from accident records.
@@ -167,8 +201,19 @@ npm run verify        # all three
 
 **Demo town.** For every start–destination pair under every scenario and every hour, for both Fastest and Safest (5,544 queries), the recommendation is compared against a brute-force search of every possible path. The tests check badges, valid paths, no closed roads, no duplicates, and that every total and difference adds up exactly. Emergency is checked against brute force from every place.
 
+**Vehicles.** For every pair of places and every vehicle type, the recommendation is checked against brute force.
+
+**Live traffic** (with a fake TomTom server, no key needed). The tests check:
+- sample points;
+- speed-to-level rules;
+- matching readings to road sections;
+- error handling: wrong key, daily limit, no answer, a browser that throws.
+
+**Translations.** Every text key used by the page exists in English and Telugu, with the same placeholders.
+
 **Real map.**
 - The data is consistent: geometry matches junctions, and every place can reach every other place respecting one-way streets.
+- Walking may use one-way streets both ways; vehicles may not.
 - Sample routes across the town at 9 AM, 12 PM and 6 PM, for both priorities, are the true optimum (checked against a separate Dijkstra run), drivable (no wrong-way driving, no closed roads), add up exactly, and are fast enough.
 - Closing a road makes routes avoid it.
 - Emergency picks the hospital with the shortest journey time.
@@ -194,7 +239,10 @@ js/vendor/leaflet.js           Leaflet 1.9.4 map library (BSD-2, see LEAFLET-LIC
 js/network-data.js             Demo town: network, road types, traffic levels, hazards, scenarios, time bands
 js/real-network-data.js        Real map: GENERATED from OpenStreetMap by npm run build-map
 js/blackspots.js               Accident black spots for the real map (edit this)
-js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, penalty method, safety risk, emergency
+js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, penalty method, safety risk, vehicles, emergency
+js/live-traffic.js             Live traffic from TomTom (optional, your own key)
+js/place-search.js             Type-ahead place search box
+js/i18n.js                     Interface text in English and Telugu
 js/geo-tools.js                Pinning GPS / map clicks to the nearest road; applying black spots
 js/map-view.js                 Demo town: SVG schematic map drawing
 js/real-map-view.js            Real map: Leaflet map drawing and click menus
@@ -208,6 +256,8 @@ scripts/build-single-file.js
 data/osm/                      The OpenStreetMap download the real map was built from
 tests/route-engine.test.js     Algorithm tests (demo town)
 tests/real-network.test.js     Real map tests
+tests/live-traffic.test.js     Live traffic tests (fake TomTom server)
+tests/i18n.test.js             English / Telugu text checks
 tests/browser-smoke.cjs        Optional browser test
 ```
 
@@ -218,6 +268,8 @@ The algorithm (`route-engine.js`) has no browser dependencies and is tested dire
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the Open Database License (ODbL). The attribution must stay visible on the map.
 - Map tiles from the OpenStreetMap tile servers, used under their [tile usage policy](https://operations.osmfoundation.org/policies/tiles/). That is fine for a class project. A public service with many users should use its own tile provider.
 - [Leaflet](https://leafletjs.com/) 1.9.4, BSD-2-Clause licence (`js/vendor/LEAFLET-LICENSE.txt`).
+- Live traffic data © TomTom, used with your own key under TomTom's terms.
+- Telugu text uses the Noto Sans Telugu font from Google Fonts. Offline, the phone's own Telugu font is used.
 
 ## Road safety
 

@@ -223,3 +223,16 @@ test("the committed map file matches a fresh build from the downloaded data", ()
   assert.equal(fresh.EDGES.length, R.EDGES.length, "run npm run build-map");
   assert.deepEqual(fresh.DEFAULTS, R.DEFAULTS);
 });
+
+test("walking may use one-way streets both ways; vehicles may not", () => {
+  const oneway = R.EDGES.find((e) => e.oneway && e.type !== "access");
+  assert.ok(oneway, "the map should have one-way streets");
+  const car = E.buildGraph(R, null, "fastest", "car");
+  const walk = E.buildGraph(R, null, "fastest", "walk");
+  const back = (g) => g.adj[oneway.to].some((x) => x.edgeId === oneway.id);
+  assert.equal(back(car), false, "a car must not drive " + oneway.name + " backwards");
+  assert.equal(back(walk), true, "a walker may walk " + oneway.name + " both ways");
+  const res = E.findRoutes(R, E.levelsForHour(R, 9), R.DEFAULTS.origin, R.DEFAULTS.destination, { vehicle: "twowheeler" });
+  assert.equal(res.ok, true);
+  res.routes.forEach((r) => assertDrivable(r, E.levelsForHour(R, 9), "two-wheeler"));
+});
