@@ -24,7 +24,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const AREA = require("./real-area.config.js");
-const { buildNetwork, haversine } = require("../js/osm-network.js");
+const { buildNetwork, haversine, pack, unpack } = require("../js/osm-network.js");
 
 module.exports = { buildNetwork, haversine };
 
@@ -47,10 +47,11 @@ if (require.main === module) {
     " * change scripts/real-area.config.js, then run npm run fetch-map and npm run build-map.\n" +
     " * Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).\n" +
     " * Works in the browser (exposes window.RealTrafficData) and in Node (module.exports).\n */\n" +
-    "(function (root, data) {\n" +
+    "(function (root, unpack, packed) {\n" +
+    "  var data = unpack(packed);\n" +
     '  if (typeof module === "object" && module.exports) module.exports = data;\n' +
     "  else root.RealTrafficData = data;\n" +
-    '})(typeof self !== "undefined" ? self : this, ' + JSON.stringify(data) + ");\n";
+    '})(typeof self !== "undefined" ? self : this, ' + unpack.toString() + ", " + JSON.stringify(pack(data)) + ");\n";
   const out = path.join(ROOT, "js", "real-network-data.js");
   fs.writeFileSync(out, body);
   const places_ = data.NODES.filter((n) => n.category);

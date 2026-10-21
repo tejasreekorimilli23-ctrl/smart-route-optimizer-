@@ -589,6 +589,118 @@
     };
   }
 
+
+  // ---------- compact storage ----------
+
+  /**
+   * Packs a network into a much smaller form for js/real-network-data.js:
+   * names are stored once and referred to by number, coordinates are whole
+   * numbers (1e-5 degree) stored as differences from the previous point,
+   * a road's end points come from its junctions, and junction names are
+   * worked out again when unpacking. unpack(pack(d)) gives d back exactly.
+   */
+  function pack(data) {
+    var strings = [];
+    var index = {};
+    var str = function (s) {
+      if (s === undefined || s === null) return -1;
+      if (!(s in index)) { index[s] = strings.length; strings.push(s); }
+      return index[s];
+    };
+    var q = function (v) { return Math.round(v * 1e5); };
+    var nodeNum = {};
+    var nodes = [];
+    var places = [];
+    data.NODES.forEach(function (n, i) {
+      nodeNum[n.id] = i;
+      nodes.push(n.id.charAt(0) === "n" ? Number(n.id.slice(1)) : n.id);
+      nodes.push(q(n.lat), q(n.lon));
+      if (n.category) {
+        places.push([i, str(n.name), str(n.category), n.kind ? str(n.kind) : -1, n.emergency === false ? 1 : 0,
+          str(n.osm), n.nameTe ? str(n.nameTe) : -1]);
+      }
+    });
+    var hazardSets = [];
+    var hsIndex = {};
+    var edges = data.EDGES.map(function (e) {
+      var hk = (e.hazards || []).join(",");
+      if (!(hk in hsIndex)) { hsIndex[hk] = hazardSets.length; hazardSets.push(e.hazards || []); }
+      var inner = [];
+      var plat = q(e.geom[0]);
+      var plon = q(e.geom[1]);
+      for (var k = 2; k < e.geom.length - 2; k += 2) {
+        var la = q(e.geom[k]);
+        var lo = q(e.geom[k + 1]);
+        inner.push(la - plat, lo - plon);
+        plat = la;
+        plon = lo;
+      }
+      return [e.id, nodeNum[e.from], nodeNum[e.to], str(e.name), e.corridor ? 1 : 0, str(e.type),
+        Math.round(e.distanceKm * 1000), e.oneway ? 1 : 0, e.freeFlowKmh || 0, hsIndex[hk], inner];
+    });
+    var meta = {};
+    Object.keys(data).forEach(function (k) {
+      if (k !== "NODES" && k !== "EDGES") meta[k] = data[k];
+    });
+    return { format: 2, meta: meta, strings: strings, nodes: nodes, places: places, hazardSets: hazardSets, edges: edges };
+  }
+
+  /** The reverse of pack(). Self-contained: it is also written into the data file. */
+  function unpack(p) {
+    var s = p.strings;
+    var NODES = [];
+    for (var i = 0; i < p.nodes.length; i += 3) {
+      var id = p.nodes[i];
+      NODES.push({ id: typeof id === "number" ? "n" + id : id, name: "", lat: p.nodes[i + 1] / 1e5, lon: p.nodes[i + 2] / 1e5 });
+    }
+    p.places.forEach(function (pl) {
+      var n = NODES[pl[0]];
+      n.name = s[pl[1]];
+      n.category = s[pl[2]];
+      n.osm = s[pl[5]];
+      if (pl[6] >= 0) n.nameTe = s[pl[6]];
+      if (pl[3] >= 0) n.kind = s[pl[3]];
+      if (pl[4]) n.emergency = false;
+    });
+    var namesAt = {};
+    var EDGES = p.edges.map(function (r) {
+      var a = NODES[r[1]];
+      var b = NODES[r[2]];
+      var geom = [a.lat, a.lon];
+      var la = Math.round(a.lat * 1e5);
+      var lo = Math.round(a.lon * 1e5);
+      for (var k = 0; k < r[10].length; k += 2) {
+        la += r[10][k];
+        lo += r[10][k + 1];
+        geom.push(la / 1e5, lo / 1e5);
+      }
+      geom.push(b.lat, b.lon);
+      var e = {
+        id: r[0], from: a.id, to: b.id, name: s[r[3]], corridor: r[4] ? s[r[3]] : "", type: s[r[5]],
+        distanceKm: r[6] / 1000, hazards: p.hazardSets[r[9]].slice(), geom: geom
+      };
+      if (r[7]) e.oneway = true;
+      if (r[8]) e.freeFlowKmh = r[8];
+      if (e.corridor && e.type !== "access") {
+        [a.id, b.id].forEach(function (nid) {
+          (namesAt[nid] = namesAt[nid] || {})[e.corridor] = true;
+        });
+      }
+      return e;
+    });
+    NODES.forEach(function (n) {
+      if (n.category) return;
+      var names = Object.keys(namesAt[n.id] || {}).sort();
+      n.name = names.length >= 2 ? names.slice(0, 2).join(" / ") + " junction"
+        : names.length === 1 ? "Point on " + names[0] : "Unnamed junction";
+    });
+    var out = {};
+    Object.keys(p.meta).forEach(function (k) { out[k] = p.meta[k]; });
+    out.NODES = NODES;
+    out.EDGES = EDGES;
+    return out;
+  }
+
   /** Overpass queries for the roads and the places in a box [south, west, north, east]. */
   function queries(bboxList) {
     var bbox = bboxList.join(",");
@@ -629,5 +741,8 @@
     };
   }
 
-  return { buildNetwork: buildNetwork, haversine: haversine, queries: queries, areaSettings: areaSettings };
+  return {
+    buildNetwork: buildNetwork, haversine: haversine, queries: queries, areaSettings: areaSettings,
+    pack: pack, unpack: unpack
+  };
 });
