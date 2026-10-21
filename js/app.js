@@ -78,6 +78,15 @@
     destinationList: $("destination-list"),
     swap: $("swap"),
     locate: $("locate"),
+    areaName: $("area-name"),
+    areaChange: $("area-change"),
+    areaBox: $("area-box"),
+    areaQuery: $("area-query"),
+    areaSearch: $("area-search"),
+    areaStatus: $("area-status"),
+    areaResults: $("area-results"),
+    areaSaved: $("area-saved"),
+    areaClose: $("area-close"),
     locateStatus: $("locate-status"),
     vehicleOptions: $("vehicle-options"),
     priorityOptions: $("priority-options"),
@@ -502,13 +511,20 @@
       list: list,
       items: searchItems,
       extras: function (q) {
-        if (role !== "start" || q.trim()) return [];
-        return [{ id: "__locate", label: t("plan.locate"), special: true }];
+        q = q.trim();
+        if (!q) return role === "start" ? [{ id: "__locate", label: t("plan.locate"), special: true }] : [];
+        if (q.length < 3 || !AL) return [];
+        return [{ id: "__outside", label: t("search.outside", { q: q }), special: true, last: true }];
       },
       emptyText: function () { return t("search.none"); },
       onPick: function (item) {
         if (item.id === "__locate") {
           locateMe();
+          return;
+        }
+        if (item.id === "__outside") {
+          area.pending = { role: role };
+          openAreaBox(input.value.trim());
           return;
         }
         select.value = item.id;
@@ -561,6 +577,7 @@
 
     var mt = isReal() ? "real" : "demo";
     els.modeBadgeText.textContent = isReal() ? t("badge.real", { area: local(D.AREA.name) }) : t("badge.demo");
+    renderAreaName();
     els.plannerNote.textContent = t("note.planner." + mt);
     els.trafficNote.textContent = t("note.traffic." + mt);
     els.mapNote.textContent = t("note.map." + mt);
@@ -853,7 +870,7 @@
    * Pins a GPS position or map click as the start or destination.
    * Returns false (and explains why) if it is too far from any road.
    */
-  function setPin(role, lat, lon, kind) {
+  function setPin(role, lat, lon, kind, label) {
     var id = PIN_IDS[role];
     var pinned = G.pinToRoad(D, id, "", lat, lon);
     var select = role === "start" ? els.origin : els.destination;
@@ -861,7 +878,7 @@
       showFormError(t("err.outside", { metres: G.MAX_PIN_METRES, area: local(D.AREA.name) }), select);
       return false;
     }
-    pinned.node.name = kind === "gps" ? t("pin.myLocation") : t("pin.pointOn", { road: roadName(pinned.road) });
+    pinned.node.name = kind === "gps" ? t("pin.myLocation") : kind === "place" && label ? label : t("pin.pointOn", { road: roadName(pinned.road) });
     pins[role] = pinned;
     routing = null;
     indexData();
@@ -1125,6 +1142,160 @@
     if (want.incidents || want.speeds) refreshLive(want);
   }
 
+
+  // ---------- areas: any town, not only the built-in one ----------
+
+  var AL = window.AreaLoader;
+  var BUILT_IN = DATASETS.real;
+  var area = { busy: false, results: [], pending: null };
+
+  function setAreaStatus(text, isError) {
+    els.areaStatus.textContent = text || "";
+    els.areaStatus.classList.toggle("is-error", !!isError);
+  }
+
+  function areaErrorText(err) {
+    return t("area.err." + (err && err.code ? err.code : "download"));
+  }
+
+  /** Shows a different area's real road network. */
+  function switchArea(data, keyForStorage) {
+    G.applyBlackspots(data, BLACKSPOTS);
+    DATASETS.real = data;
+    try { window.localStorage.setItem("route-area", keyForStorage || "builtin"); } catch (err) { /* ignore */ }
+    var wasLive = live.on;
+    live.on = false;
+    live.flow = null;
+    live.incidents = null;
+    live.error = null;
+    setMode("real");
+    els.areaBox.hidden = true;
+    if (wasLive && savedKey()) refreshLive();
+  }
+
+  function renderAreaName() {
+    if (!els.areaName) return;
+    var d = DATASETS.real;
+    els.areaName.textContent = d ? t("area.current", { name: local(d.AREA.name) }) : "";
+  }
+
+  /** Remembered areas and the built-in one, as buttons. */
+  function renderSavedAreas() {
+    var items = [{ key: "builtin", name: BUILT_IN.AREA.name, builtin: true }];
+    (AL ? AL.list() : Promise.resolve([])).then(function (saved) {
+      saved.forEach(function (a) { if (a.key !== BUILT_IN.AREA.key) items.push(a); });
+      els.areaSaved.innerHTML = '<p class="area-sub">' + esc(t("area.saved")) + "</p>" + items.map(function (a) {
+        var current = (DATASETS.real.AREA.key || "builtin") === a.key || (a.builtin && DATASETS.real === BUILT_IN);
+        return '<button type="button" class="area-pick' + (current ? " is-current" : "") + '" data-area-key="' + esc(a.key) + '">' +
+          esc(local(a.name)) + (a.builtin ? " · " + esc(t("area.builtin")) : "") + "</button>";
+      }).join("");
+    });
+  }
+
+  function openAreaBox(query) {
+    els.areaBox.hidden = false;
+    renderSavedAreas();
+    if (query) {
+      els.areaQuery.value = query;
+      searchAreas();
+    } else {
+      els.areaQuery.focus();
+    }
+  }
+
+  function searchAreas() {
+    var q = els.areaQuery.value.trim();
+    if (q.length < 2 || !AL) return;
+    setAreaStatus(t("area.searching"));
+    els.areaResults.innerHTML = "";
+    // Prefer India; search everywhere if nothing is found there.
+    AL.find(q, { countryCodes: "in", language: "en" }).then(function (rows) {
+      return rows.length ? rows : AL.find(q, { language: "en" });
+    }).then(function (rows) {
+      area.results = rows;
+      if (!rows.length) {
+        setAreaStatus(t("area.none"), true);
+        return;
+      }
+      setAreaStatus(t("area.pick"));
+      els.areaResults.innerHTML = rows.map(function (r, i) {
+        return '<li><button type="button" class="area-pick" data-area-result="' + i + '">' + esc(local(r.label)) + "</button></li>";
+      }).join("");
+    }, function (err) {
+      setAreaStatus(areaErrorText(err), true);
+    });
+  }
+
+  /**
+   * Loads the area for a search result. If a place for the other end of the
+   * trip is already chosen and close enough, the area covers both, and the
+   * chosen result becomes the start or destination (area.pending).
+   */
+  function loadResult(r) {
+    if (area.busy) return;
+    var box = AL.boxForResult(r);
+    var keep = null;
+    if (area.pending) {
+      var otherSelect = area.pending.role === "start" ? els.destination : els.origin;
+      var other = nodeById[otherSelect.value];
+      if (other && other.lat !== undefined) {
+        var both = AL.boxAround({ lat: other.lat, lon: other.lon }, r);
+        if (both) {
+          box = both;
+          keep = { role: area.pending.role === "start" ? "destination" : "start", lat: other.lat, lon: other.lon, name: placeName(other) };
+        }
+      }
+    }
+    area.busy = true;
+    els.areaSearch.disabled = true;
+    setAreaStatus(t("area.step.roads"));
+    var pending = area.pending;
+    AL.load(r.name, box, function (step, seconds) { setAreaStatus(t("area.step." + step, { s: seconds })); }).then(function (data) {
+      area.busy = false;
+      els.areaSearch.disabled = false;
+      area.pending = null;
+      AL.remember(data);
+      switchArea(data, data.AREA.key);
+      // Put the searched place (and the kept other end) on the new map.
+      if (pending) {
+        if (keep) setPin(keep.role, keep.lat, keep.lon, "place", keep.name);
+        setPin(pending.role, r.lat, r.lon, "place", local(r.name));
+        searchIfReady();
+      }
+      setAreaStatus("");
+    }, function (err) {
+      area.busy = false;
+      els.areaSearch.disabled = false;
+      setAreaStatus(areaErrorText(err), true);
+    });
+  }
+
+  function pickSavedArea(key) {
+    if (key === "builtin") {
+      switchArea(BUILT_IN, "builtin");
+      return;
+    }
+    setAreaStatus(t("area.opening"));
+    AL.recall(key).then(function (data) {
+      if (!data) {
+        setAreaStatus(t("area.err.nostore"), true);
+        return;
+      }
+      setAreaStatus("");
+      switchArea(data, key);
+    });
+  }
+
+  /** On start: reopen the area used last time, if it was not the built-in one. */
+  function restoreArea() {
+    var key = null;
+    try { key = window.localStorage.getItem("route-area"); } catch (err) { /* ignore */ }
+    if (!AL || !key || key === "builtin") return;
+    AL.recall(key).then(function (data) {
+      if (data && mode === "real") switchArea(data, key);
+    });
+  }
+
   // ---------- rendering ----------
 
   function renderMap() {
@@ -1354,7 +1525,7 @@
     var o = nodeById[D.DEFAULTS.origin];
     var d = nodeById[D.DEFAULTS.destination];
     var tip = isReal()
-      ? t("empty.real", { from: placeName(o), to: placeName(d) })
+      ? o && d ? t("empty.real", { from: placeName(o), to: placeName(d) }) : t("empty.realArea")
       : t("empty.demo");
     return '<div class="empty-state">' +
         '<p class="state-title">' + esc(t("empty.title")) + "</p>" +
@@ -1612,6 +1783,25 @@
   });
 
   els.locate.addEventListener("click", locateMe);
+  els.areaChange.addEventListener("click", function () {
+    area.pending = null;
+    if (els.areaBox.hidden) openAreaBox();
+    else els.areaBox.hidden = true;
+  });
+  els.areaClose.addEventListener("click", function () { els.areaBox.hidden = true; });
+  els.areaSearch.addEventListener("click", searchAreas);
+  els.areaQuery.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      searchAreas();
+    }
+  });
+  els.areaBox.addEventListener("click", function (ev) {
+    var b = ev.target.closest ? ev.target.closest("[data-area-result],[data-area-key]") : null;
+    if (!b) return;
+    if (b.hasAttribute("data-area-result")) loadResult(area.results[Number(b.getAttribute("data-area-result"))]);
+    else pickSavedArea(b.getAttribute("data-area-key"));
+  });
 
   els.vehicleOptions.addEventListener("change", function (ev) {
     setVehicle(ev.target.value);
@@ -1756,4 +1946,5 @@
   lang = hashLang ? hashLang[1] : I18N[savedLang] ? savedLang : "en";
   applyStaticText();
   setMode(hashMode ? hashMode[1] : savedMode || (realAvailable ? "real" : "demo"));
+  restoreArea();
 })();

@@ -20,7 +20,7 @@ service cloud.firestore {
       return t is timestamp && t > request.time - duration.value(10, 'm') && t < request.time + duration.value(10, 'm');
     }
     function inArea(d) {
-      return d.lat is number && d.lon is number && d.lat > 17.5 && d.lat < 19 && d.lon > 82.5 && d.lon < 84.5;
+      return d.lat is number && d.lon is number && d.lat > 6 && d.lat < 37.5 && d.lon > 68 && d.lon < 97.5; // India
     }
 
     match /reports/{id} {

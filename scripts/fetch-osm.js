@@ -14,26 +14,9 @@ const AREA = require("./real-area.config.js");
 
 const OUT = path.resolve(__dirname, "..", "data", "osm");
 const ENDPOINT = "https://overpass-api.de/api/interpreter";
-const bbox = AREA.bbox.join(",");
 
-const ROADS =
-  "[out:json][timeout:120];" +
-  '(way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|road|' +
-  'motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$"](' + bbox + "););" +
-  "out body;>;out skel qt;";
-
-const PLACES =
-  "[out:json][timeout:120];(" +
-  'nwr["amenity"~"^(hospital|clinic|school|college|university|marketplace|bus_station|place_of_worship|bank|police|' +
-  'fire_station|cinema|townhall|library|post_office|fuel)$"](' + bbox + ");" +
-  'nwr["railway"="station"](' + bbox + ");" +
-  'nwr["place"~"^(suburb|neighbourhood|quarter|locality|village|hamlet)$"](' + bbox + ");" +
-  'rel["boundary"="local_authority"](' + bbox + ");" +
-  'node["highway"="traffic_signals"](' + bbox + ");" +
-  'nwr["tourism"~"^(attraction|museum)$"](' + bbox + ");" +
-  'nwr["historic"](' + bbox + ");" +
-  'nwr["shop"="mall"](' + bbox + ");" +
-  ");out center tags;";
+const { queries } = require("../js/osm-network.js");
+const { roads: ROADS, places: PLACES } = queries(AREA.bbox);
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

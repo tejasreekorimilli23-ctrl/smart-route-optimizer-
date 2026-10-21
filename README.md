@@ -8,7 +8,7 @@ It has two modes, switched at the top of the page:
 
 | Mode | What it uses |
 | --- | --- |
-| **Real map** (default) | The real road network of **Vizianagaram around Thotapalem** from OpenStreetMap: 6,165 junctions, 8,419 road sections, one-way streets and posted speed limits, plus 280 searchable places including 45 hospitals. Shown on a zoomable map. Works with your phone's GPS. |
+| **Real map** (default) | The real road network of **any town you choose** (built in: **Vizianagaram around Thotapalem**) from OpenStreetMap: 6,165 junctions, 8,419 road sections, one-way streets and posted speed limits, plus 280 searchable places including 45 hospitals. Shown on a zoomable map. Works with your phone's GPS. |
 | **Demo town** | A small invented town (12 places, 19 roads) on a schematic map. Works fully offline. Good for explaining the algorithm in class. |
 
 > **Traffic.** In real-map mode, traffic is estimated from the time of day and the type of road (main roads are jammed at rush hour, roads near schools at school time, markets in the evening). Add your own free TomTom key to switch on **live traffic** for the main roads. Map data can have gaps: always follow road signs, signals and the traffic police.
@@ -24,6 +24,25 @@ It has two modes, switched at the top of the page:
 **Internet.** Routing works offline in both modes. The real map only needs internet for the background map pictures (OpenStreetMap tiles). Without internet you still see the coloured roads and routes.
 
 **"Use my location".** Browsers only share GPS with pages served over `https://` or from `localhost`. On a laptop, use `npm start`. To use it on a phone, put the folder on any free static host with HTTPS (for example GitHub Pages or Netlify) and open that link on the phone.
+
+## Any town, not only Vizianagaram
+
+Vizianagaram is built in, but the real map works for any town or locality, in India or elsewhere:
+
+1. Press **Change area** (above *Start*).
+2. Type a town, city or locality, for example *Srikakulam*, *Gajuwaka* or *Guntur*, and press **Search**.
+3. Pick the right place from the list.
+4. The app downloads that area's roads and places from OpenStreetMap (about 8 × 8 km) and builds the road network on your device.
+
+The first download of an area usually takes 30–90 seconds, depending on how busy the free OpenStreetMap servers are; the app tries three servers and tells you when it is retrying. After that, the area is **kept on the device** and opens at once, even offline. The last four areas you used are kept. *Areas on this device* lets you switch between them, or back to the built-in Vizianagaram.
+
+**Searching beyond the current area.** When you type a place in Start or Destination that isn't in the loaded area, choose **Search "…" outside this area**. If the other end of your trip is already chosen and the two are within about 25 km, the app loads one area covering both. Otherwise it loads the area around the place you searched.
+
+Everything works the same in every area: fastest and safest routes, vehicle types, directions, emergency (nearest hospital), live TomTom traffic and incidents, and Telugu.
+
+**Tested:** Srikakulam was searched, downloaded and routed in the browser (3,938 junctions, 201 places, 56 hospitals; route to RIMS General Hospital, emergency routing, Telugu names).
+
+**Limits.** An area can be at most about 25 km across. Very large, dense cities take longer to download. Routes between towns far apart (for example Vizianagaram to Hyderabad) are not supported; this is a town-level planner.
 
 ## Using the real map
 
@@ -90,7 +109,14 @@ Other places it shows up:
 
 ## Language
 
-The interface is available in English and Telugu (`js/i18n.js`). Place and road names come from OpenStreetMap and are mostly in English, as on local signboards. The six places that also have a Telugu name in OpenStreetMap can be found by either name.
+The interface is available in English and Telugu (`js/i18n.js`).
+
+**Place and road names in Telugu.**
+- In Telugu mode, every place and road name is shown in Telugu script.
+- Where OpenStreetMap has a Telugu name, it is used; it rarely does (6 of 280 places in Vizianagaram).
+- Every other name is written in Telugu automatically by `js/translit.js`. It knows the exact spelling of local names and common words (Thotapalem → తోటపాలెం, Road → రోడ్డు, Hospital → ఆసుపత్రి, Nagar → నగర్, Junction → జంక్షన్). Other words are written by sound, and abbreviations are read letter by letter (R T C → ఆర్ టి సి).
+- Automatic writing can't know long vowels that English spelling hides, so a few names come out close but not perfect. Add correct spellings to `NAMES` or `WORDS` in `js/translit.js`.
+- **Search works in both scripts:** typing *తోటపాలెం*, *ఆసుపత్రి* or *thota* all find the place. Results show the English name too.
 
 **The Telugu text was written for this project and should be checked by a native speaker before wider use.** To fix a translation, edit the `te` section of `js/i18n.js`. `npm test` checks that every English text has a Telugu version with the same `{placeholders}`.
 
@@ -259,7 +285,14 @@ js/network-data.js             Demo town: network, road types, traffic levels, h
 js/real-network-data.js        Real map: GENERATED from OpenStreetMap by npm run build-map
 js/blackspots.js               Accident black spots for the real map (edit this)
 js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, penalty method, safety risk, vehicles, emergency
-js/live-traffic.js             Live traffic from TomTom (optional, your own key)
+js/live-traffic.js             Live traffic and incidents from TomTom (optional, your own key)
+js/osm-network.js              Builds a road network from OpenStreetMap data (used by the build script and the browser)
+js/area-loader.js              Finds and downloads any town in the browser; keeps areas on the device
+js/translit.js                 English -> Telugu writing of place and road names
+js/directions.js               Turn-by-turn directions
+js/community.js                Community reports, official alerts, shared trip speeds (Firebase; not yet on the page)
+js/firebase-config.js          Your Firebase settings (empty = reports stay on this device)
+firestore.rules                Security rules to paste into Firebase
 js/place-search.js             Type-ahead place search box
 js/i18n.js                     Interface text in English and Telugu
 js/geo-tools.js                Pinning GPS / map clicks to the nearest road; applying black spots

@@ -58,6 +58,24 @@
       <section id="planner" class="panel" aria-labelledby="planner-title">
         <h2 id="planner-title" data-i18n="plan.title">Plan a route</h2>
         <form id="route-form" class="route-form" novalidate>
+          <div class="area-row real-only">
+            <span id="area-name" class="area-name"></span>
+            <button type="button" id="area-change" class="link-btn" data-i18n="area.change">Change area</button>
+          </div>
+          <div id="area-box" class="area-box real-only" hidden>
+            <div class="area-head">
+              <label for="area-query" data-i18n="area.label">Town, city or locality anywhere</label>
+              <button type="button" id="area-close" class="link-btn" data-i18n="area.close">Close</button>
+            </div>
+            <div class="key-row">
+              <input id="area-query" type="search" autocomplete="off" data-i18n-attr="placeholder:area.placeholder" placeholder="e.g. Srikakulam, Gajuwaka, Guntur">
+              <button type="button" id="area-search" class="btn-secondary" data-i18n="area.search">Search</button>
+            </div>
+            <p id="area-status" class="live-status" role="status" aria-live="polite"></p>
+            <ul id="area-results" class="area-results"></ul>
+            <div id="area-saved" class="area-saved"></div>
+            <p class="note" data-i18n="area.note">The roads and places of the area you choose are downloaded from OpenStreetMap (about 8 km across) and kept on this device, so next time it opens at once.</p>
+          </div>
           <div class="field">
             <label id="origin-label" for="origin" data-i18n="plan.start">Start</label>
             <select id="origin" name="origin" class="demo-only" aria-describedby="form-error"></select>
@@ -276,6 +294,8 @@
   <script src="js/i18n.js"></script>
   <script src="js/network-data.js"></script>
   <script src="js/real-network-data.js"></script>
+  <script src="js/osm-network.js"></script>
+  <script src="js/area-loader.js"></script>
   <script src="js/blackspots.js"></script>
   <script src="js/route-engine.js"></script>
   <script src="js/geo-tools.js"></script>

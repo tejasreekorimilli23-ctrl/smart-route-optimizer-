@@ -81,15 +81,25 @@
 
     function render() {
       var q = input.value;
-      shown = (opts.extras ? opts.extras(q) : []).concat(rank(opts.items(), q));
+      var extras = opts.extras ? opts.extras(q) : [];
+      shown = extras.filter(function (x) { return !x.last; })
+        .concat(rank(opts.items(), q))
+        .concat(extras.filter(function (x) { return x.last; }));
       list.innerHTML = "";
-      if (!shown.length) {
+      if (!shown.length || (shown.length === extras.length && q.trim())) {
         if (!q.trim()) { close(); return; }
         var none = document.createElement("li");
         none.className = "ps-empty";
         none.setAttribute("role", "presentation");
         none.textContent = opts.emptyText();
         list.appendChild(none);
+      }
+      if (shown.length && !shown.some(function (x) { return !x.special; }) && q.trim()) {
+        var nothing = document.createElement("li");
+        nothing.className = "ps-empty";
+        nothing.setAttribute("role", "presentation");
+        nothing.textContent = opts.emptyText();
+        list.appendChild(nothing);
       }
       shown.forEach(function (it, i) {
         var li = document.createElement("li");

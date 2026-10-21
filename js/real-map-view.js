@@ -43,6 +43,7 @@
   var roadLines = {}; // edgeId -> polyline
   var drawnLevels = {}; // edgeId -> level currently drawn
   var roadType = {}; // edgeId -> road type
+  var roadLayer = null;
   var overlay = null; // routes, markers, selection
   var dataRef = null;
   var lastFitKey = null;
@@ -135,20 +136,17 @@
     return menu(roadName(edge), items);
   }
 
-  function init(container, data) {
+  /** Draws the road network of `data` (replacing any earlier one) and frames its area. */
+  function showRoads(data) {
     dataRef = data;
-    data.EDGES.forEach(function (e) { roadType[e.id] = e.type; });
-    map = root.L.map(container, { zoomControl: true, preferCanvas: true, minZoom: 13, maxZoom: 19 });
-    var b = data.AREA.bbox;
-    map.setMaxBounds(root.L.latLngBounds([b[0] - 0.02, b[1] - 0.02], [b[2] + 0.02, b[3] + 0.02]));
-    map.setView(data.AREA.center, data.AREA.zoom);
-    root.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    renderer = root.L.canvas({ tolerance: 6 });
-
+    if (roadLayer) map.removeLayer(roadLayer);
+    roadLayer = root.L.layerGroup();
+    roadLines = {};
+    drawnLevels = {};
+    roadType = {};
+    lastFitKey = null;
     data.EDGES.forEach(function (e) {
+      roadType[e.id] = e.type;
       if (e.type === "access" || !e.geom) return;
       var line = root.L.polyline(latLngs(e.geom), Object.assign({
         renderer: renderer,
@@ -159,14 +157,27 @@
         act("select-road", e.id);
         root.L.popup().setLatLng(ev.latlng).setContent(roadMenu(e, ev.latlng)).openOn(map);
       });
-      line.addTo(map);
+      line.addTo(roadLayer);
       roadLines[e.id] = line;
       drawnLevels[e.id] = "light";
     });
+    roadLayer.addTo(map);
+    var b = data.AREA.bbox;
+    map.setMaxBounds(root.L.latLngBounds([b[0] - 0.02, b[1] - 0.02], [b[2] + 0.02, b[3] + 0.02]));
+    map.setView(data.AREA.center, data.AREA.zoom, { animate: false });
+  }
 
+  function init(container, data) {
+    map = root.L.map(container, { zoomControl: true, preferCanvas: true, minZoom: 12, maxZoom: 19 });
+    root.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    renderer = root.L.canvas({ tolerance: 6 });
     map.on("click", function (ev) {
       root.L.popup().setLatLng(ev.latlng).setContent(pointMenu(ev.latlng, tr("map.thisPoint"))).openOn(map);
     });
+    showRoads(data);
     overlay = root.L.layerGroup().addTo(map);
   }
 
@@ -197,6 +208,10 @@
       var pending = liveUrl;
       liveUrl = null;
       setLiveOverlay(pending);
+    } else if (opts.data !== dataRef) {
+      // A different area was loaded: draw its roads instead.
+      map.closePopup();
+      showRoads(opts.data);
     }
     var data = opts.data;
 
