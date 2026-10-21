@@ -1,0 +1,4368 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-21T07:06:06Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 600748572,
+  "lat": 18.1114637,
+  "lon": 83.3963250,
+  "tags": {
+    "internet_access": "no",
+    "name": "Vizianagaram Junction",
+    "network": "IR",
+    "operator": "Indian Railways",
+    "public_transport": "station",
+    "railway": "station",
+    "ref": "VZM",
+    "train": "yes",
+    "wikidata": "Q7938021",
+    "wikipedia": "en:Vizianagaram Junction railway station"
+  }
+},
+{
+  "type": "node",
+  "id": 3200917112,
+  "lat": 18.1116031,
+  "lon": 83.4127457,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Hazarat Baba Masjid",
+    "religion": "muslim"
+  }
+},
+{
+  "type": "node",
+  "id": 3200917116,
+  "lat": 18.1120211,
+  "lon": 83.4119877,
+  "tags": {
+    "historic": "monument",
+    "name": "Gurujada appa Rao house"
+  }
+},
+{
+  "type": "node",
+  "id": 5520550776,
+  "lat": 18.1215391,
+  "lon": 83.3814623,
+  "tags": {
+    "name": "Kanapaka",
+    "name:te": "కనపాక",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 5520550777,
+  "lat": 18.0875182,
+  "lon": 83.4124881,
+  "tags": {
+    "name": "Dharmapuri",
+    "name:te": "ధర్మపురి",
+    "place": "village",
+    "wikidata": "Q13000306"
+  }
+},
+{
+  "type": "node",
+  "id": 5520550778,
+  "lat": 18.0865915,
+  "lon": 83.3918185,
+  "tags": {
+    "name": "Vontitadi Agraharam",
+    "name:te": "వొంటీడి అగ్రహారం",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 5520550779,
+  "lat": 18.0931915,
+  "lon": 83.3849167,
+  "tags": {
+    "name": "Gokavanipeta",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 5520550781,
+  "lat": 18.0896740,
+  "lon": 83.3758664,
+  "tags": {
+    "name": "Chillapeta",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 5520551268,
+  "lat": 18.1019897,
+  "lon": 83.4321057,
+  "tags": {
+    "name": "Padalapeta",
+    "place": "village"
+  }
+},
+{
+  "type": "node",
+  "id": 5520551271,
+  "lat": 18.0954810,
+  "lon": 83.4315370,
+  "tags": {
+    "alt_name": "Jammu Narayana Puram",
+    "name": "Jammunarayanapuram",
+    "name:te": "జమ్ము నారాయణపురం",
+    "place": "village",
+    "wikidata": "Q15701684"
+  }
+},
+{
+  "type": "node",
+  "id": 5520551273,
+  "lat": 18.0947481,
+  "lon": 83.4372833,
+  "tags": {
+    "name": "Kadipeta",
+    "place": "hamlet"
+  }
+},
+{
+  "type": "node",
+  "id": 6758576585,
+  "lat": 18.1094191,
+  "lon": 83.3979464,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Leela Mahal Theatre, Railway Station Road, Vizianagaram",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "check_date": "2024-10-17",
+    "contact:phone": "089222 - 23225",
+    "email": "pvrhospital@gmail.com",
+    "name": "Sri Sai P.V.R. Hospitals",
+    "source": "OpenGovernmentData",
+    "website": "https://srisaipvrhospitals.in/"
+  }
+},
+{
+  "type": "node",
+  "id": 6758618607,
+  "lat": 18.1087193,
+  "lon": 83.4103516,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Pushpagiri Eye Hospital (A Division Of Pushpagiri Health Care Hospital Pvt Ltd) Survey No.521, Alak Nagar, Ayodhya Road, . ( Near Ttd Kalyana Mandapam)",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "235049; 59",
+    "healthcare": "hospital",
+    "name": "Pushpagiri Eye Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6758856887,
+  "lat": 18.1073095,
+  "lon": 83.4008244,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Near Rtc Complex, Siddarth Nagar, Balaji Nagar",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "08922225850; 223921; 227482",
+    "name": "Tirumala Nursing Home -Vizianagaram",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6761054453,
+  "lat": 18.1084286,
+  "lon": 83.4116846,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Gurajada Apparao Street,",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Andhra Children Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6761112987,
+  "lat": 18.1143921,
+  "lon": 83.4132370,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Three Lamps Junction",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "8922225102",
+    "fax": "22470",
+    "healthcare": "hospital",
+    "name": "Jyothi Nursing Home - Vizianagaram",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6761128970,
+  "lat": 18.1145916,
+  "lon": 83.4133644,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "H.No: 15-1-45, Three Lamps Junction, A.G.Road",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "227131; 225777",
+    "healthcare": "hospital",
+    "name": "Venkata Padma Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6761131533,
+  "lat": 18.1114247,
+  "lon": 83.4136078,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "H.No: 18-1-10, Zidduvari Veedi, Kotha Junction",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "contact:phone": "229917; 229932",
+    "healthcare": "clinic",
+    "name": "Sree Krishna Nursing Home",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6768353412,
+  "lat": 18.1078155,
+  "lon": 83.4013259,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Rtc Complex Road Rtc Complex Road",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "8922221234",
+    "name": "Sri Sai Super Speciality Hospital",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6768823310,
+  "lat": 18.1078958,
+  "lon": 83.3997153,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Opp R.T.C. Complex, Thotapalem Junction",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Uday Nursing Home",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6770960649,
+  "lat": 18.1218416,
+  "lon": 83.4103723,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Putchala Street, Near Old Bus Stand",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "8922225722",
+    "healthcare": "hospital",
+    "name": "Swamy Eye Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6782140190,
+  "lat": 18.1066938,
+  "lon": 83.3978122,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Opp: Rtc Complex",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "236759",
+    "name": "Venkata Rama Hospital",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6782151668,
+  "lat": 18.1134533,
+  "lon": 83.4125322,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Near Sri Pydithalli Ammavari Temple, 3 Lamps area",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:mobile": "8912578887",
+    "healthcare": "hospital",
+    "name": "Vijaya Hospital - Vizianagaram",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6789859755,
+  "lat": 18.1083432,
+  "lon": 83.4000573,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Behind Fathima Plaza, Beside Rtc Complex",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "28922-232626",
+    "name": "Vikas Hospital",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6792208959,
+  "lat": 18.1115210,
+  "lon": 83.4138371,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "H.No: 18-1-10, Zidduvari Street, Near Bonkula Dibba, Kota Junction",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:mobile": "8922229917",
+    "contact:phone": "08922-229917,229927",
+    "healthcare": "hospital",
+    "name": "Muvva Gopala Hospitals Pvt Ltd",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6806929617,
+  "lat": 18.1196442,
+  "lon": 83.4041671,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "H.No: 4-1-11, Kothagraharam, Near Vusirikala Choultry",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "8922225635",
+    "healthcare": "hospital",
+    "name": "Venkateswara Nursing Home",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6929413746,
+  "lat": 18.1092623,
+  "lon": 83.3813354,
+  "tags": {
+    "amenity": "bank",
+    "name": "State Bank of India"
+  }
+},
+{
+  "type": "node",
+  "id": 7114008120,
+  "lat": 18.1170655,
+  "lon": 83.4163826,
+  "tags": {
+    "addr:block": "Nellimarla",
+    "addr:district": "Vizianagaram",
+    "addr:full": "Gosha Hospital",
+    "addr:place": "Ambati Satram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "addr:subdistrict": "Vizianagaram Mandal",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Maharani Mother & Child (Ghosha) Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 7114008153,
+  "lat": 18.1107440,
+  "lon": 83.3865850,
+  "tags": {
+    "addr:block": "Nellimarla",
+    "addr:district": "Vizianagaram",
+    "addr:place": "Near Andhra Bank",
+    "addr:state": "Andhra Pradesh",
+    "addr:subdistrict": "Vizianagaram Mandal",
+    "amenity": "hospital",
+    "name": "Maharaja District Hospital, Vizianagaram",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129738,
+  "lat": 18.0999984,
+  "lon": 83.4184802,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "shirdi sai nagar",
+    "amenity": "college",
+    "name": "dipolama college"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129739,
+  "lat": 18.0958158,
+  "lon": 83.4170449,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "shirdi sai nagar",
+    "amenity": "place_of_worship",
+    "name": "shiv temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129740,
+  "lat": 18.0954903,
+  "lon": 83.4170106,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "shidi sai nagar",
+    "amenity": "place_of_worship",
+    "name": "saraswati temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129742,
+  "lat": 18.0993362,
+  "lon": 83.4198182,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "srrdi sai nagar",
+    "amenity": "place_of_worship",
+    "name": "shirdi sai temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129743,
+  "lat": 18.1009852,
+  "lon": 83.4227428,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "amenity": "school",
+    "name": "Fort City School"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129746,
+  "lat": 18.1007783,
+  "lon": 83.4231820,
+  "tags": {
+    "amenity": "school",
+    "name": "Fort City School"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129747,
+  "lat": 18.1007678,
+  "lon": 83.4156398,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "amenity": "place_of_worship",
+    "name": "venkateshwar temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129749,
+  "lat": 18.1022398,
+  "lon": 83.4163732,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Axis Bank",
+    "brand:wikidata": "Q2003549",
+    "brand:wikipedia": "en:Axis Bank",
+    "name": "Axis Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129752,
+  "lat": 18.1021328,
+  "lon": 83.4182130,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "brand:wikipedia": "en:Bharat Petroleum",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129754,
+  "lat": 18.1025705,
+  "lon": 83.4152174,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Andhra Bank",
+    "brand:wikidata": "Q2003476",
+    "brand:wikipedia": "en:Andhra Bank",
+    "name": "Andhra Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129755,
+  "lat": 18.1026044,
+  "lon": 83.4150898,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "amenity": "bank",
+    "brand": "Bank of Baroda",
+    "brand:wikidata": "Q2003797",
+    "brand:wikipedia": "en:Bank of Baroda",
+    "name": "Bank of Baroda"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129770,
+  "lat": 18.1023772,
+  "lon": 83.4124563,
+  "tags": {
+    "amenity": "bank",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "brand:wikipedia": "en:State Bank of India",
+    "name": "State Bank of India",
+    "short_name": "SBI"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129774,
+  "lat": 18.1029521,
+  "lon": 83.4103593,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Vijaya Bank",
+    "brand:wikidata": "Q2003171",
+    "brand:wikipedia": "en:Vijaya Bank",
+    "name": "Vijaya Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 7244129775,
+  "lat": 18.1030572,
+  "lon": 83.4114511,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Syndicate Bank",
+    "brand:wikidata": "Q2004088",
+    "brand:wikipedia": "en:Syndicate Bank",
+    "name": "Syndicate Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 7244193531,
+  "lat": 18.1092017,
+  "lon": 83.4102174,
+  "tags": {
+    "amenity": "library",
+    "name": "public library"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956541,
+  "lat": 18.0944637,
+  "lon": 83.3866502,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Near Anjaneya Temple, BC Colony",
+    "addr:postcode": "535004",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Government Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956542,
+  "lat": 18.1188770,
+  "lon": 83.4028050,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Burle Peta, Santha Pet",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Archana Bhaskar Nursing Home",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956543,
+  "lat": 18.1069502,
+  "lon": 83.3966176,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Mayuri Junction",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Popi Piles Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956545,
+  "lat": 18.1016859,
+  "lon": 83.4147071,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Sainath Colony",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Venkatadri Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956546,
+  "lat": 18.1060610,
+  "lon": 83.3853110,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Vuda Colony",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Sai Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956548,
+  "lat": 18.1070421,
+  "lon": 83.3971040,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Sai Homoeo Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956550,
+  "lat": 18.1175223,
+  "lon": 83.4012528,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Srinivasa Nagar",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Queens NRI Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956551,
+  "lat": 18.1112799,
+  "lon": 83.4153279,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Sree Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956552,
+  "lat": 18.1108021,
+  "lon": 83.4143373,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Near Fort Junction",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "BSR Laser ENT & Dental Care",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956553,
+  "lat": 18.1037988,
+  "lon": 83.4089703,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Sai Nath Colony",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "description": "eye hospital",
+    "healthcare": "hospital",
+    "name": "Pavan Eye Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956554,
+  "lat": 18.1177590,
+  "lon": 83.4003850,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "White Smiles Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956555,
+  "lat": 18.1202095,
+  "lon": 83.4148405,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sai Divya Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956556,
+  "lat": 18.1266703,
+  "lon": 83.3876952,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "K. L. Puram",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sri Varma Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956558,
+  "lat": 18.1110752,
+  "lon": 83.4135422,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Kota Junction",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Star Dental Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956560,
+  "lat": 18.1174132,
+  "lon": 83.3916056,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Ganesh Temple Area",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Dr. Rehman Memorial Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956561,
+  "lat": 18.1184368,
+  "lon": 83.3902263,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Vizianagaram Cantonment",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sowmiya Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956562,
+  "lat": 18.1225730,
+  "lon": 83.4123782,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Hakumpet",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Prabhakar Rao Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956564,
+  "lat": 18.1063099,
+  "lon": 83.3888842,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Y.S.R. Colony, Vuda Colony",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Rajyam Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956565,
+  "lat": 18.0998794,
+  "lon": 83.4014713,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Thotapalem, Balaji Nagar",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Swamy Eye Hospial",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956567,
+  "lat": 18.1109802,
+  "lon": 83.4137717,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Babametta",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Visakha Doctors Plaza",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956568,
+  "lat": 18.1079040,
+  "lon": 83.4010760,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Venkateswara Chest & Allergy Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956569,
+  "lat": 18.1104281,
+  "lon": 83.4189940,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Anjaneya Kovala Junction",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Sanjeevini Medical Centre",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956570,
+  "lat": 18.1204365,
+  "lon": 83.4016744,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Kothagraharam, Santha Pet",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Chandamama Children Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956571,
+  "lat": 18.1076170,
+  "lon": 83.3905910,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Vizianagaram",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Ravi Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956572,
+  "lat": 18.1069436,
+  "lon": 83.3965067,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Indira Nagar, Balaji Nagar",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Padmaja Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956573,
+  "lat": 18.1105936,
+  "lon": 83.4182997,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Subramanyam Peta, Babametta",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Care N Cure Children Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956574,
+  "lat": 18.1104838,
+  "lon": 83.4131687,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Gudachariveedi",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Smile Care Super Speciality Dental Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956575,
+  "lat": 18.1045900,
+  "lon": 83.4077750,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Gadam Dental Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956578,
+  "lat": 18.1127660,
+  "lon": 83.4129550,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Kota Junction, A.G. Road",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Aishwarya Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956580,
+  "lat": 18.1201874,
+  "lon": 83.4376357,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Bhavya Heart Care Centre",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956581,
+  "lat": 18.1039237,
+  "lon": 83.4077898,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Bhagawan Nagar",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Surya Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956582,
+  "lat": 18.1092426,
+  "lon": 83.3831131,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Vuda Colony",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Venkata Surya Kiran Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956583,
+  "lat": 18.1146474,
+  "lon": 83.4138637,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Ambati Satram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "D.J Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956584,
+  "lat": 18.1096320,
+  "lon": 83.4194215,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "M.S. Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956585,
+  "lat": 18.1089380,
+  "lon": 83.4116710,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Jonnaguddi",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Dr. P.V.G. Raju Rotary Health Centre",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956586,
+  "lat": 18.1215824,
+  "lon": 83.4102584,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535001",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Dr. B. Gowri Shankar Children Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956587,
+  "lat": 18.0913973,
+  "lon": 83.3879929,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Gandhi Nagar",
+    "addr:postcode": "535004",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Surya Homoeo Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956588,
+  "lat": 18.1104755,
+  "lon": 83.4211452,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Dasanna Peta",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Matha Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956589,
+  "lat": 18.1082420,
+  "lon": 83.3882080,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Alakananda Colony",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "New Shalom Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956590,
+  "lat": 18.1027329,
+  "lon": 83.4078305,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Natraj Colony",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Venkateswara Skin & Cosmetology Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956591,
+  "lat": 18.1024454,
+  "lon": 83.3998067,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Thota Palem, Balaji Nagar",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Anu Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956592,
+  "lat": 18.1093942,
+  "lon": 83.4111325,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Aakarsh Kindney Centre",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956593,
+  "lat": 18.1057468,
+  "lon": 83.4186722,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Rajiv Nagar Colony, Babametta",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Government Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956595,
+  "lat": 18.1184121,
+  "lon": 83.3887028,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Sanjeev Nagar",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sai Ramya Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956596,
+  "lat": 18.1097817,
+  "lon": 83.4212155,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Dasannapet",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "healthcare": "clinic",
+    "name": "Suraksha Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956597,
+  "lat": 18.1104884,
+  "lon": 83.3900713,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535003",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "BSA Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956598,
+  "lat": 18.1105217,
+  "lon": 83.4186318,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Subramanyam Peta, Babametta",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Gayatri Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956599,
+  "lat": 18.0990583,
+  "lon": 83.4163525,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Allipuram, Shirdi Sai Nagar",
+    "addr:postcode": "535002",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Dr. Y. V. Siva Sankara Murty Children Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7786956603,
+  "lat": 18.0919675,
+  "lon": 83.3885230,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:full": "Gandhi Nagar",
+    "addr:postcode": "535004",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Dhanvantari Piles Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 9729736938,
+  "lat": 18.1114472,
+  "lon": 83.3975988,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Peddammathalli temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9757059274,
+  "lat": 18.1069604,
+  "lon": 83.4008031,
+  "tags": {
+    "amenity": "college",
+    "description": "Intermediate JR college",
+    "name": "Narayana JR college"
+  }
+},
+{
+  "type": "node",
+  "id": 9757064734,
+  "lat": 18.1071895,
+  "lon": 83.4011966,
+  "tags": {
+    "amenity": "hospital",
+    "description": "General private hospital",
+    "name": "Tirumala medicover hospitals"
+  }
+},
+{
+  "type": "node",
+  "id": 9757067048,
+  "lat": 18.1076486,
+  "lon": 83.4010368,
+  "tags": {
+    "amenity": "college",
+    "description": "degree college",
+    "name": "Aditya degree college"
+  }
+},
+{
+  "type": "node",
+  "id": 10604363545,
+  "lat": 18.1095047,
+  "lon": 83.3972931,
+  "tags": {
+    "amenity": "cinema",
+    "name": "Sri Leela Mahal A/C Dts Vizianagaram"
+  }
+},
+{
+  "type": "node",
+  "id": 10834383434,
+  "lat": 18.1084074,
+  "lon": 83.3987965,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "name": "APSRTC Bus Station , Vizianagaram",
+    "operator": "APSRTC",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 11491697144,
+  "lat": 18.1086085,
+  "lon": 83.3993824,
+  "tags": {
+    "amenity": "post_office",
+    "check_date": "2024-02-09",
+    "name": "APSRTC Logistics",
+    "name:te": "కొరియర్ & పార్శిల్ రవాణా కార్యాలయం",
+    "operator": "APSRTC"
+  }
+},
+{
+  "type": "node",
+  "id": 11491717236,
+  "lat": 18.1078699,
+  "lon": 83.3965654,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "check_date": "2024-01-05",
+    "name": "HP",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11491717238,
+  "lat": 18.1072854,
+  "lon": 83.3964294,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "check_date": "2024-01-05",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11493048228,
+  "lat": 18.0994980,
+  "lon": 83.4081817,
+  "tags": {
+    "name": "Padmavathi Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11543193086,
+  "lat": 18.1091409,
+  "lon": 83.4027757,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "check_date": "2024-01-23",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11563404853,
+  "lat": 18.1071460,
+  "lon": 83.3974455,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "check_date": "2024-01-29",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 11563404857,
+  "lat": 18.1070333,
+  "lon": 83.3971753,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Karnataka Bank",
+    "brand:wikidata": "Q2042632",
+    "check_date": "2024-01-29",
+    "name": "Karnataka Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 11563437582,
+  "lat": 18.1364896,
+  "lon": 83.4316265,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "check_date": "2024-01-29",
+    "compressed_air": "yes",
+    "name": "HP",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11563437583,
+  "lat": 18.1367770,
+  "lon": 83.4311482,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "check_date": "2024-01-29",
+    "compressed_air": "yes",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11567663261,
+  "lat": 18.1066653,
+  "lon": 83.3954340,
+  "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal"
+  }
+},
+{
+  "type": "node",
+  "id": 11567663263,
+  "lat": 18.1066153,
+  "lon": 83.3957108,
+  "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal"
+  }
+},
+{
+  "type": "node",
+  "id": 11567663268,
+  "lat": 18.1063609,
+  "lon": 83.3954800,
+  "tags": {
+    "highway": "traffic_signals",
+    "traffic_signals": "signal"
+  }
+},
+{
+  "type": "node",
+  "id": 11567663397,
+  "lat": 18.1023485,
+  "lon": 83.4292786,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 11586922679,
+  "lat": 18.1036909,
+  "lon": 83.4012084,
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535003",
+    "addr:street": "tothapalem road",
+    "amenity": "college",
+    "name": "RK Junior College"
+  }
+},
+{
+  "type": "node",
+  "id": 11586922680,
+  "lat": 18.1041346,
+  "lon": 83.4017377,
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "thotapalem,Balaji Nagar,",
+    "amenity": "college",
+    "name": "Gayatri Degree College"
+  }
+},
+{
+  "type": "node",
+  "id": 11586922681,
+  "lat": 18.1044248,
+  "lon": 83.3992779,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:district": "vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "near venkateswara swamy temple,Balaji nagar",
+    "amenity": "school",
+    "name": "TRISUL RAMANA SCHOOL"
+  }
+},
+{
+  "type": "node",
+  "id": 11593547738,
+  "lat": 18.1104636,
+  "lon": 83.4079835,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "check_date": "2024-01-29",
+    "name": "HP",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11602432224,
+  "lat": 18.1032526,
+  "lon": 83.4093546,
+  "tags": {
+    "amenity": "bank",
+    "brand": "HDFC Bank",
+    "brand:wikidata": "Q631047",
+    "check_date": "2024-02-09",
+    "name": "HDFC Bank",
+    "short_name": "HDFC"
+  }
+},
+{
+  "type": "node",
+  "id": 11634198262,
+  "lat": 18.1074757,
+  "lon": 83.3961821,
+  "tags": {
+    "amenity": "place_of_worship",
+    "check_date": "2024-02-17",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 11707300812,
+  "lat": 18.1251730,
+  "lon": 83.4204861,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "check_date": "2024-03-09",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 11707300816,
+  "lat": 18.1072878,
+  "lon": 83.4203246,
+  "tags": {
+    "amenity": "place_of_worship",
+    "check_date": "2024-03-09",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 11710999292,
+  "lat": 18.1310116,
+  "lon": 83.4260570,
+  "tags": {
+    "amenity": "school",
+    "check_date": "2024-03-10",
+    "name": "Dwarakamaye School For Visually Impaired"
+  }
+},
+{
+  "type": "node",
+  "id": 11710999293,
+  "lat": 18.1258098,
+  "lon": 83.4222514,
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "Phoolbaugh Branch",
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "check_date": "2024-03-10",
+    "drive_through": "no",
+    "name": "State Bank of India",
+    "opening_hours": "Mo-Sa 09:00-18:00",
+    "short_name": "SBI"
+  }
+},
+{
+  "type": "node",
+  "id": 11710999294,
+  "lat": 18.1231391,
+  "lon": 83.4182214,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Canara Bank",
+    "brand:en": "Canara Bank",
+    "brand:hi": "केनरा बैंक",
+    "brand:kn": "ಕೆನರಾ ಬ್ಯಾಂಕ್",
+    "brand:pa": "ਕੇਨਰਾ ਬੈਂਕ",
+    "brand:pnb": "کینرا بینک",
+    "brand:ur": "کینرا بینک",
+    "brand:wikidata": "Q2003777",
+    "check_date": "2024-03-10",
+    "name": "Canara Bank",
+    "name:en": "Canara Bank",
+    "name:hi": "केनरा बैंक",
+    "name:kn": "ಕೆನರಾ ಬ್ಯಾಂಕ್",
+    "name:pa": "ਕੇਨਰਾ ਬੈਂਕ",
+    "name:pnb": "کینرا بینک",
+    "name:ur": "کینرا بینک"
+  }
+},
+{
+  "type": "node",
+  "id": 11710999297,
+  "lat": 18.1209843,
+  "lon": 83.4114801,
+  "tags": {
+    "amenity": "place_of_worship",
+    "check_date": "2024-03-10",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 11711579926,
+  "lat": 18.1140366,
+  "lon": 83.4228648,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "name": "HP",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11711579950,
+  "lat": 18.1034421,
+  "lon": 83.4083160,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "name": "HP",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11934093261,
+  "lat": 18.0984296,
+  "lon": 83.4325070,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "name": "Jammu Narayanapuram Junction Bus Stop",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 11944783035,
+  "lat": 18.1240591,
+  "lon": 83.4231020,
+  "tags": {
+    "name": "Phool Bagh",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11944783036,
+  "lat": 18.1328974,
+  "lon": 83.4257310,
+  "tags": {
+    "name": "Hanuman Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 11944783037,
+  "lat": 18.1333831,
+  "lon": 83.4272408,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Ayyappa Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 11961137990,
+  "lat": 18.1268291,
+  "lon": 83.4230849,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "name": "Phool Bagh Bus Stop",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 12250328029,
+  "lat": 18.1100318,
+  "lon": 83.4114291,
+  "tags": {
+    "amenity": "school",
+    "check_date": "2024-10-14",
+    "name": "Mansas School",
+    "operator": "Department of School Education",
+    "operator:type": "government",
+    "operator:wikidata": "Q134113948"
+  }
+},
+{
+  "type": "node",
+  "id": 12258704754,
+  "lat": 18.1114001,
+  "lon": 83.3968251,
+  "tags": {
+    "artwork_type": "installation",
+    "historic": "railway_car",
+    "name": "693 Engine",
+    "tourism": "artwork"
+  }
+},
+{
+  "type": "node",
+  "id": 12304141623,
+  "lat": 18.1107488,
+  "lon": 83.3912188,
+  "tags": {
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "Indian Overseas Bank",
+    "brand:wikidata": "Q2003611",
+    "check_date": "2024-11-01",
+    "name": "Indian Overseas Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 12396158966,
+  "lat": 18.1159185,
+  "lon": 83.4094929,
+  "tags": {
+    "name": "Clock Tower Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12396158967,
+  "lat": 18.1172113,
+  "lon": 83.4085866,
+  "tags": {
+    "name": "Vizianagaram Old Bus Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12396158968,
+  "lat": 18.1218414,
+  "lon": 83.4114867,
+  "tags": {
+    "name": "Vizianagaram Old Bus Stand Area",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12396158969,
+  "lat": 18.1186334,
+  "lon": 83.4099053,
+  "tags": {
+    "name": "Fire Office Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12396158970,
+  "lat": 18.1180043,
+  "lon": 83.4105416,
+  "tags": {
+    "name": "Nehru Park Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397227424,
+  "lat": 18.1225817,
+  "lon": 83.4164529,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Hanuman Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 12397242328,
+  "lat": 18.1144742,
+  "lon": 83.4132791,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "muslim"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560875,
+  "lat": 18.0947131,
+  "lon": 83.3871052,
+  "tags": {
+    "name": "BC Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560876,
+  "lat": 18.1074455,
+  "lon": 83.3828097,
+  "tags": {
+    "name": "Aditya Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560877,
+  "lat": 18.1086365,
+  "lon": 83.3792455,
+  "tags": {
+    "name": "Paul Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560878,
+  "lat": 18.1079508,
+  "lon": 83.3896542,
+  "tags": {
+    "name": "Gowthami Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560879,
+  "lat": 18.1120637,
+  "lon": 83.3849247,
+  "tags": {
+    "name": "Vuda Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560880,
+  "lat": 18.1160725,
+  "lon": 83.3865476,
+  "tags": {
+    "name": "Vizianagaram Cantonment",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560881,
+  "lat": 18.1135133,
+  "lon": 83.3872873,
+  "tags": {
+    "name": "Police Barracks Area",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560882,
+  "lat": 18.1181371,
+  "lon": 83.3790006,
+  "tags": {
+    "name": "Kali Ghat Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560883,
+  "lat": 18.1232913,
+  "lon": 83.3856431,
+  "tags": {
+    "name": "K.L.Puram",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560884,
+  "lat": 18.1207028,
+  "lon": 83.3874386,
+  "tags": {
+    "name": "Kamakshi Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560885,
+  "lat": 18.1273095,
+  "lon": 83.4026287,
+  "tags": {
+    "name": "Gajula Rega",
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560886,
+  "lat": 18.1228246,
+  "lon": 83.4035984,
+  "tags": {
+    "name": "Kothagraharam",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560887,
+  "lat": 18.1215056,
+  "lon": 83.3980461,
+  "tags": {
+    "name": "Srinagar Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560888,
+  "lat": 18.1174175,
+  "lon": 83.4174290,
+  "tags": {
+    "name": "Ambati Satram Area",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560889,
+  "lat": 18.1151099,
+  "lon": 83.4241593,
+  "tags": {
+    "name": "Vudalayout",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560890,
+  "lat": 18.1117653,
+  "lon": 83.4274173,
+  "tags": {
+    "name": "Dwarakanagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560891,
+  "lat": 18.1019067,
+  "lon": 83.4121669,
+  "tags": {
+    "place": "suburb"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560892,
+  "lat": 18.1047584,
+  "lon": 83.4064826,
+  "tags": {
+    "name": "Natraj Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560893,
+  "lat": 18.1023944,
+  "lon": 83.3948188,
+  "tags": {
+    "name": "State Bank Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560894,
+  "lat": 18.0976123,
+  "lon": 83.3892491,
+  "tags": {
+    "name": "Gandhi Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560895,
+  "lat": 18.1378196,
+  "lon": 83.4174714,
+  "tags": {
+    "name": "YSR Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560896,
+  "lat": 18.1214783,
+  "lon": 83.4162131,
+  "tags": {
+    "name": "Palli Veedhi Area",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12397560897,
+  "lat": 18.1288487,
+  "lon": 83.4256768,
+  "tags": {
+    "name": "Phool Bagh Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878314,
+  "lat": 18.1129047,
+  "lon": 83.4099318,
+  "tags": {
+    "name": "Satya Lodge Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878323,
+  "lat": 18.1170172,
+  "lon": 83.4003653,
+  "tags": {
+    "name": "N C S Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878324,
+  "lat": 18.1169834,
+  "lon": 83.4012840,
+  "tags": {
+    "name": "SBI Main Branch Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878325,
+  "lat": 18.1171362,
+  "lon": 83.3975695,
+  "tags": {
+    "name": "Venkata Lakshmi Theatre Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878326,
+  "lat": 18.1168807,
+  "lon": 83.4073360,
+  "tags": {
+    "name": "Kanyaka Parameswari Temple Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878329,
+  "lat": 18.1265090,
+  "lon": 83.4228893,
+  "tags": {
+    "name": "Phool Bagh Colony Junction",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878330,
+  "lat": 18.1160627,
+  "lon": 83.4280791,
+  "tags": {
+    "name": "Vyasa Narayana Metta",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12398878331,
+  "lat": 18.1048244,
+  "lon": 83.4285435,
+  "tags": {
+    "name": "Singapore Township",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 12438197384,
+  "lat": 18.1169941,
+  "lon": 83.4105541,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "name": "New Poorna Junction Bus Stop",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 13167911123,
+  "lat": 18.1083947,
+  "lon": 83.4003247,
+  "tags": {
+    "amenity": "bank",
+    "branch": "Vizianagaram",
+    "brand": "HDFC Bank",
+    "brand:wikidata": "Q631047",
+    "check_date": "2025-09-24",
+    "name": "HDFC Bank",
+    "short_name": "HDFC"
+  }
+},
+{
+  "type": "node",
+  "id": 13167911124,
+  "lat": 18.1083557,
+  "lon": 83.4001428,
+  "tags": {
+    "amenity": "bank",
+    "branch": "L T B Road",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "check_date": "2025-09-24",
+    "name": "State Bank of India",
+    "short_name": "SBI"
+  }
+},
+{
+  "type": "node",
+  "id": 13167911128,
+  "lat": 18.1080872,
+  "lon": 83.3979523,
+  "tags": {
+    "amenity": "bank",
+    "branch": "R.T.C. Complex, Vizianagaram",
+    "brand": "State Bank of India",
+    "brand:wikidata": "Q1340361",
+    "check_date": "2025-09-24",
+    "name": "State Bank of India",
+    "short_name": "SBI"
+  }
+},
+{
+  "type": "node",
+  "id": 13167924857,
+  "lat": 18.1333161,
+  "lon": 83.3878951,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "check_date": "2025-09-24",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 13167924862,
+  "lat": 18.1339054,
+  "lon": 83.3879773,
+  "tags": {
+    "amenity": "place_of_worship",
+    "check_date": "2025-09-24",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13175255586,
+  "lat": 18.1082577,
+  "lon": 83.3929292,
+  "tags": {
+    "amenity": "post_office",
+    "brand": "Desk to Desk Courier & Cargo",
+    "brand:short": "DTDC",
+    "brand:wikidata": "Q55608802",
+    "operator": "Desk to Desk Courier & Cargo",
+    "operator:short": "DTDC",
+    "operator:wikidata": "Q55608802"
+  }
+},
+{
+  "type": "node",
+  "id": 13175255597,
+  "lat": 18.1097030,
+  "lon": 83.3905778,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Union Bank of India",
+    "brand:wikidata": "Q2004078",
+    "name": "Union Bank of India"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261505,
+  "lat": 18.1109643,
+  "lon": 83.3885684,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Union Bank of India",
+    "brand:wikidata": "Q2004078",
+    "name": "Union Bank of India"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261510,
+  "lat": 18.1152498,
+  "lon": 83.3896042,
+  "tags": {
+    "amenity": "bank",
+    "brand": "HDFC Bank",
+    "brand:wikidata": "Q631047",
+    "name": "HDFC Bank",
+    "short_name": "HDFC"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261547,
+  "lat": 18.1188734,
+  "lon": 83.3880031,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261562,
+  "lat": 18.1192406,
+  "lon": 83.3880296,
+  "tags": {
+    "amenity": "post_office",
+    "brand": "Desk to Desk Courier & Cargo",
+    "brand:short": "DTDC",
+    "brand:wikidata": "Q55608802",
+    "operator": "Desk to Desk Courier & Cargo",
+    "operator:short": "DTDC",
+    "operator:wikidata": "Q55608802"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261563,
+  "lat": 18.1193752,
+  "lon": 83.3881878,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "name": "HP",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261575,
+  "lat": 18.1204246,
+  "lon": 83.3900167,
+  "tags": {
+    "name": "Pavani Nagar",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261586,
+  "lat": 18.1219815,
+  "lon": 83.3887075,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13175261587,
+  "lat": 18.1230604,
+  "lon": 83.3878104,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179757870,
+  "lat": 18.1189760,
+  "lon": 83.3999697,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Panchamuka Anjaneya Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179757883,
+  "lat": 18.1204439,
+  "lon": 83.4010005,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "name": "HP-NVR",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 13179757889,
+  "lat": 18.1212200,
+  "lon": 83.3988974,
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 13179757897,
+  "lat": 18.1220481,
+  "lon": 83.3969158,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Lord Kamkashi Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763119,
+  "lat": 18.1216326,
+  "lon": 83.3994956,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Anjaneya Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763124,
+  "lat": 18.1234234,
+  "lon": 83.4004275,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Venkateswara Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763125,
+  "lat": 18.1239007,
+  "lon": 83.4003654,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Mutyalamma Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763129,
+  "lat": 18.1258624,
+  "lon": 83.4008062,
+  "tags": {
+    "amenity": "school"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763131,
+  "lat": 18.1170791,
+  "lon": 83.4023109,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Anjaneya Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763132,
+  "lat": 18.1168714,
+  "lon": 83.4019767,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "christian"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763134,
+  "lat": 18.1155895,
+  "lon": 83.4022520,
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763136,
+  "lat": 18.1173210,
+  "lon": 83.3985962,
+  "tags": {
+    "name": "Chennai Shopping Mall",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13179763143,
+  "lat": 18.1197722,
+  "lon": 83.4010574,
+  "tags": {
+    "amenity": "university",
+    "name": "Sujatha College"
+  }
+},
+{
+  "type": "node",
+  "id": 13179769168,
+  "lat": 18.1023030,
+  "lon": 83.4142644,
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "P S R Colony Main Road",
+    "name": "Tipsy Topsy",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13179772013,
+  "lat": 18.1090862,
+  "lon": 83.4107816,
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "Ranjani Theatre Road",
+    "amenity": "place_of_worship",
+    "name": "TTD Venkateswara Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179802591,
+  "lat": 18.1029863,
+  "lon": 83.4084977,
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Kashvi Multispeciality Hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 13179810090,
+  "lat": 18.1054227,
+  "lon": 83.4076040,
+  "tags": {
+    "name": "US POLO ASSN",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13179819516,
+  "lat": 18.1012047,
+  "lon": 83.4132393,
+  "tags": {
+    "amenity": "school",
+    "name": "PSR School"
+  }
+},
+{
+  "type": "node",
+  "id": 13179819542,
+  "lat": 18.1367434,
+  "lon": 83.4197082,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Satyamma Thalli temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179831432,
+  "lat": 18.1169523,
+  "lon": 83.3990297,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Durgamma Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13179831443,
+  "lat": 18.1247646,
+  "lon": 83.4044403,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13180099805,
+  "lat": 18.1109903,
+  "lon": 83.4163638,
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "Ayya Koneru Road",
+    "amenity": "place_of_worship",
+    "name": "Lord Venktaeswara temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13180099806,
+  "lat": 18.1110016,
+  "lon": 83.4162149,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "sri vigna raja parvathi paramswarlu",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13182348563,
+  "lat": 18.1210450,
+  "lon": 83.4012135,
+  "tags": {
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "ICICI Bank",
+    "brand:wikidata": "Q1653258",
+    "name": "ICICI Bank",
+    "short_name": "ICICI"
+  }
+},
+{
+  "type": "node",
+  "id": 13182355057,
+  "lat": 18.1151141,
+  "lon": 83.4095310,
+  "tags": {
+    "amenity": "police",
+    "name": "1 Town Police Station"
+  }
+},
+{
+  "type": "node",
+  "id": 13182370220,
+  "lat": 18.1161989,
+  "lon": 83.4080015,
+  "tags": {
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13182418395,
+  "lat": 18.0902375,
+  "lon": 83.4093064,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13182422104,
+  "lat": 18.1249811,
+  "lon": 83.4136077,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Panchamukha Hanuman Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13182422105,
+  "lat": 18.1258642,
+  "lon": 83.4139159,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Hanuman Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13182422106,
+  "lat": 18.1251034,
+  "lon": 83.4136752,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sri Muthyalamma vari Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13182716387,
+  "lat": 18.1153895,
+  "lon": 83.4110435,
+  "tags": {
+    "name": "Lucky Sale Family shoping mall",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13182716388,
+  "lat": 18.1153293,
+  "lon": 83.4111209,
+  "tags": {
+    "name": "Krishna Stores",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13182735403,
+  "lat": 18.1149467,
+  "lon": 83.4115855,
+  "tags": {
+    "name": "RajaRajeswari  Bangle Shop",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13182735415,
+  "lat": 18.1144505,
+  "lon": 83.4122225,
+  "tags": {
+    "name": "MK lifestyle",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13183438979,
+  "lat": 18.1171459,
+  "lon": 83.4006299,
+  "tags": {
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "Axis Bank",
+    "brand:wikidata": "Q2003549",
+    "name": "Axis Bank"
+  }
+},
+{
+  "type": "node",
+  "id": 13183438984,
+  "lat": 18.1165957,
+  "lon": 83.4049909,
+  "tags": {
+    "name": "SR Shopping Mall",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13183468474,
+  "lat": 18.1151693,
+  "lon": 83.3901747,
+  "tags": {
+    "amenity": "post_office",
+    "name": "Post Office"
+  }
+},
+{
+  "type": "node",
+  "id": 13183468478,
+  "lat": 18.1056382,
+  "lon": 83.4081564,
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Global Health Care Hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 13183468479,
+  "lat": 18.1033645,
+  "lon": 83.4093362,
+  "tags": {
+    "amenity": "bank",
+    "brand": "Union Bank of India",
+    "brand:wikidata": "Q2004078",
+    "name": "Union Bank of India"
+  }
+},
+{
+  "type": "node",
+  "id": 13183495911,
+  "lat": 18.1119610,
+  "lon": 83.4085987,
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "MIMS"
+  }
+},
+{
+  "type": "node",
+  "id": 13183495927,
+  "lat": 18.1015618,
+  "lon": 83.4072877,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Vinayaka Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13290044411,
+  "lat": 18.1264776,
+  "lon": 83.3858995,
+  "tags": {
+    "name": "Revenue Colony",
+    "place": "neighbourhood"
+  }
+},
+{
+  "type": "node",
+  "id": 13418563619,
+  "lat": 18.0860629,
+  "lon": 83.3874603,
+  "tags": {
+    "amenity": "clinic",
+    "name": "Urban Primary Health Center"
+  }
+},
+{
+  "type": "node",
+  "id": 13595529741,
+  "lat": 18.1136145,
+  "lon": 83.3921697,
+  "tags": {
+    "amenity": "school",
+    "education": "school",
+    "name": "Saint Mary's EMH School"
+  }
+},
+{
+  "type": "node",
+  "id": 13654462106,
+  "lat": 18.1060839,
+  "lon": 83.3970028,
+  "tags": {
+    "amenity": "cinema",
+    "check_date": "2026-03-17",
+    "name": "Himagiri Cinemas"
+  }
+},
+{
+  "type": "way",
+  "id": 292510882,
+  "center": {
+    "lat": 18.1117790,
+    "lon": 83.4090072
+  },
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "head post office road",
+    "amenity": "post_office",
+    "building": "commercial",
+    "name": "Head Post Office",
+    "operator": "India Post",
+    "operator:wikidata": "Q3519720"
+  }
+},
+{
+  "type": "way",
+  "id": 314055656,
+  "center": {
+    "lat": 18.1121423,
+    "lon": 83.4119644
+  },
+  "tags": {
+    "historic": "monument",
+    "name": "Gurujada Appa Rao's House"
+  }
+},
+{
+  "type": "way",
+  "id": 331620771,
+  "center": {
+    "lat": 18.1116436,
+    "lon": 83.4127406
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Majid",
+    "religion": "muslim"
+  }
+},
+{
+  "type": "way",
+  "id": 331621857,
+  "center": {
+    "lat": 18.1163675,
+    "lon": 83.4105977
+  },
+  "tags": {
+    "amenity": "cinema",
+    "building": "yes",
+    "name": "new poorna",
+    "operator": "uday"
+  }
+},
+{
+  "type": "way",
+  "id": 331621860,
+  "center": {
+    "lat": 18.1164215,
+    "lon": 83.4102819
+  },
+  "tags": {
+    "amenity": "townhall",
+    "building": "commercial",
+    "building:levels": "2",
+    "name": "Vizianagaram Municipal Corporation",
+    "smoking": "no",
+    "townhall:type": "city"
+  }
+},
+{
+  "type": "way",
+  "id": 331622189,
+  "center": {
+    "lat": 18.1166930,
+    "lon": 83.4112153
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Shiridi sai temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 331622376,
+  "center": {
+    "lat": 18.1174754,
+    "lon": 83.4113676
+  },
+  "tags": {
+    "amenity": "cinema",
+    "building": "yes",
+    "name": "Sri Krishna Cinema"
+  }
+},
+{
+  "type": "way",
+  "id": 331622394,
+  "center": {
+    "lat": 18.1180849,
+    "lon": 83.4116126
+  },
+  "tags": {
+    "amenity": "cinema",
+    "building": "yes",
+    "name": "Aditya"
+  }
+},
+{
+  "type": "way",
+  "id": 332072758,
+  "center": {
+    "lat": 18.1072762,
+    "lon": 83.3989518
+  },
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:postcode": "535003",
+    "addr:street": "Thotapalem",
+    "building": "yes",
+    "check_date": "2024-01-29",
+    "name": "NCS Multiplex",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 332417231,
+  "center": {
+    "lat": 18.1040644,
+    "lon": 83.4131488
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "om mandiram",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 332417536,
+  "center": {
+    "lat": 18.1018695,
+    "lon": 83.4170562
+  },
+  "tags": {
+    "addr:city": "vizianagaram",
+    "addr:street": "town centre layout",
+    "amenity": "school",
+    "name": "the sun school"
+  }
+},
+{
+  "type": "way",
+  "id": 355263750,
+  "center": {
+    "lat": 18.1167562,
+    "lon": 83.4113160
+  },
+  "tags": {
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "Canara Bank",
+    "brand:en": "Canara Bank",
+    "brand:hi": "केनरा बैंक",
+    "brand:kn": "ಕೆನರಾ ಬ್ಯಾಂಕ್",
+    "brand:pa": "ਕੇਨਰਾ ਬੈਂਕ",
+    "brand:pnb": "کینرا بینک",
+    "brand:ur": "کینرا بینک",
+    "brand:wikidata": "Q2003777",
+    "brand:wikipedia": "en:Canara Bank",
+    "brand:wikipedia:pa": "ਕੇਨਰਾ ਬੈਂਕ",
+    "building": "yes",
+    "name": "Canara Bank",
+    "name:en": "Canara Bank",
+    "name:hi": "केनरा बैंक",
+    "name:kn": "ಕೆನರಾ ಬ್ಯಾಂಕ್",
+    "name:pa": "ਕੇਨਰਾ ਬੈਂਕ",
+    "name:pnb": "کینرا بینک",
+    "name:ur": "کینرا بینک",
+    "opening_hours": "10:00-16:00",
+    "website": "https://www.canarabank.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 355264246,
+  "center": {
+    "lat": 18.1229404,
+    "lon": 83.4127116
+  },
+  "tags": {
+    "historic": "monument",
+    "name": "kothapeta mandapam"
+  }
+},
+{
+  "type": "way",
+  "id": 355264404,
+  "center": {
+    "lat": 18.1228264,
+    "lon": 83.4122122
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "rama alayam",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 834170131,
+  "center": {
+    "lat": 18.1038055,
+    "lon": 83.4089695
+  },
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital"
+  }
+},
+{
+  "type": "way",
+  "id": 1244288510,
+  "center": {
+    "lat": 18.1072708,
+    "lon": 83.3986785
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "muslim"
+  }
+},
+{
+  "type": "way",
+  "id": 1244288514,
+  "center": {
+    "lat": 18.1073570,
+    "lon": 83.3998063
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "muslim"
+  }
+},
+{
+  "type": "way",
+  "id": 1244288532,
+  "center": {
+    "lat": 18.1034542,
+    "lon": 83.4083317
+  },
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "100 feet Ring Road",
+    "amenity": "fuel",
+    "building": "roof"
+  }
+},
+{
+  "type": "way",
+  "id": 1244288535,
+  "center": {
+    "lat": 18.1018475,
+    "lon": 83.4294625
+  },
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "way",
+  "id": 1265495130,
+  "center": {
+    "lat": 18.1100363,
+    "lon": 83.4088522
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1265495159,
+  "center": {
+    "lat": 18.1159932,
+    "lon": 83.4094732
+  },
+  "tags": {
+    "building": "yes",
+    "building:levels": "4",
+    "historic": "building",
+    "name": "Clock Tower",
+    "name:te": "ఘంట స్తంభం",
+    "start_date": "1885",
+    "tower:type": "clock_tower",
+    "wikidata": "Q130294404",
+    "wikimedia_commons": "Category:Ganta Stambham"
+  }
+},
+{
+  "type": "way",
+  "id": 1288012824,
+  "center": {
+    "lat": 18.1333460,
+    "lon": 83.4273228
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Ayyappa Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1307063314,
+  "center": {
+    "lat": 18.1266111,
+    "lon": 83.4235563
+  },
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "Phoolbaugh Junction",
+    "amenity": "bank",
+    "atm": "yes",
+    "building": "yes",
+    "drive_through": "no",
+    "name": "Union Bank",
+    "not:brand:wikidata": "Q2003476",
+    "operator": "Andhra Bank"
+  }
+},
+{
+  "type": "way",
+  "id": 1315366156,
+  "center": {
+    "lat": 18.1158074,
+    "lon": 83.4115539
+  },
+  "tags": {
+    "amenity": "cinema",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1315366157,
+  "center": {
+    "lat": 18.1164009,
+    "lon": 83.4070062
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Kanyaka Parameswari Temple",
+    "religion": "hindu",
+    "wikimedia_commons": "File:Kanyakaa Parameswari Temple in Vizianagaram.jpg"
+  }
+},
+{
+  "type": "way",
+  "id": 1315366160,
+  "center": {
+    "lat": 18.1139316,
+    "lon": 83.4127261
+  },
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "M G Road",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "denomination": "hindu",
+    "name": "Pydithalli Ammavari Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1329875730,
+  "center": {
+    "lat": 18.1115853,
+    "lon": 83.3898911
+  },
+  "tags": {
+    "amenity": "school"
+  }
+},
+{
+  "type": "way",
+  "id": 1329875736,
+  "center": {
+    "lat": 18.1114029,
+    "lon": 83.3919591
+  },
+  "tags": {
+    "amenity": "college",
+    "barrier": "wall",
+    "mobile": "9502127690",
+    "name": "St. Ann's College of Pharmacy",
+    "website": "http://www.stannspharmacycollege.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 1330126311,
+  "center": {
+    "lat": 18.1117379,
+    "lon": 83.3880705
+  },
+  "tags": {
+    "amenity": "police",
+    "building": "yes",
+    "name": "Disha"
+  }
+},
+{
+  "type": "way",
+  "id": 1330126335,
+  "center": {
+    "lat": 18.1101167,
+    "lon": 83.3977870
+  },
+  "tags": {
+    "building": "yes",
+    "name": "Fort City Central Shopping Complex",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1330126337,
+  "center": {
+    "lat": 18.1164883,
+    "lon": 83.3970315
+  },
+  "tags": {
+    "building": "yes",
+    "name": "CMR",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1330160109,
+  "center": {
+    "lat": 18.1126756,
+    "lon": 83.3902816
+  },
+  "tags": {
+    "amenity": "school",
+    "barrier": "wall",
+    "name": "St. Josephs High School"
+  }
+},
+{
+  "type": "way",
+  "id": 1330160110,
+  "center": {
+    "lat": 18.1134644,
+    "lon": 83.3904826
+  },
+  "tags": {
+    "amenity": "school",
+    "barrier": "wall",
+    "name": "St. Anns Girls High School"
+  }
+},
+{
+  "type": "way",
+  "id": 1330160115,
+  "center": {
+    "lat": 18.1143248,
+    "lon": 83.3909272
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1331851104,
+  "center": {
+    "lat": 18.1151128,
+    "lon": 83.4095302
+  },
+  "tags": {
+    "amenity": "police",
+    "building": "yes",
+    "name": "Vizianagaram 1st town police station"
+  }
+},
+{
+  "type": "way",
+  "id": 1331851106,
+  "center": {
+    "lat": 18.1143761,
+    "lon": 83.4097815
+  },
+  "tags": {
+    "amenity": "college",
+    "barrier": "wall",
+    "name": "Maharajah's College",
+    "start_date": "1879",
+    "wikidata": "Q6733261",
+    "wikipedia": "en:Maharajah's College"
+  }
+},
+{
+  "type": "way",
+  "id": 1331870066,
+  "center": {
+    "lat": 18.1188251,
+    "lon": 83.3998497
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1331870079,
+  "center": {
+    "lat": 18.1174515,
+    "lon": 83.4002969
+  },
+  "tags": {
+    "amenity": "cinema",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1331870082,
+  "center": {
+    "lat": 18.1170782,
+    "lon": 83.4029719
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1340214407,
+  "center": {
+    "lat": 18.1216774,
+    "lon": 83.4155807
+  },
+  "tags": {
+    "amenity": "police",
+    "building": "yes",
+    "name": "Vizianagaram 2nd Town Police Station"
+  }
+},
+{
+  "type": "way",
+  "id": 1340214409,
+  "center": {
+    "lat": 18.1208500,
+    "lon": 83.4191713
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Kalki Bhagwan Temple"
+  }
+},
+{
+  "type": "way",
+  "id": 1340214412,
+  "center": {
+    "lat": 18.1099231,
+    "lon": 83.4207299
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Dasanna Peta Rythu Bazar",
+    "operator": "Government of Andhra Pradesh"
+  }
+},
+{
+  "type": "way",
+  "id": 1340217055,
+  "center": {
+    "lat": 18.1175727,
+    "lon": 83.4095506
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Municipal Market Complex"
+  }
+},
+{
+  "type": "way",
+  "id": 1340398726,
+  "center": {
+    "lat": 18.1177040,
+    "lon": 83.4152502
+  },
+  "tags": {
+    "building": "yes",
+    "name": "South India Shopping Mall",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1433556861,
+  "center": {
+    "lat": 18.1167040,
+    "lon": 83.3893695
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Pentecostal Church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1433556872,
+  "center": {
+    "lat": 18.1204337,
+    "lon": 83.3885850
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1433970629,
+  "center": {
+    "lat": 18.1173340,
+    "lon": 83.4005256
+  },
+  "tags": {
+    "amenity": "bank",
+    "atm": "yes",
+    "building": "yes",
+    "name": "karur vysya bank"
+  }
+},
+{
+  "type": "way",
+  "id": 1433970630,
+  "center": {
+    "lat": 18.1187968,
+    "lon": 83.4004417
+  },
+  "tags": {
+    "amenity": "bank",
+    "atm": "yes",
+    "brand": "Bank of Baroda",
+    "brand:wikidata": "Q2003797",
+    "building": "yes",
+    "name": "Bank of Baroda"
+  }
+},
+{
+  "type": "way",
+  "id": 1433970631,
+  "center": {
+    "lat": 18.1185651,
+    "lon": 83.4005408
+  },
+  "tags": {
+    "amenity": "bank",
+    "brand": "HDFC Bank",
+    "brand:wikidata": "Q631047",
+    "building": "yes",
+    "name": "HDFC Bank",
+    "short_name": "HDFC"
+  }
+},
+{
+  "type": "way",
+  "id": 1433970633,
+  "center": {
+    "lat": 18.1206399,
+    "lon": 83.3972050
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Shiva Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1433970636,
+  "center": {
+    "lat": 18.1225078,
+    "lon": 83.3970853
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1433970641,
+  "center": {
+    "lat": 18.1224204,
+    "lon": 83.4001959
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "SaiBaba Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977402,
+  "center": {
+    "lat": 18.1029745,
+    "lon": 83.4085178
+  },
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977896,
+  "center": {
+    "lat": 18.1110608,
+    "lon": 83.4130866
+  },
+  "tags": {
+    "addr:city": "Vizianagaram",
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "fort Road",
+    "amenity": "marketplace",
+    "name": "Bonkula Dibba"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977897,
+  "center": {
+    "lat": 18.1104177,
+    "lon": 83.4122817
+  },
+  "tags": {
+    "building": "yes",
+    "name": "ZUDIO",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977899,
+  "center": {
+    "lat": 18.1099046,
+    "lon": 83.4121325
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Three Temples",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977900,
+  "center": {
+    "lat": 18.1095531,
+    "lon": 83.4089555
+  },
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977901,
+  "center": {
+    "lat": 18.1059073,
+    "lon": 83.4076926
+  },
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "100 feet Ring Road",
+    "building": "yes",
+    "name": "Louis Philippe Store",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977902,
+  "center": {
+    "lat": 18.1060019,
+    "lon": 83.4076961
+  },
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "100 feet Ring Road",
+    "building": "yes",
+    "name": "FUTURE TRENDS",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977903,
+  "center": {
+    "lat": 18.1061286,
+    "lon": 83.4077086
+  },
+  "tags": {
+    "addr:district": "Vizianagaram",
+    "addr:postcode": "535002",
+    "addr:street": "100 feet Ring Road",
+    "building": "yes",
+    "name": "Allen Solly",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1433977907,
+  "center": {
+    "lat": 18.1035250,
+    "lon": 83.4077549
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "SAI BABA Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1434239948,
+  "center": {
+    "lat": 18.0902355,
+    "lon": 83.4093065
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1434262087,
+  "center": {
+    "lat": 18.1155334,
+    "lon": 83.4107398
+  },
+  "tags": {
+    "building": "yes",
+    "name": "Madras cutpiece stores",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1434262089,
+  "center": {
+    "lat": 18.1148070,
+    "lon": 83.4116428
+  },
+  "tags": {
+    "building": "yes",
+    "name": "Chandhana Brothers",
+    "shop": "mall"
+  }
+},
+{
+  "type": "way",
+  "id": 1434309341,
+  "center": {
+    "lat": 18.1153233,
+    "lon": 83.3903843
+  },
+  "tags": {
+    "amenity": "post_office",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1434309342,
+  "center": {
+    "lat": 18.0958132,
+    "lon": 83.4169988
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "landuse": "religious",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1448529363,
+  "center": {
+    "lat": 18.1010500,
+    "lon": 83.4230048
+  },
+  "tags": {
+    "amenity": "school",
+    "education": "school"
+  }
+},
+{
+  "type": "way",
+  "id": 1454106610,
+  "center": {
+    "lat": 18.1055025,
+    "lon": 83.3886902
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454106615,
+  "center": {
+    "lat": 18.1029506,
+    "lon": 83.3877001
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454106633,
+  "center": {
+    "lat": 18.1020078,
+    "lon": 83.3887975
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454319953,
+  "center": {
+    "lat": 18.1012041,
+    "lon": 83.3871707
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454319974,
+  "center": {
+    "lat": 18.1038485,
+    "lon": 83.3850364
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454319975,
+  "center": {
+    "lat": 18.1037257,
+    "lon": 83.3850150
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454319976,
+  "center": {
+    "lat": 18.1039504,
+    "lon": 83.3849773
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1454319977,
+  "center": {
+    "lat": 18.1040326,
+    "lon": 83.3850466
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1486458075,
+  "center": {
+    "lat": 18.1279008,
+    "lon": 83.4280549
+  },
+  "tags": {
+    "amenity": "college",
+    "education": "college",
+    "name": "MRAGR Government Polytechnic, Vizianagaram Andhra Pradesh"
+  }
+},
+{
+  "type": "way",
+  "id": 1486458077,
+  "center": {
+    "lat": 18.1259523,
+    "lon": 83.4302036
+  },
+  "tags": {
+    "amenity": "college",
+    "education": "college",
+    "name": "Maharajah's Post Graduate College"
+  }
+},
+{
+  "type": "way",
+  "id": 1486458078,
+  "center": {
+    "lat": 18.1249337,
+    "lon": 83.4317017
+  },
+  "tags": {
+    "amenity": "college",
+    "education": "college",
+    "name": "Maharajah's College of Pharmacy"
+  }
+},
+{
+  "type": "way",
+  "id": 1495784139,
+  "center": {
+    "lat": 18.1396797,
+    "lon": 83.4282624
+  },
+  "tags": {
+    "amenity": "school",
+    "education": "school",
+    "name": "AP Model School , Ayyappanagar ( Vizianagaram Town )"
+  }
+},
+{
+  "type": "way",
+  "id": 1558415649,
+  "center": {
+    "lat": 18.1200466,
+    "lon": 83.4380410
+  },
+  "tags": {
+    "amenity": "school",
+    "education": "school",
+    "name": "Kasturi Ba Gandhi Girls' School"
+  }
+},
+{
+  "type": "relation",
+  "id": 17376125,
+  "center": {
+    "lat": 18.1109343,
+    "lon": 83.4109038
+  },
+  "tags": {
+    "addr:city": "vizinagaram",
+    "addr:postcode": "535002",
+    "addr:street": "Fort Road",
+    "name": "Vizianagaram Fort",
+    "start_date": "1713",
+    "tourism": "attraction",
+    "type": "site",
+    "wikidata": "Q24705966",
+    "wikimedia_commons": "Category:Vizianagaram_Fort",
+    "wikipedia": "en:Vizianagaram Fort"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229166,
+  "center": {
+    "lat": 18.1183901,
+    "lon": 83.4081231
+  },
+  "tags": {
+    "admin_level": "8",
+    "boundary": "local_authority",
+    "local_authority:IN": "municipal_corporation",
+    "name": "Vizianagaram",
+    "official_name": "Vizianagaram Municipal Corporation",
+    "official_name:te": "విజయనగరం నగరపాలక సంస్థ",
+    "type": "boundary",
+    "wikidata": "Q24945948",
+    "wikipedia": "en:Vizianagaram Municipal Corporation"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229307,
+  "center": {
+    "lat": 18.0994644,
+    "lon": 83.3963853
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Ysr Colony, Pradeep Nagar",
+    "type": "boundary",
+    "ward": "34"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229308,
+  "center": {
+    "lat": 18.1071004,
+    "lon": 83.4108156
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Jonnaguddi",
+    "type": "boundary",
+    "ward": "27"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229309,
+  "center": {
+    "lat": 18.0973716,
+    "lon": 83.4158738
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Msn Colony",
+    "type": "boundary",
+    "ward": "29"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229310,
+  "center": {
+    "lat": 18.1004869,
+    "lon": 83.4062023
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Padhmavathi Nagar",
+    "type": "boundary",
+    "ward": "31"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229311,
+  "center": {
+    "lat": 18.1039452,
+    "lon": 83.4017122
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Thotapalem",
+    "type": "boundary",
+    "ward": "32"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229312,
+  "center": {
+    "lat": 18.1043453,
+    "lon": 83.3974260
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Balaji Nagar",
+    "type": "boundary",
+    "ward": "33"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229313,
+  "center": {
+    "lat": 18.0839698,
+    "lon": 83.4101130
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Dharmapuri",
+    "type": "boundary",
+    "ward": "30"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229314,
+  "center": {
+    "lat": 18.0868283,
+    "lon": 83.3924949
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Ganesh Nagar",
+    "type": "boundary",
+    "ward": "35"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229315,
+  "center": {
+    "lat": 18.0888087,
+    "lon": 83.3843867
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Majjupeta, Yjn.",
+    "type": "boundary",
+    "ward": "36"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229316,
+  "center": {
+    "lat": 18.0907738,
+    "lon": 83.3823481
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "B C Colony",
+    "type": "boundary",
+    "ward": "37"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229317,
+  "center": {
+    "lat": 18.1024705,
+    "lon": 83.3862841
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Goka Peta, Bobbadhi Peta",
+    "type": "boundary",
+    "ward": "38"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229318,
+  "center": {
+    "lat": 18.1060907,
+    "lon": 83.3896476
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "R And B Guest House Area",
+    "type": "boundary",
+    "ward": "39"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229319,
+  "center": {
+    "lat": 18.1093576,
+    "lon": 83.3831874
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Kamakshi Nagar",
+    "type": "boundary",
+    "ward": "43"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229320,
+  "center": {
+    "lat": 18.1161711,
+    "lon": 83.3814937
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Kalighat Colony",
+    "type": "boundary",
+    "ward": "42"
+  }
+},
+{
+  "type": "relation",
+  "id": 18229321,
+  "center": {
+    "lat": 18.1152062,
+    "lon": 83.3700515
+  },
+  "tags": {
+    "admin_level": "10",
+    "boundary": "local_authority",
+    "local_authority:IN": "ward",
+    "name": "Surya Nagar and Mahalaxmi Colony",
+    "type": "boundary",
+    "ward": "44"
+  }
+}
+
+  ]
+}
