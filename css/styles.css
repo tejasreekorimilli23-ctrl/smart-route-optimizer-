@@ -2080,3 +2080,31 @@ fieldset {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------- sharing ---------- */
+
+.share-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: -4px 0 14px;
+}
+.share-row .btn-secondary {
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 0.88rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.share-wa {
+  color: #ffffff !important;
+  background: #1f9e55 !important;
+  border-color: #1f9e55 !important;
+}
+.share-status {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  word-break: break-all;
+}

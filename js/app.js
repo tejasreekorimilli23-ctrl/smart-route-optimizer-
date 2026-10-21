@@ -1685,6 +1685,158 @@
     });
   }
 
+
+  // ---------- sharing a route as a link ----------
+
+  /**
+   * Link that opens the same route on any device. Places are shared by
+   * position and name (not internal ids), so the link works even if the
+   * other phone has a different copy of the map.
+   */
+  function shareLink() {
+    var q = state.query;
+    if (!q || !isReal()) return null;
+    var a = nodeById[q.origin];
+    var b = nodeById[q.destination];
+    if (!a || !b || a.lat === undefined || b.lat === undefined) return null;
+    var enc = function (n) {
+      return n.lat.toFixed(5) + "," + n.lon.toFixed(5) + "," + encodeURIComponent(n.pinned ? "" : n.name);
+    };
+    return window.location.origin + window.location.pathname +
+      "#mode=real&lang=" + lang + "&from=" + enc(a) + "&to=" + enc(b) + "&v=" + state.vehicle + "&p=" + state.priority;
+  }
+
+  function shareText(res) {
+    var r = res.recommended;
+    return t("share.text", {
+      from: placeName(res.origin), to: placeName(res.destination),
+      min: fT(r.timeUnits), km: fD(r.distanceUnits), by: t("by." + state.vehicle), word: priorityWord()
+    });
+  }
+
+  function shareRow(res) {
+    if (!isReal() || !shareLink()) return "";
+    var url = shareLink();
+    var wa = "https://wa.me/?text=" + encodeURIComponent(shareText(res) + " " + url);
+    return '<div class="share-row">' +
+      '<button type="button" class="btn-secondary" data-action="share">' + esc(t("share.button")) + "</button>" +
+      '<a class="btn-secondary share-wa" href="' + esc(wa) + '" target="_blank" rel="noopener">' + esc(t("share.whatsapp")) + "</a>" +
+      '<span class="share-status" role="status" aria-live="polite"></span></div>';
+  }
+
+  function doShare(btn) {
+    var res = state.result;
+    var url = shareLink();
+    if (!res || !res.ok || !url) return;
+    var status = btn.parentNode.querySelector(".share-status");
+    var text = shareText(res);
+    if (navigator.share) {
+      navigator.share({ title: t("docTitle"), text: text, url: url }).catch(function () { /* cancelled */ });
+      return;
+    }
+    var done = function () { status.textContent = t("share.copied"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text + " " + url).then(done, function () { status.textContent = url; });
+    } else {
+      status.textContent = url;
+    }
+  }
+
+  /** Reads from=lat,lon,name and to=... from the page address. */
+  function sharedTrip() {
+    var h = window.location.hash;
+    var get = function (k) {
+      var m = new RegExp("[#&]" + k + "=([^&]*)").exec(h);
+      return m ? m[1] : null;
+    };
+    var point = function (v) {
+      if (!v) return null;
+      var parts = v.split(",");
+      var lat = Number(parts[0]);
+      var lon = Number(parts[1]);
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      return { lat: lat, lon: lon, name: decodeURIComponent(parts.slice(2).join(",") || "") };
+    };
+    var a = point(get("from"));
+    var b = point(get("to"));
+    if (!a || !b) return null;
+    return { a: a, b: b, vehicle: get("v"), priority: get("p") };
+  }
+
+  /** A place of the current map at (about) that point with that name, else a pin. */
+  function placeAt(p, role) {
+    var best = null;
+    if (p.name) {
+      D.NODES.forEach(function (n) {
+        if (!n.category || n.name !== p.name) return;
+        var d = G.haversine(n, p);
+        if (d < 60 && (!best || d < best.d)) best = { id: n.id, d: d };
+      });
+    }
+    if (best) return best.id;
+    return setPin(role, p.lat, p.lon, "place", p.name ? local(p.name) : null) ? PIN_IDS[role] : null;
+  }
+
+  function showShared(s) {
+    if (s.vehicle && E.VEHICLES[s.vehicle]) state.vehicle = s.vehicle;
+    if (s.priority && E.PRIORITIES[s.priority]) state.priority = s.priority;
+    var o = placeAt(s.a, "start");
+    var d = placeAt(s.b, "destination");
+    if (!o || !d) return;
+    fillLocationSelects();
+    els.origin.value = o;
+    els.destination.value = d;
+    runSearch();
+  }
+
+  /**
+   * Opens a shared route: uses the map on this device if it covers both
+   * ends, else downloads the area around them.
+   */
+  function openShared(s) {
+    var covers = function (data) {
+      return AL && AL.contains(data.AREA.bbox, s.a) && AL.contains(data.AREA.bbox, s.b);
+    };
+    if (covers(DATASETS.real)) {
+      showShared(s);
+      return;
+    }
+    if (covers(BUILT_IN)) {
+      switchArea(BUILT_IN, "builtin");
+      showShared(s);
+      return;
+    }
+    if (!AL) return;
+    AL.list().then(function (saved) {
+      var hit = saved.filter(function (a) {
+        var box = a.key.split(",").map(Number);
+        return box.length === 4 && AL.contains(box, s.a) && AL.contains(box, s.b);
+      })[0];
+      if (hit) {
+        return AL.recall(hit.key).then(function (data) {
+          if (data) {
+            switchArea(data, hit.key);
+            showShared(s);
+          }
+        });
+      }
+      var box = AL.boxAround(s.a, s.b);
+      if (!box) return;
+      els.areaBox.hidden = false;
+      setAreaStatus(t("share.loadingArea"));
+      return AL.load(s.b.name || s.a.name || "Shared route", box, function (step, seconds) {
+        setAreaStatus(t("area.step." + step, { s: seconds }));
+      }).then(function (data) {
+        AL.remember(data);
+        switchArea(data, data.AREA.key);
+        setAreaStatus("");
+        showShared(s);
+      }, function (err) {
+        setAreaStatus(areaErrorText(err), true);
+      });
+    });
+  }
+
   // ---------- rendering ----------
 
   function renderMap() {
@@ -2003,7 +2155,7 @@
       }
     }
     var summary = '<p class="results-summary">' + headline +
-      (res.routes.length > 1 ? " " + esc(tradeoffText(res)) : "") + "</p>";
+      (res.routes.length > 1 ? " " + esc(tradeoffText(res)) : "") + "</p>" + shareRow(res);
     var emergency = res.emergency ? emergencyHtml(res, best) : "";
     var single = res.routes.length === 1 ? '<p class="note">' + esc(t("results.single")) + "</p>" : "";
 
@@ -2347,6 +2499,8 @@
       els.destination.value = btn.getAttribute("data-id");
       state.priority = "fastest";
       runSearch();
+    } else if (action === "share") {
+      doShare(btn);
     } else if (action === "trip") {
       startTrip();
     } else if (action === "step") {
@@ -2392,5 +2546,7 @@
   lang = hashLang ? hashLang[1] : I18N[savedLang] ? savedLang : "en";
   applyStaticText();
   setMode(hashMode ? hashMode[1] : savedMode || (realAvailable ? "real" : "demo"));
-  restoreArea();
+  var shared = realAvailable ? sharedTrip() : null;
+  if (shared && mode === "real") openShared(shared);
+  else restoreArea();
 })();
