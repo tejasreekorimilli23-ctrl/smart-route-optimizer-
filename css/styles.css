@@ -2002,3 +2002,81 @@ fieldset {
   }
 }
 .site-footer .admin-link { color: var(--cyan-map); }
+
+/* ---------- trip mode ---------- */
+
+.trip-panel {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-m);
+  background: #1a73e8;
+  color: #ffffff;
+  display: grid;
+  gap: 8px;
+}
+.trip-panel[hidden] {
+  display: none;
+}
+.trip-next {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.trip-left {
+  font-weight: 700;
+  opacity: 0.95;
+}
+.trip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.trip-panel .switch {
+  color: #ffffff;
+  font-size: 0.85rem;
+}
+.trip-panel .btn-secondary {
+  min-height: 38px;
+  padding: 6px 14px;
+}
+.trip-panel .note,
+.trip-report-label {
+  color: #e8f0fe;
+  font-size: 0.82rem;
+  margin: 0;
+}
+.trip-panel .report-types {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 0;
+}
+.trip-panel .area-pick {
+  font-size: 0.8rem;
+  padding: 6px;
+  text-align: center;
+}
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trip-start {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: #1a73e8;
+  border: 0;
+  border-radius: var(--radius-s);
+  padding: 6px 14px;
+  min-height: 36px;
+  cursor: pointer;
+}
+.trip-start:hover {
+  background: #1558b0;
+}
+@media (max-width: 560px) {
+  .trip-panel .report-types {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -405,6 +405,26 @@
     }
   }
 
+  var positionLayer = null;
+
+  /**
+   * Trip mode: shows the traveller's GPS position (with its accuracy) and,
+   * if follow is true, keeps the map centred on it. null clears it.
+   */
+  function setPosition(pos, follow) {
+    if (!map) return;
+    if (!positionLayer) positionLayer = root.L.layerGroup().addTo(map);
+    positionLayer.clearLayers();
+    if (!pos) return;
+    if (pos.accuracy) {
+      root.L.circle([pos.lat, pos.lon], { radius: pos.accuracy, color: "#1A73E8", weight: 1, fillOpacity: 0.12, interactive: false })
+        .addTo(positionLayer);
+    }
+    root.L.circleMarker([pos.lat, pos.lon], { radius: 9, color: "#FFFFFF", weight: 3, fillColor: "#1A73E8", fillOpacity: 1, interactive: false })
+      .addTo(positionLayer);
+    if (follow) map.setView([pos.lat, pos.lon], Math.max(map.getZoom(), 17), { animate: false });
+  }
+
   /** Centres the map on a point (e.g. an incident chosen from the list). */
   function focusOn(lat, lon) {
     if (map) map.setView([lat, lon], 17, { animate: false });
@@ -412,6 +432,7 @@
 
   api.render = render;
   api.focusOn = focusOn;
+  api.setPosition = setPosition;
   api.setLiveOverlay = setLiveOverlay;
   api.invalidate = function () {
     if (map) map.invalidateSize();

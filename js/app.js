@@ -104,6 +104,14 @@
     reportHere: $("report-here"),
     reportTypes: $("report-types"),
     alertsBanner: $("alerts-banner"),
+    tripPanel: $("trip-panel"),
+    tripNext: $("trip-next"),
+    tripLeft: $("trip-left"),
+    tripNote: $("trip-note"),
+    tripVoice: $("trip-voice"),
+    tripShare: $("trip-share"),
+    tripStop: $("trip-stop"),
+    tripReports: $("trip-reports"),
     liveKeyBox: $("live-key-box"),
     liveKey: $("live-key"),
     liveKeySave: $("live-key-save"),
@@ -650,6 +658,7 @@
     try { window.localStorage.setItem("route-mode", mode); } catch (err) { /* private mode: ignore */ }
     D = DATASETS[mode];
     M = VIEWS[mode];
+    if (typeof trip !== "undefined" && trip.on) stopTrip();
     pins = {};
     routing = null;
     indexData();
@@ -1355,6 +1364,174 @@
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
   }
 
+
+  // ---------- trip mode: follow GPS, next turn, voice, re-routing ----------
+
+  var TR = window.Trip;
+  var trip = { on: false };
+
+  function metresText(m) {
+    if (m < 1000) return t("unit.metres", { m: Math.max(10, Math.round(m / 10) * 10) });
+    return t("fig.km", { km: (m / 1000).toFixed(1) });
+  }
+
+  /** An instruction without its "for 300 m" part, for "In 200 m: …". */
+  function stepShort(step, r) {
+    if (step.kind === "arrive") return t("dir.arrive", { place: placeNameById(r.nodes[r.nodes.length - 1]) });
+    var road = stepRoad(step);
+    return step.kind === "depart"
+      ? t("dir.depart", { dir: t("dir.compass." + step.compass), road: road })
+      : t("dir.turn." + step.turn, { road: road });
+  }
+
+  function tripRoute() {
+    var res = state.result;
+    if (!res || !res.ok) return null;
+    return res.routes.filter(function (r) { return r.signature === state.focusedSig; })[0] || res.recommended;
+  }
+
+  function prepareTrip(route) {
+    trip.route = route;
+    trip.sig = route.signature;
+    trip.ln = TR.line(route, edgeById);
+    trip.steps = routeSteps(route);
+    trip.alongs = TR.stepAlongs(trip.ln, trip.steps);
+    trip.offRoute = TR.offRouteCounter();
+    trip.track = TR.speedTracker(trip.ln);
+    trip.lastStep = -1;
+    trip.said = [];
+  }
+
+  // ----- voice -----
+
+  function voiceFor(langCode) {
+    if (!window.speechSynthesis) return null;
+    var want = langCode === "te" ? "te" : "en";
+    var voices = window.speechSynthesis.getVoices() || [];
+    return voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf(want) === 0; })
+      .sort(function (a, b) { return (b.lang === (want + "-IN")) - (a.lang === (want + "-IN")); })[0] || null;
+  }
+
+  function speak(text) {
+    if (!trip.voice || !window.speechSynthesis || !text) return;
+    var voice = voiceFor(lang);
+    if (!voice) {
+      els.tripNote.textContent = t(lang === "te" ? "trip.noTeluguVoice" : "trip.noVoice");
+      return;
+    }
+    var u = new window.SpeechSynthesisUtterance(text);
+    u.voice = voice;
+    u.lang = voice.lang;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+
+  // ----- following the GPS -----
+
+  function onFix(pos) {
+    if (!trip.on) return;
+    var p = { lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy };
+    VIEWS.real.setPosition(p, true);
+    var route = tripRoute();
+    if (!route) {
+      els.tripNext.textContent = t("trip.noRoute");
+      return;
+    }
+    if (route.signature !== trip.sig) prepareTrip(route); // a new route after a re-route or a live update
+    var at = TR.locate(trip.ln, p);
+    if (trip.offRoute(at)) {
+      reroute(p);
+      return;
+    }
+    // Shared speeds (only if the user agreed, and not on foot).
+    var measured = trip.track(at, pos.timestamp || Date.now());
+    if (measured && trip.share && store && state.vehicle !== "walk") {
+      store.addSpeed({
+        edgeId: measured.edgeId, kmh: measured.kmh, vehicle: state.vehicle,
+        at: new Date(), expiresAt: new Date(Date.now() + CM.SETTINGS.speedMinutes * 60000)
+      }).catch(function () { /* a lost reading does not matter */ });
+    }
+    var st = TR.status(trip.ln, trip.alongs, at);
+    if (st.arrived) {
+      els.tripNext.textContent = t("trip.arrived");
+      els.tripLeft.textContent = "";
+      speak(t("trip.arrived"));
+      setTimeout(stopTrip, 4000);
+      trip.on = false;
+      return;
+    }
+    var step = trip.steps[st.nextIndex];
+    var instr = stepShort(step, route);
+    els.tripNext.textContent = st.toNextMetres > 40
+      ? t("trip.in", { dist: metresText(st.toNextMetres), instr: instr })
+      : t("trip.now", { instr: instr });
+    var eta = new Date(Date.now() + (st.remainingUnits / E.unitsOf(D).perMin) * 60000);
+    els.tripLeft.textContent = t("trip.left", { min: fT(st.remainingUnits), km: metresText(st.remainingMetres), eta: clockText(eta) });
+    if (st.nextIndex !== trip.lastStep) {
+      trip.lastStep = st.nextIndex;
+      trip.said = [];
+      speak(els.tripNext.textContent);
+    } else {
+      var due = TR.reminderDue(st.toNextMetres, trip.said);
+      if (due) {
+        trip.said.push(due);
+        speak(t("trip.in", { dist: metresText(due), instr: instr }));
+      }
+    }
+  }
+
+  /** Off the route: plan again from where the traveller is now. */
+  function reroute(p) {
+    if (trip.rerouting) return;
+    trip.rerouting = true;
+    els.tripNext.textContent = t("trip.rerouting");
+    speak(t("trip.rerouting"));
+    if (setPin("start", p.lat, p.lon, "gps")) {
+      runSearch();
+      var route = tripRoute();
+      if (route) prepareTrip(route);
+    }
+    trip.rerouting = false;
+  }
+
+  function onFixError(err) {
+    els.tripNext.textContent = t(err.code === 1 ? "gps.denied" : "trip.gpsWait");
+  }
+
+  function startTrip() {
+    var route = tripRoute();
+    if (!TR || !route || !navigator.geolocation) {
+      els.tripNote.textContent = t(navigator.geolocation ? "trip.noRoute" : "gps.unsupported");
+      els.tripPanel.hidden = false;
+      return;
+    }
+    prepareTrip(route);
+    trip.on = true;
+    els.tripPanel.hidden = false;
+    els.tripNext.textContent = t("trip.waiting");
+    els.tripLeft.textContent = "";
+    els.tripNote.textContent = "";
+    trip.voice = els.tripVoice.checked;
+    trip.share = els.tripShare.checked;
+    trip.watch = navigator.geolocation.watchPosition(onFix, onFixError, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
+    // Keep the screen on while travelling, where the browser allows it.
+    if (navigator.wakeLock && navigator.wakeLock.request) {
+      navigator.wakeLock.request("screen").then(function (lock) { trip.lock = lock; }, function () { /* not allowed: fine */ });
+    }
+    els.mapPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    speak(t("trip.started"));
+  }
+
+  function stopTrip() {
+    trip.on = false;
+    if (trip.watch !== undefined && navigator.geolocation) navigator.geolocation.clearWatch(trip.watch);
+    trip.watch = undefined;
+    if (trip.lock) { trip.lock.release().catch(function () {}); trip.lock = null; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (VIEWS.real && VIEWS.real.setPosition) VIEWS.real.setPosition(null);
+    els.tripPanel.hidden = true;
+  }
+
   // ---------- areas: any town, not only the built-in one ----------
 
   var AL = window.AreaLoader;
@@ -1733,7 +1910,10 @@
         hazardList(r) +
         stopsList(r) +
         directionsList(r) +
+        '<div class="card-actions">' +
         '<button type="button" class="map-toggle" data-action="focus" data-sig="' + esc(r.signature) + '" aria-pressed="' + focused + '">' + esc(mapBtnLabel) + "</button>" +
+        (isReal() && focused ? '<button type="button" class="trip-start" data-action="trip">' + esc(t("trip.start")) + "</button>" : "") +
+        "</div>" +
       "</article>"
     );
   }
@@ -2075,6 +2255,29 @@
     }
   });
   setInterval(function () { refreshCommunity(false); }, 15000);
+  els.tripStop.addEventListener("click", stopTrip);
+  els.tripVoice.addEventListener("change", function () {
+    trip.voice = els.tripVoice.checked;
+    try { window.localStorage.setItem("trip-voice", trip.voice ? "1" : ""); } catch (err) { /* ignore */ }
+    if (trip.voice) speak(els.tripNext.textContent);
+  });
+  els.tripShare.addEventListener("change", function () {
+    trip.share = els.tripShare.checked;
+    try { window.localStorage.setItem("trip-share", trip.share ? "1" : ""); } catch (err) { /* ignore */ }
+  });
+  try {
+    els.tripVoice.checked = !!window.localStorage.getItem("trip-voice");
+    els.tripShare.checked = !!window.localStorage.getItem("trip-share");
+  } catch (err) { /* ignore */ }
+  if (CM) {
+    els.tripReports.innerHTML = ["accident", "closed", "jam", "flooding"].map(function (type) {
+      return '<button type="button" class="area-pick rp-' + type + '" data-trip-report="' + type + '" data-i18n="report.type.' + type + '"></button>';
+    }).join("");
+  }
+  els.tripReports.addEventListener("click", function (ev) {
+    var b = ev.target.closest ? ev.target.closest("[data-trip-report]") : null;
+    if (b) reportHere(b.getAttribute("data-trip-report"));
+  });
   document.addEventListener("visibilitychange", function () { refreshCommunity(false); });
   els.liveIncidents.addEventListener("click", function (ev) {
     var btn = ev.target.closest ? ev.target.closest("[data-incident]") : null;
@@ -2144,6 +2347,8 @@
       els.destination.value = btn.getAttribute("data-id");
       state.priority = "fastest";
       runSearch();
+    } else if (action === "trip") {
+      startTrip();
     } else if (action === "step") {
       var route = state.result && state.result.routes.filter(function (x) { return x.signature === btn.getAttribute("data-sig"); })[0];
       var step = route ? routeSteps(route)[Number(btn.getAttribute("data-step"))] : null;

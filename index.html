@@ -193,6 +193,26 @@
           <p id="map-summary" class="map-summary"></p>
         </div>
         <div id="change-notice" class="change-notice" role="status" aria-live="polite" hidden></div>
+        <div id="trip-panel" class="trip-panel real-only" role="region" data-i18n-attr="aria-label:trip.label" aria-label="Trip" hidden>
+          <p id="trip-next" class="trip-next" aria-live="polite"></p>
+          <p id="trip-left" class="trip-left"></p>
+          <div class="trip-actions">
+            <label class="switch">
+              <input type="checkbox" id="trip-voice">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span data-i18n="trip.voice">Voice guidance</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" id="trip-share">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span data-i18n="trip.share">Share my speed anonymously (helps detect jams)</span>
+            </label>
+            <button type="button" id="trip-stop" class="btn-secondary" data-i18n="trip.stop">Stop trip</button>
+          </div>
+          <p class="trip-report-label" data-i18n="trip.reportLabel">Report a problem where you are:</p>
+          <div id="trip-reports" class="report-types"></div>
+          <p id="trip-note" class="note"></p>
+        </div>
         <p class="swipe-hint" data-i18n="map.swipe">Swipe sideways on the map to see all of it.</p>
         <div id="real-map" class="real-map" role="region" data-i18n-attr="aria-label:map.realLabel" aria-label="Real map of the area. Click a road or a point for options." hidden></div>
         <div id="demo-map" class="map-scroll">
@@ -317,6 +337,7 @@
   <script src="js/translit.js"></script>
   <script src="js/place-search.js"></script>
   <script src="js/directions.js"></script>
+  <script src="js/trip.js"></script>
   <script src="js/map-view.js"></script>
   <script src="js/real-map-view.js"></script>
   <script src="js/app.js"></script>
