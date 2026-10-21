@@ -128,6 +128,20 @@
     }).filter(function (r) { return isFinite(r.lat) && isFinite(r.lon); });
   }
 
+  /** Name of the town or locality at a point (OpenStreetMap reverse search), or null. */
+  function whereIs(lat, lon, fetchImpl) {
+    var doFetch = getFetch(fetchImpl);
+    var url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&accept-language=en&lat=" +
+      encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
+    return Promise.resolve().then(function () { return doFetch(url); }).then(function (res) {
+      return res.ok ? res.json() : null;
+    }).then(function (j) {
+      if (!j) return null;
+      var a = j.address || {};
+      return a.suburb || a.neighbourhood || a.village || a.town || a.city || a.county || j.name || null;
+    }).catch(function () { return null; });
+  }
+
   /** Looks a place up by name. countryCodes e.g. "in" to prefer India (optional). */
   function find(query, opts, fetchImpl) {
     var doFetch = getFetch(fetchImpl);
@@ -287,6 +301,7 @@
     contains: contains,
     parseSearch: parseSearch,
     find: find,
+    whereIs: whereIs,
     load: load,
     remember: remember,
     list: list,

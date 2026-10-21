@@ -116,6 +116,7 @@
     liveKey: $("live-key"),
     liveKeySave: $("live-key-save"),
     liveKeyClear: $("live-key-clear"),
+    liveKeySaved: $("live-key-saved"),
     hour: $("hour"),
     hourLabel: $("hour-label"),
     now: $("now"),
@@ -956,23 +957,98 @@
     }
   }
 
+  /** Status next to "Use my location" (errors in red). */
+  function locateSay(text, isError) {
+    els.locateStatus.textContent = text;
+    els.locateStatus.classList.toggle("is-error", !!isError);
+  }
+
+  /** Accuracy note: phones with GPS are within metres; laptops can be km off. */
+  function accuracyText(metres) {
+    return metres > 1500
+      ? t("gps.rough", { km: (metres / 1000).toFixed(1) })
+      : t("gps.done", { metres: Math.round(metres) });
+  }
+
+  /**
+   * Use my location. If the position is outside the area on the map, the
+   * area around it is loaded first (once; it is then kept on the device).
+   */
   function locateMe() {
     if (!navigator.geolocation) {
-      els.locateStatus.textContent = t("gps.unsupported");
+      locateSay(t("gps.unsupported"), true);
       return;
     }
-    els.locateStatus.textContent = t("gps.finding");
+    if (!window.isSecureContext) {
+      locateSay(t("gps.insecure"), true);
+      return;
+    }
+    locateSay(t("gps.finding"));
     navigator.geolocation.getCurrentPosition(function (pos) {
       var c = pos.coords;
-      if (setPin("start", c.latitude, c.longitude, "gps")) {
-        els.locateStatus.textContent = t("gps.done", { metres: Math.round(c.accuracy) });
+      if (!isReal()) setMode("real");
+      var near = G.nearestRoad(D, c.latitude, c.longitude);
+      if (near && near.metres <= G.MAX_PIN_METRES) {
+        setPin("start", c.latitude, c.longitude, "gps");
+        clearFormError();
+        locateSay(accuracyText(c.accuracy), c.accuracy > 1500);
         searchIfReady();
-      } else {
-        els.locateStatus.textContent = "";
+        return;
       }
+      if (!AL) {
+        locateSay(t("err.outside", { metres: G.MAX_PIN_METRES, area: local(D.AREA.name) }), true);
+        return;
+      }
+      // Somewhere else: open a saved town that covers the user, or load the
+      // roads around them, then start there.
+      var here = { lat: c.latitude, lon: c.longitude };
+      var startHere = function () {
+        if (setPin("start", here.lat, here.lon, "gps")) {
+          locateSay(accuracyText(c.accuracy), c.accuracy > 1500);
+          searchIfReady();
+        }
+      };
+      var covers = function (data) {
+        return AL.contains(data.AREA.bbox, here) && (function (hit) { return hit && hit.metres <= G.MAX_PIN_METRES; })(G.nearestRoad(data, here.lat, here.lon));
+      };
+      if (DATASETS.real !== BUILT_IN && covers(BUILT_IN)) {
+        switchArea(BUILT_IN, "builtin");
+        startHere();
+        return;
+      }
+      AL.list().then(function (saved) {
+        var hit = saved.filter(function (a) {
+          var box = a.key.split(",").map(Number);
+          return box.length === 4 && AL.contains(box, here);
+        })[0];
+        return hit ? AL.recall(hit.key).then(function (data) { return data && covers(data) ? { data: data, key: hit.key } : null; }) : null;
+      }).then(function (found) {
+        if (found) {
+          switchArea(found.data, found.key);
+          startHere();
+          return;
+        }
+        locateSay(t("gps.loadingArea"));
+        els.areaBox.hidden = false;
+        AL.whereIs(here.lat, here.lon).then(function (name) { return name || t("gps.myArea"); }, function () { return t("gps.myArea"); })
+        .then(function (name) {
+          return AL.load(name, AL.square(here.lat, here.lon, AL.SETTINGS.squareKm / 2), function (step, seconds) {
+            setAreaStatus(t("area.step." + step, { s: seconds }));
+          });
+        })
+        .then(function (data) {
+          AL.remember(data);
+          switchArea(data, data.AREA.key);
+          setAreaStatus("");
+          startHere();
+        }, function (err) {
+          setAreaStatus(areaErrorText(err), true);
+          locateSay(areaErrorText(err), true);
+        });
+      });
     }, function (err) {
-      els.locateStatus.textContent = t(err.code === 1 ? "gps.denied" : "gps.failed");
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+      locateSay(t(err.code === 1 ? "gps.denied" : err.code === 3 ? "gps.timeout" : "gps.failed"), true);
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
   }
 
   function onMapAction(action, payload) {
@@ -1085,16 +1161,19 @@
     els.liveToggle.disabled = !key || live.busy;
     els.liveRefresh.hidden = !live.on || live.busy;
     els.liveKeyClear.hidden = !key;
+    // Show that a key is saved (only its last 4 characters).
+    els.liveKey.placeholder = key ? t("live.keySavedPlaceholder", { end: key.slice(-4) }) : t("live.keyPlaceholder");
+    els.liveKeySaved.textContent = key ? t("live.keySaved", { end: key.slice(-4) }) : "";
     var text;
     if (!key) text = t("live.needKey");
     else if (live.busy && !liveActive()) text = t("live.loading");
-    else if (live.error) text = t("live.err." + (live.error.code || "noanswer"));
+    else if (live.error) text = t("live.err." + (live.error.code || "noanswer")) + " " + t("live.keyStillSaved");
     else if (liveActive()) {
       var latest = [live.flow && live.flow.fetchedAt, live.incidents && live.incidents.fetchedAt].filter(Boolean)
         .sort(function (a, b) { return b - a; })[0];
       text = t("live.updated", { time: clockText(latest), summary: liveSummary() });
       if (live.warn) text += " " + t("live.partial");
-    } else text = t("live.off");
+    } else text = t("live.offWithKey", { end: key.slice(-4) });
     els.liveStatus.textContent = text;
     els.liveStatus.classList.toggle("is-error", !!live.error);
     els.simTag.textContent = t(isReal() ? (liveActive() ? "tag.live" : "tag.estimated") : "tag.simulated");
@@ -1173,6 +1252,7 @@
 
   function setLive(on) {
     if (!isReal()) return;
+    try { window.localStorage.setItem("live-on", on ? "1" : ""); } catch (err) { /* ignore */ }
     if (on) {
       refreshLive();
     } else {
@@ -2472,7 +2552,7 @@
     var key = els.liveKey.value.trim();
     if (!key) return;
     try { window.localStorage.setItem(KEY_STORE, key); } catch (err) { /* ignore */ }
-    els.liveKey.value = "";
+    els.liveKey.value = ""; // not shown again; the box shows "Key saved ••••1234"
     live.error = null;
     els.liveKeyBox.open = false;
     setLive(true);
@@ -2598,4 +2678,7 @@
   var shared = realAvailable ? sharedTrip() : null;
   if (shared && mode === "real") openShared(shared);
   else restoreArea();
+  try {
+    if (mode === "real" && savedKey() && window.localStorage.getItem("live-on")) refreshLive();
+  } catch (err) { /* ignore */ }
 })();

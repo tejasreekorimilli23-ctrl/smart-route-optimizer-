@@ -2125,3 +2125,14 @@ fieldset {
 .install-btn[hidden] {
   display: none;
 }
+
+.key-saved {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--light-ink);
+}
+.locate-status.is-error {
+  color: var(--heavy-ink);
+  font-weight: 600;
+}
