@@ -2108,3 +2108,20 @@ fieldset {
   color: var(--ink-2);
   word-break: break-all;
 }
+
+/* ---------- install button ---------- */
+
+.install-btn {
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--navy);
+  background: #ffd23f;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+.install-btn[hidden] {
+  display: none;
+}

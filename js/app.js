@@ -2534,6 +2534,29 @@
     setupSearch("destination");
   }
 
+  // ---------- install as an app, work offline ----------
+
+  // The service worker (sw.js) keeps the app's files so it opens offline.
+  // Browsers only allow it on https:// pages and on localhost.
+  if ("serviceWorker" in navigator && (window.location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname))) {
+    navigator.serviceWorker.register("sw.js").catch(function () { /* the app still works online */ });
+  }
+  var installPrompt = null;
+  window.addEventListener("beforeinstallprompt", function (ev) {
+    ev.preventDefault();
+    installPrompt = ev;
+    $("install-app").hidden = false;
+  });
+  $("install-app").addEventListener("click", function () {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.then(function () {
+      installPrompt = null;
+      $("install-app").hidden = true;
+    });
+  });
+  window.addEventListener("appinstalled", function () { $("install-app").hidden = true; });
+
   // ---------- start ----------
   var savedLang = null;
   var savedMode = null;
