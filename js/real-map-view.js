@@ -112,10 +112,39 @@
     return box;
   }
 
+  // Kinds of problem people can report (see js/community.js).
+  var REPORT_TYPES = ["accident", "closed", "bandh", "flooding", "jam", "works", "other"];
+  var REPORT_ICONS = { accident: "!", closed: "⛔", bandh: "✋", flooding: "≈", jam: "≡", works: "⚒", other: "?" };
+
+  /** Second step of reporting: what is happening here? */
+  function reportMenu(latlng, edgeId) {
+    return menu(tr("map.reportWhat"), REPORT_TYPES.map(function (type) {
+      return {
+        text: (REPORT_ICONS[type] || "") + " " + tr("report.type." + type),
+        className: "rp-" + type,
+        run: function () { act("report", { lat: latlng.lat, lng: latlng.lng, edgeId: edgeId, type: type }); }
+      };
+    }));
+  }
+
+  function reportItem(latlng, edgeId) {
+    return {
+      text: tr("map.report"),
+      className: "is-report",
+      run: function () {
+        // Opened after the current menu closes.
+        setTimeout(function () {
+          root.L.popup().setLatLng(latlng).setContent(reportMenu(latlng, edgeId)).openOn(map);
+        }, 0);
+      }
+    };
+  }
+
   function pointMenu(latlng, title) {
     return menu(title, [
       { text: tr("map.startHere"), run: function () { act("set-start", latlng); } },
-      { text: tr("map.goHere"), run: function () { act("set-destination", latlng); } }
+      { text: tr("map.goHere"), run: function () { act("set-destination", latlng); } },
+      reportItem(latlng, null)
     ]);
   }
 
@@ -123,6 +152,7 @@
     var items = [
       { text: tr("map.startHere"), run: function () { act("set-start", latlng); } },
       { text: tr("map.goHere"), run: function () { act("set-destination", latlng); } },
+      reportItem(latlng, edge.id),
       { label: tr("map.trafficOnSection") }
     ];
     dataRef.CONGESTION_ORDER.forEach(function (lv) {
@@ -291,6 +321,28 @@
         zIndexOffset: 900,
         keyboard: false
       }).bindTooltip(opts.incidentTip ? opts.incidentTip(inc) : inc.category).addTo(overlay);
+    });
+
+    // Problems reported by people, with "still there" / "cleared" buttons.
+    (opts.reports || []).forEach(function (r) {
+      var info = opts.reportInfo ? opts.reportInfo(r) : { title: r.type, detail: "", canVote: false };
+      var marker = root.L.marker([r.lat, r.lon], {
+        icon: divIcon("mk-report rp-" + r.type, REPORT_ICONS[r.type] || "?", 26),
+        zIndexOffset: 950,
+        keyboard: false
+      }).bindTooltip(info.title);
+      marker.on("click", function (ev) {
+        root.L.DomEvent.stopPropagation(ev);
+        var items = [{ label: info.detail }];
+        if (info.canVote) {
+          items.push({ text: tr("report.vote.confirm"), className: "is-confirm", run: function () { act("vote", { id: r.id, kind: "confirm" }); } });
+          items.push({ text: tr("report.vote.clear"), className: "is-clear", run: function () { act("vote", { id: r.id, kind: "clear" }); } });
+        } else if (info.votedText) {
+          items.push({ label: info.votedText });
+        }
+        root.L.popup().setLatLng([r.lat, r.lon]).setContent(menu(info.title, items)).openOn(map);
+      });
+      marker.addTo(overlay);
     });
 
     // Accident black spots from js/blackspots.js.

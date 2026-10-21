@@ -98,6 +98,12 @@
     liveRefresh: $("live-refresh"),
     liveStatus: $("live-status"),
     liveIncidents: $("live-incidents"),
+    communityPanel: $("community-panel"),
+    communityStatus: $("community-status"),
+    communityList: $("community-list"),
+    reportHere: $("report-here"),
+    reportTypes: $("report-types"),
+    alertsBanner: $("alerts-banner"),
     liveKeyBox: $("live-key-box"),
     liveKey: $("live-key"),
     liveKeySave: $("live-key-save"),
@@ -273,7 +279,10 @@
    */
   function routeData() {
     var list = pinList();
-    var unsafe = liveActive() && live.incidents && D.HAZARDS.incident ? live.incidents.unsafe : [];
+    var unsafe = liveActive() && live.incidents && D.HAZARDS.incident ? live.incidents.unsafe.slice() : [];
+    if (isReal() && D.HAZARDS.incident && typeof community !== "undefined") {
+      community.fx.unsafe.forEach(function (id) { if (unsafe.indexOf(id) < 0) unsafe.push(id); });
+    }
     if (!list.length && !unsafe.length) return D;
     if (!routing) {
       var marked = {};
@@ -333,6 +342,11 @@
       levels = Object.assign({}, levels);
       if (live.flow) Object.assign(levels, live.flow.levels);
       if (live.incidents) mergeWorse(levels, live.incidents.levels);
+    }
+    // What people and officials report applies whenever the real map is shown.
+    if (isReal() && typeof community !== "undefined") {
+      levels = Object.assign({}, levels, community.speedFx.levels);
+      mergeWorse(levels, community.fx.levels);
     }
     if (!withoutManual && state && state.manual) levels = Object.assign({}, levels, state.manual);
     return levels;
@@ -658,6 +672,15 @@
     renderAll();
     updateLiveStatus();
     if (isReal()) setTimeout(function () { VIEWS.real.invalidate(); }, 0);
+    if (typeof community !== "undefined") {
+      community.reports = [];
+      community.alerts = [];
+      community.fx = { levels: {}, unsafe: [], byEdge: {} };
+      community.speedFx = { levels: {}, roads: 0 };
+      community.signature = "";
+      renderCommunity();
+      if (isReal()) refreshCommunity(true);
+    }
   }
 
   // ---------- form validation ----------
@@ -931,6 +954,10 @@
       renderMap();
     } else if (action === "set-level") {
       setRoadLevel(payload.edgeId, payload.level);
+    } else if (action === "report") {
+      sendReport(payload.lat, payload.lng, payload.type, payload.edgeId);
+    } else if (action === "vote") {
+      vote(payload.id, payload.kind);
     }
   }
 
@@ -1143,6 +1170,191 @@
   }
 
 
+
+  // ---------- community: reports from people, official alerts, shared speeds ----------
+
+  var CM = window.Community;
+  var store = CM ? CM.connect(window.FIREBASE_CONFIG, window.localStorage) : null;
+  var community = {
+    reports: [], // active reports in the current area
+    alerts: [], // active official alerts
+    speeds: [],
+    fx: { levels: {}, unsafe: [], byEdge: {} },
+    speedFx: { levels: {}, roads: 0 },
+    busy: false,
+    error: null,
+    signature: ""
+  };
+  var COMMUNITY_EVERY_MS = 60 * 1000;
+  var lastCommunityAt = 0;
+
+  function readVotes() {
+    try { return JSON.parse(window.localStorage.getItem("community-votes") || "{}"); } catch (err) { return {}; }
+  }
+
+  function saveVote(id, kind) {
+    var v = readVotes();
+    v[id] = kind;
+    try { window.localStorage.setItem("community-votes", JSON.stringify(v)); } catch (err) { /* ignore */ }
+  }
+
+  function inArea(p) {
+    var b = D && D.AREA ? D.AREA.bbox : null;
+    return !b || (p.lat >= b[0] && p.lat <= b[2] && p.lon >= b[1] && p.lon <= b[3]);
+  }
+
+  function minutesAgo(date) {
+    var m = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
+    return m < 1 ? t("time.justNow") : m < 60 ? t("time.minAgo", { n: m }) : t("time.hoursAgo", { n: Math.floor(m / 60) });
+  }
+
+  /** Words for a report: used on the map, in the list and on route cards. */
+  function reportInfo(r) {
+    var votes = readVotes();
+    var edge = edgeById[r.edgeId];
+    var parts = [];
+    if (edge) parts.push(roadName(edge));
+    if (r.createdAt) parts.push(t("report.reported", { ago: minutesAgo(r.createdAt) }));
+    if (r.confirms) parts.push(t("report.confirms", { n: r.confirms }));
+    if (r.clears) parts.push(t("report.clears", { n: r.clears }));
+    if (r.note) parts.push("“" + r.note + "”");
+    return {
+      title: t("report.type." + r.type),
+      detail: parts.join(" · "),
+      canVote: !votes[r.id] && store,
+      votedText: votes[r.id] ? t(votes[r.id] === "mine" ? "report.yours" : "report.thanks") : ""
+    };
+  }
+
+  function communitySummary() {
+    var n = community.reports.length;
+    var parts = [n === 0 ? t("community.noReports") : n === 1 ? t("community.oneReport") : t("community.nReports", { n: n })];
+    if (community.alerts.length) parts.push(t("community.nAlerts", { n: community.alerts.length }));
+    if (community.speedFx.roads) parts.push(t("community.nSpeeds", { n: community.speedFx.roads }));
+    return parts.join(", ");
+  }
+
+  function renderCommunity() {
+    if (!els.communityStatus) return;
+    var connected = store && store.mode === "firebase";
+    els.communityStatus.textContent = community.error
+      ? t("community.err." + (community.error.code || "failed"))
+      : t(connected ? "community.connected" : "community.local") + " " + communitySummary() + ".";
+    els.communityStatus.classList.toggle("is-error", !!community.error);
+    var list = community.reports.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }).slice(0, 6);
+    els.communityList.innerHTML = list.map(function (r, i) {
+      var info = reportInfo(r);
+      return '<li><button type="button" class="inc-item rp-' + esc(r.type) + '" data-report="' + i + '">' +
+        esc(info.title + " · " + info.detail) + "</button></li>";
+    }).join("");
+    els.communityList.hidden = !list.length;
+    community.listed = list;
+    // Official alerts: a banner everyone sees.
+    els.alertsBanner.hidden = !community.alerts.length;
+    els.alertsBanner.innerHTML = community.alerts.map(function (a) {
+      var until = a.endsAt ? " " + t("alert.until", { time: clockText(a.endsAt) }) : "";
+      return '<div class="alert-item"><p class="alert-title"><span class="alert-kind">' + esc(t("alert.kind." + (a.kind || "other"))) + "</span> " +
+        esc(a.title || "") + "</p>" + (a.message ? "<p>" + esc(a.message) + "</p>" : "") +
+        '<p class="alert-meta">' + esc(t("alert.official") + until) + "</p></div>";
+    }).join("");
+  }
+
+  /**
+   * Loads reports, alerts and shared speeds. When they change what is on
+   * the roads, the routes are recalculated with a notice saying why.
+   */
+  function refreshCommunity(force) {
+    if (!store || !isReal() || community.busy) return;
+    if (!force && (document.hidden || Date.now() - lastCommunityAt < COMMUNITY_EVERY_MS)) return;
+    community.busy = true;
+    lastCommunityAt = Date.now();
+    var now = new Date();
+    Promise.all([store.listReports(now), store.listAlerts(now), store.listSpeeds(now)]).then(function (out) {
+      community.busy = false;
+      community.error = null;
+      var areaNow = D;
+      community.reports = out[0].filter(function (r) { return CM.isActive(r, now) && inArea(r); });
+      community.alerts = out[1].filter(function (a) { return CM.isAlertActive(a, now); });
+      community.speeds = out[2];
+      var graph = E.buildGraph(areaNow, null, "fastest", "car");
+      community.fx = CM.effects(community.reports, community.alerts, now);
+      community.speedFx = CM.speedLevels(areaNow, community.speeds, now, function (e) {
+        return graph.edgeInfo[e.id] ? graph.edgeInfo[e.id].freeFlowKmh : 0;
+      });
+      var sig = JSON.stringify([community.fx.levels, community.fx.unsafe, community.speedFx.levels]);
+      var changed = sig !== community.signature;
+      community.signature = sig;
+      renderCommunity();
+      if (changed) {
+        routing = null;
+        indexData();
+        var hour = state.hour !== null ? state.hour : currentHour();
+        applyTraffic(baseLevels(hour), state.hour, t("cause.community", { summary: communitySummary() }));
+      } else {
+        renderMap();
+      }
+    }, function (err) {
+      community.busy = false;
+      community.error = err;
+      renderCommunity();
+    });
+  }
+
+  /** Sends a report for a point (map tap or GPS). */
+  function sendReport(lat, lon, type, edgeId) {
+    if (!store) return;
+    var e = edgeId ? edgeById[edgeId] : null;
+    if (!e) {
+      var hit = G.nearestRoad(D, lat, lon);
+      if (!hit || hit.metres > 80) {
+        flashCommunity(t("report.err.noroad"), true);
+        return;
+      }
+      e = hit.edge;
+    }
+    var input = { type: type, lat: lat, lon: lon, edgeId: e.id, roadName: e.name, area: D.AREA.name };
+    if (CM.validateReport(input)) {
+      flashCommunity(t("report.err.invalid"), true);
+      return;
+    }
+    store.addReport(CM.newReport(input, new Date())).then(function (saved) {
+      if (saved && saved.id) saveVote(saved.id, "mine");
+      flashCommunity(t(store.mode === "firebase" ? "report.sent" : "report.sentLocal"), false);
+      refreshCommunity(true);
+    }, function (err) {
+      flashCommunity(t("community.err." + (err.code || "failed")), true);
+    });
+  }
+
+  function vote(id, kind) {
+    var r = community.reports.filter(function (x) { return x.id === id; })[0];
+    if (!r || readVotes()[id]) return;
+    saveVote(id, kind);
+    store.vote(r, kind).then(function () { refreshCommunity(true); }, function (err) {
+      flashCommunity(t("community.err." + (err.code || "failed")), true);
+    });
+  }
+
+  function flashCommunity(text, isError) {
+    els.communityStatus.textContent = text;
+    els.communityStatus.classList.toggle("is-error", !!isError);
+    els.communityPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+  }
+
+  /** "Report at my location": GPS, then the chosen kind of problem. */
+  function reportHere(type) {
+    if (!navigator.geolocation) {
+      flashCommunity(t("gps.unsupported"), true);
+      return;
+    }
+    flashCommunity(t("gps.finding"), false);
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      sendReport(pos.coords.latitude, pos.coords.longitude, type, null);
+    }, function (err) {
+      flashCommunity(t(err.code === 1 ? "gps.denied" : "report.err.gps"), true);
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  }
+
   // ---------- areas: any town, not only the built-in one ----------
 
   var AL = window.AreaLoader;
@@ -1319,7 +1531,9 @@
       t: t,
       hazardLabel: hazardLabel,
       incidents: liveActive() && live.incidents ? live.incidents.incidents : [],
-      incidentTip: incidentTip
+      incidentTip: incidentTip,
+      reports: isReal() ? community.reports : [],
+      reportInfo: reportInfo
     });
   }
 
@@ -1395,7 +1609,10 @@
       s.hazards.forEach(function (h) {
         var road = segRoadName(s);
         var inc = h.id === "incident" && live.incidents ? live.incidents.byEdge[s.edgeId] : null;
-        var label = inc ? t("incident.liveOn", { label: incidentLabel(inc) }) : hazardLabel(h.id);
+        var rep = h.id === "incident" && !inc ? community.fx.byEdge[s.edgeId] : null;
+        var label = inc ? t("incident.liveOn", { label: incidentLabel(inc) })
+          : rep ? t(rep.alert ? "alert.on" : "report.on", { label: t(rep.alert ? "alert.kind." + (rep.alert.kind || "other") : "report.type." + rep.type) })
+          : hazardLabel(h.id);
         var key = label + "|" + road;
         if (seen[key]) return;
         seen[key] = true;
@@ -1835,6 +2052,30 @@
     setLive(els.liveToggle.checked);
   });
   els.liveRefresh.addEventListener("click", function () { refreshLive(); });
+  if (CM) {
+    els.reportTypes.innerHTML = CM.TYPES.map(function (type) {
+      return '<button type="button" class="area-pick rp-' + type + '" data-report-type="' + type + '" data-i18n="report.type.' + type + '"></button>';
+    }).join("");
+    applyStaticText();
+  }
+  els.reportHere.addEventListener("click", function () { els.reportTypes.hidden = !els.reportTypes.hidden; });
+  els.reportTypes.addEventListener("click", function (ev) {
+    var b = ev.target.closest ? ev.target.closest("[data-report-type]") : null;
+    if (!b) return;
+    els.reportTypes.hidden = true;
+    reportHere(b.getAttribute("data-report-type"));
+  });
+  els.communityList.addEventListener("click", function (ev) {
+    var b = ev.target.closest ? ev.target.closest("[data-report]") : null;
+    if (!b || !community.listed) return;
+    var r = community.listed[Number(b.getAttribute("data-report"))];
+    if (r && VIEWS.real.focusOn) {
+      VIEWS.real.focusOn(r.lat, r.lon);
+      els.mapPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }
+  });
+  setInterval(function () { refreshCommunity(false); }, 15000);
+  document.addEventListener("visibilitychange", function () { refreshCommunity(false); });
   els.liveIncidents.addEventListener("click", function (ev) {
     var btn = ev.target.closest ? ev.target.closest("[data-incident]") : null;
     if (!btn || !live.incidents) return;

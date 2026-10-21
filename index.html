@@ -156,6 +156,16 @@
             <button type="button" id="live-key-clear" class="link-btn" data-i18n="live.keyClear">Remove saved key</button>
           </details>
         </div>
+        <div id="community-panel" class="live-box community-box real-only">
+          <div class="live-head">
+            <strong data-i18n="community.title">Reports from people</strong>
+            <button type="button" id="report-here" class="link-btn" data-i18n="community.reportHere">Report at my location</button>
+          </div>
+          <div id="report-types" class="report-types" hidden></div>
+          <p id="community-status" class="live-status" role="status" aria-live="polite"></p>
+          <ul id="community-list" class="live-incidents" hidden></ul>
+          <p class="note" data-i18n="community.hint">Saw an accident, a closed road, a bandh or flooding? Tap that spot on the map and choose “Report a problem here”, so routes avoid it for everyone.</p>
+        </div>
         <div class="time-field">
           <div class="time-head">
             <label for="hour" data-i18n="time.label">Time of day</label>
@@ -176,6 +186,7 @@
     </div>
 
     <div class="main-col">
+      <div id="alerts-banner" class="alerts-banner" role="alert" hidden></div>
       <section class="map-panel" aria-labelledby="map-title">
         <div class="map-head">
           <h2 id="map-title" data-i18n="map.title">Road network</h2>
@@ -300,6 +311,8 @@
   <script src="js/route-engine.js"></script>
   <script src="js/geo-tools.js"></script>
   <script src="js/live-traffic.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/community.js"></script>
   <script src="js/translit.js"></script>
   <script src="js/place-search.js"></script>
   <script src="js/directions.js"></script>

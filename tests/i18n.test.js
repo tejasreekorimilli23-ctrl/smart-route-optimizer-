@@ -38,6 +38,9 @@ test("every text key used by the page and the app exists in English", () => {
   for (const k of ["straight", "slight-left", "slight-right", "left", "right", "uturn"]) used.add("dir.turn." + k);
   for (const k of ["offline", "busy", "search", "download", "noroads", "nostore"]) used.add("area.err." + k);
   for (const k of ["roads", "places", "building", "retry"]) used.add("area.step." + k);
+  for (const k of require("../js/community.js").TYPES) used.add("report.type." + k);
+  for (const k of ["bandh", "closure", "vip", "event", "other"]) used.add("alert.kind." + k);
+  for (const k of ["offline", "denied", "limit", "failed", "notconnected"]) used.add("community.err." + k);
   for (const k of ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]) used.add("dir.compass." + k);
   for (const k of Object.values(require("../js/live-traffic.js").CATEGORIES)) used.add("incident." + k);
   for (const m of ["real", "demo"]) ["note.planner.", "note.traffic.", "note.map."].forEach((p) => used.add(p + m));
