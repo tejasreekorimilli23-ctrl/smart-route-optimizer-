@@ -7,9 +7,9 @@
  *       timeMin = (distanceKm / freeFlowKmh) * 60 * congestionFactor
  * - Each road also has a simulated safety risk:
  *       riskPoints = distanceKm * (BASE_RISK + sum of its hazard weights)
- * - The user picks a priority. "fastest" weights roads by time, "safest"
- *   by risk points. The best route for that weight comes from Dijkstra's
- *   algorithm.
+ * - The user picks a priority. "fastest" weights roads by time, "shortest"
+ *   by distance, "safest" by risk points. All weights are positive, so
+ *   Dijkstra's algorithm finds the best route for that weight.
  * - Alternatives come from Yen's k-shortest loopless paths (which calls
  *   Dijkstra repeatedly), followed by a small "distinctness" filter so the
  *   alternatives are not near-copies of each other.
@@ -50,6 +50,7 @@
   // What each priority minimises, and what breaks ties.
   var PRIORITIES = {
     fastest: { label: "Fastest", cost: "timeUnits", tie: "distanceUnits" },
+    shortest: { label: "Shortest", cost: "distanceUnits", tie: "timeUnits" },
     safest: { label: "Safest", cost: "riskUnits", tie: "timeUnits" }
   };
 
@@ -515,9 +516,10 @@
    * maxSharedLength of their length with every route already chosen.
    * If that leaves only one route, add the next-best path anyway so the
    * user still has a comparison whenever the network allows one.
-   * mustInclude (optional) is the best path under the OTHER priority; it is
-   * always shown, replacing the lowest-ranked route if the list is full, so
-   * the user can see the fastest and the safest route side by side.
+   * mustInclude (optional) lists the best paths under the OTHER priorities;
+   * they are always shown, replacing the lowest-ranked other route if the
+   * list is full, so the user sees the fastest, shortest and safest route
+   * side by side.
    */
   function selectDistinct(graph, paths, mustInclude) {
     if (!paths.length) return [];
@@ -530,10 +532,19 @@
       if (distinct) chosen.push(p);
     }
     if (chosen.length < 2 && paths.length > 1) chosen.push(paths[1]);
-    if (mustInclude && !chosen.some(function (c) { return c.signature === mustInclude.signature; })) {
-      if (chosen.length >= SETTINGS.maxRoutes) chosen.pop();
-      chosen.push(mustInclude);
-    }
+    var must = {};
+    must[paths[0].signature] = true;
+    (mustInclude || []).forEach(function (m) { must[m.signature] = true; });
+    (mustInclude || []).forEach(function (m) {
+      if (chosen.some(function (c) { return c.signature === m.signature; })) return;
+      if (chosen.length >= SETTINGS.maxRoutes) {
+        // Drop the lowest-ranked route that is not some objective's best.
+        for (var j = chosen.length - 1; j >= 0; j--) {
+          if (!must[chosen[j].signature]) { chosen.splice(j, 1); break; }
+        }
+      }
+      chosen.push(m);
+    });
     return chosen.sort(comparePaths);
   }
 
@@ -701,7 +712,7 @@
 
   /**
    * Main entry point.
-   * options.priority: "fastest" (default) or "safest".
+   * options.priority: "fastest" (default), "shortest" or "safest".
    * options.vehicle: "car" (default), "twowheeler", "auto" or "walk".
    * @returns {{ok:true, routes:Array, recommended:Object} | {ok:false, code:string, message:string}}
    */
@@ -730,16 +741,21 @@
       );
     }
 
-    // Best route under the other priority, re-built on this graph so its
-    // cost fields are comparable. It is always shown alongside.
-    var otherPriority = priority === "fastest" ? "safest" : "fastest";
-    var otherFound = dijkstra(buildGraph(data, levels, otherPriority, vehicle), originId, destinationId);
-    var otherBest = makePath(graph, otherFound.nodes, otherFound.edges);
+    // Best route under each other priority, re-built on this graph so its
+    // cost fields are comparable. They are always shown alongside.
     var bestSig = {};
     bestSig[priority] = paths[0].signature;
-    bestSig[otherPriority] = otherBest.signature;
+    var otherBests = [];
+    Object.keys(PRIORITIES).forEach(function (other) {
+      if (other === priority) return;
+      var found = dijkstra(buildGraph(data, levels, other, vehicle), originId, destinationId);
+      if (!found) return;
+      var p = makePath(graph, found.nodes, found.edges);
+      bestSig[other] = p.signature;
+      otherBests.push(p);
+    });
 
-    var routes = selectDistinct(graph, paths, otherBest).map(function (p) {
+    var routes = selectDistinct(graph, paths, otherBests).map(function (p) {
       return describeRoute(data, graph, p, nodeById);
     });
     assignNames(routes);
@@ -749,6 +765,7 @@
       r.rank = i + 1;
       r.isRecommended = i === 0;
       r.isFastest = r.signature === bestSig.fastest;
+      r.isShortest = r.signature === bestSig.shortest;
       r.isSafest = r.signature === bestSig.safest;
       r.extraTimeUnits = r.timeUnits - best.timeUnits;
       r.extraDistanceUnits = r.distanceUnits - best.distanceUnits;

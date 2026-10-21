@@ -514,6 +514,46 @@ select[aria-invalid="true"] {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+.choice-grid.is-three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.choice-grid.is-three .tile-body {
+  min-height: 42px;
+  font-size: 0.9rem;
+}
+.offline-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff4d6;
+  color: #5c4300;
+  border: 1px solid #e6c46a;
+  font-size: 0.92rem;
+}
+.report-note-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+.report-note {
+  width: 100%;
+  margin: 4px 0 6px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+}
+.why {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.why strong {
+  font-weight: 650;
+}
 .choice-grid.is-four .tile-body {
   min-height: 42px;
   font-size: 0.9rem;

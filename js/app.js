@@ -68,6 +68,8 @@
   var els = {
     langOptions: $("lang-options"),
     demoOpen: $("demo-open"),
+    reportNote: $("report-note"),
+    offlineBanner: $("offline-banner"),
     demoExit: $("demo-exit"),
     modeBadgeText: $("mode-badge-text"),
     form: $("route-form"),
@@ -414,37 +416,98 @@
     return sc ? t("cond.scenario", { name: scenarioName(sc) }) : t("cond.custom");
   }
 
-  function priorityWord() {
-    return t(state.priority === "safest" ? "word.safest" : "word.fastest");
+  var OBJECTIVES = ["fastest", "shortest", "safest"];
+  var OBJECTIVE_FLAG = { fastest: "isFastest", shortest: "isShortest", safest: "isSafest" };
+
+  function priorityWord(p) {
+    return t("word." + (p || state.priority));
   }
 
   /** The headline figure for a route under the current priority. */
   function keyFigure(r) {
-    return state.priority === "safest"
-      ? t("fig.riskTime", { risk: fR(r.riskUnits), min: fT(r.timeUnits) })
-      : t("fig.min", { min: fT(r.timeUnits) });
+    if (state.priority === "safest") return t("fig.riskTime", { risk: fR(r.riskUnits), min: fT(r.timeUnits) });
+    if (state.priority === "shortest") return t("fig.kmTime", { km: fD(r.distanceUnits), min: fT(r.timeUnits) });
+    return t("fig.min", { min: fT(r.timeUnits) });
+  }
+
+  /** "0.3 km longer", or "40 m shorter" when the difference is under 1 km. */
+  function distDiffText(units) {
+    if (units === 0) return t("cmp.sameDistance");
+    var metres = Math.abs(units) / E.unitsOf(D).perKm * 1000;
+    var params = metres < 1000 ? { m: Math.max(10, Math.round(metres / 10) * 10) } : { km: fD(Math.abs(units)) };
+    var key = units > 0 ? "cmp.longer" : "cmp.shorter";
+    return t(metres < 1000 ? key + "M" : key, params);
+  }
+
+  /** "1.2 min slower, 0.3 km shorter, risk score 0.8 higher" for route a against b. */
+  function diffText(a, b) {
+    var dt = a.timeUnits - b.timeUnits;
+    var dd = a.distanceUnits - b.distanceUnits;
+    var dr = a.riskUnits - b.riskUnits;
+    return [
+      dt === 0 ? t("cmp.sameTimeShort") : dt > 0 ? t("cmp.slower", { min: fT(dt) }) : t("cmp.faster", { min: fT(-dt) }),
+      distDiffText(dd),
+      dr === 0 ? t("cmp.sameRisk") : dr > 0 ? t("cmp.riskHigher", { risk: fR(dr) }) : t("cmp.riskLower", { risk: fR(-dr) })
+    ].join(", ");
   }
 
   /**
-   * One sentence comparing the recommendation with the best route under the
-   * other priority, e.g. what the safer route costs in time.
+   * Compares the recommendation with the best route under each other
+   * objective, e.g. what the safest route costs in time.
    */
   function tradeoffText(res) {
     var rec = res.recommended;
-    var other = res.routes.filter(function (r) {
-      return state.priority === "safest" ? r.isFastest : r.isSafest;
-    })[0];
-    if (!other || other.signature === rec.signature) {
-      return t(state.priority === "safest" ? "trade.alsoFastest" : "trade.alsoSafest");
-    }
-    var params = { route: routeLabel(other), other: fR(other.riskUnits), rec: fR(rec.riskUnits) };
-    if (state.priority === "safest") {
-      var saves = -other.extraTimeUnits;
-      params.min = fT(saves);
-      return t(saves > 0 ? "trade.fastestSaves" : "trade.fastestSame", params);
-    }
-    params.min = fT(other.extraTimeUnits);
-    return t(other.extraTimeUnits > 0 ? "trade.safestLonger" : "trade.safestSame", params);
+    var also = [];
+    var parts = [];
+    OBJECTIVES.forEach(function (o) {
+      if (o === res.priority) return;
+      var other = res.routes.filter(function (r) { return r[OBJECTIVE_FLAG[o]]; })[0];
+      if (!other || other.signature === rec.signature) also.push(priorityWord(o));
+      else parts.push(t("trade.other", { objective: priorityWord(o), route: routeLabel(other), diff: diffText(other, rec) }));
+    });
+    return (also.length ? t("trade.also", { list: also.join(t("word.and")) }) + " " : "") + parts.join(" ");
+  }
+
+  /** Names of roads closed right now (each once, at most 3). */
+  function closedNow() {
+    var levels = routeLevels();
+    var seen = {};
+    var out = [];
+    D.EDGES.forEach(function (e) {
+      if (levels[e.id] !== "closed" || out.length >= 3) return;
+      var name = roadName(e);
+      if (!name || seen[name]) return;
+      seen[name] = true;
+      out.push(name);
+    });
+    return out;
+  }
+
+  /** Where the traffic figures come from, for the route explanation. */
+  function trafficSourceText() {
+    if (!isReal()) return t("why.srcDemo");
+    if (liveActive()) return t(liveStale() ? "why.srcStale" : "why.srcLive");
+    return t("why.srcEstimated");
+  }
+
+  /** Plain reasons why a route is shown: objective, traffic, hazards, closures, data. */
+  function whyText(r, res) {
+    var reasons = [];
+    if (r.isRecommended) reasons.push(t("why.best." + res.priority, { n: res.routes.length }));
+    OBJECTIVES.forEach(function (o) {
+      if (o !== res.priority && r[OBJECTIVE_FLAG[o]]) reasons.push(t("why.also." + o));
+    });
+    if (!reasons.length) reasons.push(t("why.alternative"));
+    var heavy = r.levelDistanceUnits.heavy;
+    reasons.push(heavy > 0 ? t("why.heavy", { km: fD(heavy) }) : t("why.noHeavy"));
+    var spots = {};
+    r.hazards.forEach(function (h) { spots[h.id + "|" + h.roadName] = true; });
+    var n = Object.keys(spots).length;
+    reasons.push(n === 0 ? t("why.noHazards") : t("why.hazards", { n: n, rating: t("rating." + r.safety.key) }));
+    var closed = closedNow();
+    if (closed.length && r.isRecommended) reasons.push(t("why.avoidsClosed", { roads: closed.join(", ") }));
+    reasons.push(trafficSourceText());
+    return '<p class="why"><strong>' + esc(t("why.title")) + "</strong> " + esc(reasons.join("; ")) + ".</p>";
   }
 
   function swatchSvg(rank) {
@@ -631,7 +694,14 @@
     els.plannerNote.textContent = t("note.planner." + mt);
     els.trafficNote.textContent = t("note.traffic." + mt);
     els.mapNote.textContent = t("note.map." + mt);
-    els.simTag.textContent = t(isReal() ? (liveActive() ? "tag.live" : "tag.estimated") : "tag.simulated");
+    els.simTag.textContent = t(trafficTag());
+  }
+
+  /** Label for the traffic data in use: live, stale (old live data), estimated, or demo. */
+  function trafficTag() {
+    if (!isReal()) return "tag.simulated";
+    if (liveActive()) return liveStale() ? "tag.stale" : "tag.live";
+    return "tag.estimated";
   }
 
   function syncControls() {
@@ -875,7 +945,7 @@
     state.priority = priority;
     // An emergency is always the fastest route; choosing "safest" turns it
     // into an ordinary search to the same hospital.
-    if (state.query && state.query.emergency && priority === "safest") state.query.emergency = false;
+    if (state.query && state.query.emergency && priority !== "fastest") state.query.emergency = false;
     recalc(t("cause.priority." + priority), choiceNotice);
   }
 
@@ -988,6 +1058,9 @@
       var c = pos.coords;
       if (!isReal()) setMode("real");
       var near = G.nearestRoad(D, c.latitude, c.longitude);
+      if (VIEWS.real && VIEWS.real.setPosition && !(typeof trip !== "undefined" && trip.on)) {
+        VIEWS.real.setPosition({ lat: c.latitude, lon: c.longitude, accuracy: c.accuracy }, false);
+      }
       if (near && near.metres <= G.MAX_PIN_METRES) {
         setPin("start", c.latitude, c.longitude, "gps");
         clearFormError();
@@ -1078,6 +1151,20 @@
 
   function savedKey() {
     try { return window.localStorage.getItem(KEY_STORE) || ""; } catch (err) { return ""; }
+  }
+
+  var STALE_MS = 30 * 60 * 1000;
+
+  /** Time of the newest live data, or null. */
+  function liveFetchedAt() {
+    return [live.flow && live.flow.fetchedAt, live.incidents && live.incidents.fetchedAt].filter(Boolean)
+      .sort(function (a, b) { return b - a; })[0] || null;
+  }
+
+  /** True when live data is on but its newest part is over 30 minutes old (e.g. after sleep or failed updates). */
+  function liveStale() {
+    var at = liveFetchedAt();
+    return !!at && Date.now() - at > STALE_MS;
   }
 
   /** True when live TomTom data is switched on and has arrived. */
@@ -1173,10 +1260,11 @@
         .sort(function (a, b) { return b - a; })[0];
       text = t("live.updated", { time: clockText(latest), summary: liveSummary() });
       if (live.warn) text += " " + t("live.partial");
+      if (liveStale()) text += " " + t("live.stale");
     } else text = t("live.offWithKey", { end: key.slice(-4) });
     els.liveStatus.textContent = text;
     els.liveStatus.classList.toggle("is-error", !!live.error);
-    els.simTag.textContent = t(isReal() ? (liveActive() ? "tag.live" : "tag.estimated") : "tag.simulated");
+    els.simTag.textContent = t(trafficTag());
     if (VIEWS.real && VIEWS.real.setLiveOverlay) VIEWS.real.setLiveOverlay(liveActive() && live.flow ? LT.overlayUrl(key) : null);
     renderIncidentList();
   }
@@ -1330,9 +1418,10 @@
     var parts = [];
     if (edge) parts.push(roadName(edge));
     if (r.createdAt) parts.push(t("report.reported", { ago: minutesAgo(r.createdAt) }));
-    if (r.confirms) parts.push(t("report.confirms", { n: r.confirms }));
+    parts.push(r.confirms ? t("report.confirms", { n: r.confirms }) : t("report.unverified"));
     if (r.clears) parts.push(t("report.clears", { n: r.clears }));
     if (r.note) parts.push("“" + r.note + "”");
+    if (r.expiresAt) parts.push(t("report.expires", { time: clockText(r.expiresAt) }));
     return {
       title: t("report.type." + r.type),
       detail: parts.join(" · "),
@@ -1356,7 +1445,12 @@
       ? t("community.err." + (community.error.code || "failed"))
       : t(connected ? "community.connected" : "community.local") + " " + communitySummary() + ".";
     els.communityStatus.classList.toggle("is-error", !!community.error);
-    var list = community.reports.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }).slice(0, 6);
+    // A message just shown (e.g. "report sent") stays for a few seconds.
+    if (community.flash && Date.now() < community.flash.until) {
+      els.communityStatus.textContent = community.flash.text;
+      els.communityStatus.classList.toggle("is-error", community.flash.isError);
+    }
+    var list =community.reports.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }).slice(0, 6);
     els.communityList.innerHTML = list.map(function (r, i) {
       var info = reportInfo(r);
       return '<li><button type="button" class="inc-item rp-' + esc(r.type) + '" data-report="' + i + '">' +
@@ -1415,9 +1509,16 @@
     });
   }
 
+  var REPORT_GAP_MS = 60 * 1000; // one new report a minute from this device
+  var lastReportAt = 0;
+
   /** Sends a report for a point (map tap or GPS). */
   function sendReport(lat, lon, type, edgeId) {
     if (!store) return;
+    if (Date.now() - lastReportAt < REPORT_GAP_MS) {
+      flashCommunity(t("report.err.tooSoon"), true);
+      return;
+    }
     var e = edgeId ? edgeById[edgeId] : null;
     if (!e) {
       var hit = G.nearestRoad(D, lat, lon);
@@ -1427,16 +1528,31 @@
       }
       e = hit.edge;
     }
-    var input = { type: type, lat: lat, lon: lon, edgeId: e.id, roadName: e.name, area: D.AREA.name };
+    // The same problem on the same road is already reported: count it as a confirmation instead.
+    var same = community.reports.filter(function (r) { return r.edgeId === e.id && r.type === type; })[0];
+    if (same) {
+      if (!readVotes()[same.id]) {
+        vote(same.id, "confirm");
+        flashCommunity(t("report.duplicateConfirmed"), false);
+      } else {
+        flashCommunity(t("report.duplicate"), false);
+      }
+      return;
+    }
+    var note = els.reportNote ? els.reportNote.value.replace(/\s+/g, " ").trim().slice(0, CM.SETTINGS.maxNote) : "";
+    var input = { type: type, lat: lat, lon: lon, edgeId: e.id, roadName: e.name, area: D.AREA.name, note: note };
     if (CM.validateReport(input)) {
       flashCommunity(t("report.err.invalid"), true);
       return;
     }
+    lastReportAt = Date.now();
     store.addReport(CM.newReport(input, new Date())).then(function (saved) {
       if (saved && saved.id) saveVote(saved.id, "mine");
+      if (els.reportNote) els.reportNote.value = "";
       flashCommunity(t(store.mode === "firebase" ? "report.sent" : "report.sentLocal"), false);
       refreshCommunity(true);
     }, function (err) {
+      lastReportAt = 0; // not sent: allow trying again at once
       flashCommunity(t("community.err." + (err.code || "failed")), true);
     });
   }
@@ -1451,6 +1567,7 @@
   }
 
   function flashCommunity(text, isError) {
+    community.flash = { text: text, isError: !!isError, until: Date.now() + 8000 };
     els.communityStatus.textContent = text;
     els.communityStatus.classList.toggle("is-error", !!isError);
     els.communityPanel.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
@@ -1545,7 +1662,15 @@
     }
     if (route.signature !== trip.sig) prepareTrip(route); // a new route after a re-route or a live update
     var at = TR.locate(trip.ln, p);
-    if (trip.offRoute(at)) {
+    var weak = p.accuracy > TR.SETTINGS.maxAccuracyMetres;
+    if (weak) {
+      els.tripNote.textContent = t("trip.weakGps", { m: Math.round(p.accuracy) });
+      trip.weakShown = true;
+    } else if (trip.weakShown) {
+      els.tripNote.textContent = "";
+      trip.weakShown = false;
+    }
+    if (trip.offRoute(at, p.accuracy)) {
       reroute(p);
       return;
     }
@@ -1611,8 +1736,12 @@
       els.tripPanel.hidden = false;
       return;
     }
+    // Never run two GPS watchers: stop any earlier one first.
+    if (trip.watch !== undefined) navigator.geolocation.clearWatch(trip.watch);
+    trip.watch = undefined;
     prepareTrip(route);
     trip.on = true;
+    trip.weakShown = false;
     els.tripPanel.hidden = false;
     els.tripNext.textContent = t("trip.waiting");
     els.tripLeft.textContent = "";
@@ -1860,8 +1989,10 @@
       var parts = v.split(",");
       var lat = Number(parts[0]);
       var lon = Number(parts[1]);
-      if (!isFinite(lat) || !isFinite(lon)) return null;
-      return { lat: lat, lon: lon, name: decodeURIComponent(parts.slice(2).join(",") || "") };
+      if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+      var name = "";
+      try { name = decodeURIComponent(parts.slice(2).join(",") || ""); } catch (err) { name = ""; }
+      return { lat: lat, lon: lon, name: name.slice(0, 120) };
     };
     var a = point(get("from"));
     var b = point(get("to"));
@@ -2021,18 +2152,23 @@
         if (next.extraRiskUnits === 0) return t("cmp.tieRisk");
         return t("cmp.safest", { risk: fR(next.extraRiskUnits) });
       }
+      if (res.priority === "shortest") {
+        if (next.extraDistanceUnits === 0) return t("cmp.tieDistance");
+        return t("cmp.shortest", { km: fD(next.extraDistanceUnits) });
+      }
       if (next.extraTimeUnits === 0) return t("cmp.tieTime");
       return t("cmp.fastest", { min: fT(next.extraTimeUnits) });
     }
     var tu = r.extraTimeUnits;
     var timePart = tu === 0 ? t("cmp.sameTime") : tu > 0 ? t("cmp.slower", { min: fT(tu) }) : t("cmp.faster", { min: fT(-tu) });
     var d = r.extraDistanceUnits;
-    var distPart = d > 0 ? t("cmp.longer", { km: fD(d) }) : d < 0 ? t("cmp.shorter", { km: fD(-d) }) : t("cmp.sameDistance");
+    var distPart = distDiffText(d);
     if (safest) {
       var k = r.extraRiskUnits;
       var riskPart = k === 0 ? t("cmp.sameRisk") : t("cmp.riskHigher", { risk: fR(k) });
       return riskPart + ", " + timePart + ", " + distPart;
     }
+    if (res.priority === "shortest") return distPart + ", " + timePart;
     return timePart + ", " + distPart;
   }
 
@@ -2145,6 +2281,7 @@
     var id = "route-title-" + r.rank;
     var badge = (r.isRecommended ? '<p class="rec-badge">' + esc(t("card.recommended")) + "</p>" : "") +
       (r.isFastest ? '<p class="tag-badge">' + esc(t("card.fastest")) + "</p>" : "") +
+      (r.isShortest ? '<p class="tag-badge">' + esc(t("card.shortest")) + "</p>" : "") +
       (r.isSafest ? '<p class="tag-badge is-safe">' + esc(t("card.safest")) + "</p>" : "");
     var mapBtnLabel = t(focused ? "card.shown" : "card.show");
     return (
@@ -2164,6 +2301,7 @@
             '<span class="sub">' + esc(t("card.risk", { risk: fR(r.riskUnits) })) + "</span></dd></div>" +
           '<div class="metric"><dt>' + esc(t("card.compared")) + '</dt><dd class="cmp">' + esc(comparisonText(r, res)) + "</dd></div>" +
         "</dl>" +
+        whyText(r, res) +
         trafficBar(r) +
         hazardList(r) +
         stopsList(r) +
@@ -2203,6 +2341,7 @@
           from: esc(placeName(res.origin)), route: "<strong>" + esc(routeLabel(best)) + "</strong>", min: fT(best.timeUnits)
         }) + (isReal() ? " " + esc(t("emg.check")) : "") + "</p>" + list +
         "<p><strong>" + esc(t("emg.call")) + "</strong> " + esc(t("emg.drive")) + "</p>" +
+        (isReal() ? '<p class="note">' + esc(t("emg.source")) + "</p>" : '<p class="note">' + esc(t("emg.sourceDemo")) + "</p>") +
       "</div>";
   }
 
@@ -2252,6 +2391,8 @@
     var headline;
     if (res.priority === "safest") {
       headline = t("results.headSafest", p);
+    } else if (res.priority === "shortest") {
+      headline = t("results.headShortest", p);
     } else {
       headline = t("results.headFastest", p);
       if (next) {
@@ -2671,6 +2812,19 @@
   });
   window.addEventListener("appinstalled", function () { $("install-app").hidden = true; });
 
+  // ---------- online / offline ----------
+
+  function updateOnline() {
+    var offline = navigator.onLine === false;
+    els.offlineBanner.hidden = !offline;
+    els.offlineBanner.textContent = offline ? t("offline.banner") : "";
+  }
+  window.addEventListener("online", function () {
+    updateOnline();
+    if (isReal()) refreshCommunity(true);
+  });
+  window.addEventListener("offline", updateOnline);
+
   // ---------- start ----------
   var savedLang = null;
   try {
@@ -2682,6 +2836,7 @@
   lang = hashLang ? hashLang[1] : I18N[savedLang] ? savedLang : "en";
   applyStaticText();
   setMode(hashMode ? hashMode[1] : "real");
+  updateOnline();
   var shared = realAvailable ? sharedTrip() : null;
   if (shared && mode === "real") openShared(shared);
   else restoreArea();

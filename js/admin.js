@@ -88,7 +88,7 @@
       var ll = [];
       for (var i = 0; i < e.geom.length; i += 2) ll.push([e.geom[i], e.geom[i + 1]]);
       var line = window.L.polyline(ll, { renderer: renderer, color: "#5B6B86", weight: e.corridor ? 4 : 2.5, opacity: 0.55 });
-      line.bindTooltip(e.name);
+      line.bindTooltip(esc(e.name));
       line.on("click", function () { toggle(e.corridor ? e.corridor : null, e.id); });
       line.addTo(roadLayer);
       lines[e.id] = line;
@@ -150,7 +150,7 @@
     store.listAlerts(now).then(function (alerts) {
       $("alert-list").innerHTML = alerts.length ? alerts.map(function (a, i) {
         return "<li><strong>" + esc(a.title || a.kind) + "</strong> · " + esc(a.kind) + " · until " + esc(a.endsAt ? a.endsAt.toLocaleString() : "?") +
-          " · " + (a.edges ? a.edges.length : 0) + " road sections " +
+          " · " + (Array.isArray(a.edges) ? a.edges.length : 0) + " road sections " +
           '<button type="button" class="btn-secondary" data-remove-alert="' + i + '">Remove</button></li>';
       }).join("") : "<li>No active alerts.</li>";
       $("alert-list").onclick = function (ev) {
@@ -163,7 +163,7 @@
       reports = reports.filter(function (r) { return C.isActive(r, now); });
       $("report-list").innerHTML = reports.length ? reports.map(function (r, i) {
         return "<li><strong>" + esc(r.type) + "</strong> · " + esc(r.roadName || "") + " · " + esc(r.area || "") + " · " +
-          esc(r.createdAt ? r.createdAt.toLocaleString() : "") + " · ✓" + r.confirms + " ✗" + r.clears +
+          esc(r.createdAt ? r.createdAt.toLocaleString() : "") + " · ✓" + esc(String(r.confirms)) + " ✗" + esc(String(r.clears)) +
           (r.note ? " · “" + esc(r.note) + "”" : "") +
           ' <button type="button" class="btn-secondary" data-remove-report="' + i + '">Remove</button></li>';
       }).join("") : "<li>No active reports.</li>";

@@ -210,7 +210,7 @@ The interface is available in English and Telugu (`js/i18n.js`).
 
 ### Two-minute demo script (demo town)
 
-1. Switch to **Demo town**. Start is **Bus Station**, destination **Engineering College**. Press **Find Best Route**. Route 1 *via MG Road* is recommended at 13.3 min; Route 2 *via Ring Road* is 1.2 min slower. Point out that MG Road is rated **Higher risk** because of the accident black spot on MG Road (west).
+1. Open the demo with **Open the demo town** at the bottom of the page (or a link ending in `#mode=demo`). **← Back to the real map** returns. Start is **Bus Station**, destination **Engineering College**. Press **Find Best Route**. Route 1 *via MG Road* is recommended at 13.3 min; Route 2 *via Ring Road* is 1.2 min slower. Point out that MG Road is rated **Higher risk** because of the accident black spot on MG Road (west).
 2. Under *Recommend the*, choose **Safest route**. *Via Ring Road* (risk score 10.6, no marked hazards) becomes the recommendation, and the summary says the fastest route would save only 1.2 min. Switch back to **Fastest route**.
 3. Drag the **Time of day** slider to **6:00 PM** (evening rush). The fastest route moves to Ring Road. Drag to **9:00 AM**: the *Morning rush* preset lights up, because it is the same traffic.
 4. Choose **Morning rush** under *Or choose a scenario*. The notice above the map reports that the recommendation changed to *via Ring Road* (14.5 min) and that the old MG Road route would now take 28.8 min. The cyan band moves on the map.
@@ -275,14 +275,32 @@ The base 1 point per km means a long detour is not "free": the safest route has 
 
 **Algorithm.**
 
-1. The user chooses **Fastest** or **Safest** and a vehicle. For Fastest, each road is weighted by its estimated time for that vehicle; for Safest, by its risk score.
+1. The user chooses **Fastest**, **Shortest** or **Safest** and a vehicle. Each objective has its own edge weight, and all weights are positive, so Dijkstra's algorithm is exact:
+
+   | Objective | Edge weight (what is minimised) | Unit (real map) | Ties broken by |
+   | --- | --- | --- | --- |
+   | Fastest | estimated travel time for that vehicle | seconds | shorter distance |
+   | Shortest | length of the road section | metres | quicker time |
+   | Safest | risk score = length × risk points per km | metre-points | quicker time |
 2. **Dijkstra's algorithm** (with a binary-heap priority queue) finds the best route for that weight. Ties on time go to the shorter distance; ties on risk go to the quicker route; then to location id, so results are fully deterministic.
 3. **Alternatives.**
    - **Demo town:** **Yen's k-shortest-paths algorithm** (k = 8) lists the next-best loop-free routes by re-running Dijkstra with parts of earlier routes blocked.
    - **Real map:** the network is too big for Yen's algorithm, which also only finds tiny one-street detours there. The app uses the **penalty method** instead, as many navigation apps do: after each route is found, its roads are made 1.4 times more expensive and Dijkstra runs again (6 rounds). This pushes each search onto genuinely different roads, and each search takes about 0.1–0.2 s.
 4. **Distinctness filter.** An alternative is shown only if at most 75% of its length is shared with every route already shown. If that leaves only one route, the next-best is added anyway. At most three routes are shown.
-5. The best route under the **other** priority is always included, so the fastest and the safest route can be compared side by side (*Fastest* and *Safest* badges).
-6. The **recommendation** is always the true optimum from step 2: lowest time (Fastest) or lowest risk score (Safest). Time and risk are never mixed into a combined score, so the recommendation stays easy to explain.
+5. The best route under **each other objective** is always included, so the fastest, shortest and safest routes can be compared side by side (*Fastest*, *Shortest* and *Safest* badges). If one route is best at several things it carries several badges.
+6. The **recommendation** is always the true optimum from step 2 for the chosen objective. Time, distance and risk are never mixed into a combined score, so the recommendation stays easy to explain.
+7. **Why this route.** Every route card says in one line why it is shown: which objective it is best at (or that it is an alternative on different roads), how much of it is in heavy traffic, how many marked hazards it has, which closed roads were avoided, and where the traffic figures came from.
+
+**Traffic data labels.** The *Traffic conditions* heading always shows where traffic comes from:
+
+| Label | Meaning |
+| --- | --- |
+| Live | TomTom data fetched in the last 30 minutes (with the time of the last update) |
+| Stale live data | Live is on, but the newest data is over 30 minutes old (for example after the phone slept); press *Refresh* |
+| Estimated | No live data: a time-of-day estimate by road type. Never called live. |
+| Demo (simulated) | The demo town's sample values |
+
+Reports from people, official alerts and shared speeds are added on top of any of these, and are shown as such on the map and in the route explanation.
 
 **Emergency mode.** One Dijkstra search from the start reaches every hospital at once. The hospital with the shortest journey time is chosen, and the next two are listed.
 
@@ -310,6 +328,17 @@ npm run build-map     # builds js/real-network-data.js from it
 
 To cover another place, change the box, centre, name and default route in `scripts/real-area.config.js`, then run both commands.
 
+## Safety, privacy and security
+
+- **Planning aid only.** The app is not an emergency service and does not guarantee road safety. The risk score is a heuristic from map tags and reports, not an official accident probability. No official black-spot list is included until you add real entries to `js/blackspots.js`.
+- **GPS.** Browsers only give the location on `https://` pages (GitHub Pages is fine) and only after the user allows it. The app asks once per action, runs at most one location watcher during a trip, and stops it when the trip ends. Positions less accurate than ±100 m are ignored for off-route checks, and the off-route tolerance is never smaller than the GPS's own accuracy, so a weak signal does not cause false re-routing.
+- **TomTom key.** It is stored only in the user's browser (`localStorage`) and never committed. Because GitHub Pages is a static site, anything the browser uses can be seen by that user; there is no secret server. To protect a key, restrict it in the TomTom developer portal (allowed websites, Traffic API only) and watch its usage. A fully confidential key would need a small server or serverless proxy, which this project does not have.
+- **Firebase.** The web `apiKey` in `js/firebase-config.js` is public by design; `firestore.rules` protects the data: anyone may add a well-formed report inside India and add +1 to *Still there* / *Cleared*; only admins (listed in the `admins` collection) may post alerts or delete reports.
+- **Reports.** One new report a minute per device; the same problem on the same road is counted as a confirmation instead of a second report; each report shows when it was made, whether anyone confirmed it, and when it expires. Notes are limited to 140 characters and always shown as plain text.
+- **Untrusted text.** Place names in share links, report notes, TomTom descriptions and OpenStreetMap names are always escaped before display (including map tooltips), and share-link coordinates are range-checked.
+- **Time limits.** TomTom requests give up after 20 s and Firebase requests after 15 s with a clear message, so nothing stays "loading" for ever.
+- **Offline.** When the phone is offline a banner says so: saved towns and routing still work; live traffic, reports, alerts, new towns and unseen map pictures need the internet. Live services are never cached by the service worker.
+
 ## Known limitations
 
 - **Live data needs your own key and depends on TomTom's coverage.** Without a key, traffic is estimated from time of day and road type and nothing that happens today is detected. With a key, accidents, closures, works and jams that TomTom knows about are detected automatically, and main roads get live speeds. Small lanes and events nobody has reported may still be missed.
@@ -323,7 +352,7 @@ To cover another place, change the box, centre, name and default route in `scrip
 
 ```
 npm run check         # syntax of every JS file; page ids and file references are consistent
-npm test              # algorithm tests for both modes (Node's built-in test runner, no dependencies)
+npm test              # 71 automated tests (Node's built-in test runner, no dependencies)
 npm run build         # builds the single-file version
 npm run verify        # all three
 ```
@@ -339,6 +368,12 @@ npm run verify        # all three
 - a closure or accident on today's route changes the fastest and the safest recommendation;
 - one request fetches all incidents for the area;
 - error handling: wrong key, daily limit, no answer, a browser that throws.
+
+**Objectives** (`tests/objectives.test.js`).
+- For every pair in the demo town under every scenario and several hours, for Fastest, Shortest and Safest: the recommendation equals the brute-force optimum, each objective's best route is shown and badged exactly once, and no two routes shown are the same.
+- On the real map (Thotapalem → Vizianagaram Junction, 9 AM): the shortest route is not longer than the others, the fastest not slower, the safest not riskier.
+- GPS: positions worse than ±100 m never trigger re-routing; the off-route tolerance grows with the GPS accuracy.
+- Time limits: a TomTom or Firebase server that never answers gives a "timeout" error; a TomTom reply that is not JSON gives "no answer". These use fake servers and prove the error handling, not the real services.
 
 **Translations.** Every text key used by the page exists in English and Telugu, with the same placeholders.
 
@@ -370,7 +405,7 @@ js/vendor/leaflet.js           Leaflet 1.9.4 map library (BSD-2, see LEAFLET-LIC
 js/network-data.js             Demo town: network, road types, traffic levels, hazards, scenarios, time bands
 js/real-network-data.js        Built-in map: GENERATED by npm run build-map, stored packed (605 KB, unpacked on load in ~10 ms)
 js/blackspots.js               Accident black spots for the real map (edit this)
-js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, penalty method, safety risk, vehicles, emergency
+js/route-engine.js             Algorithm: Dijkstra, Yen's k-shortest paths, penalty method, fastest/shortest/safest, vehicles, emergency
 js/live-traffic.js             Live traffic and incidents from TomTom (optional, your own key)
 js/osm-network.js              Builds a road network from OpenStreetMap data (used by the build script and the browser)
 js/area-loader.js              Finds and downloads any town in the browser; keeps areas on the device
@@ -405,6 +440,7 @@ tests/trip.test.js             Trip mode with simulated GPS
 tests/translit.test.js         English -> Telugu names
 tests/area-loader.test.js      Loading other towns (fake servers)
 tests/i18n.test.js             English / Telugu text checks
+tests/objectives.test.js       Fastest / shortest / safest, GPS accuracy, time-outs
 tests/browser-smoke.cjs        Optional browser test
 ```
 

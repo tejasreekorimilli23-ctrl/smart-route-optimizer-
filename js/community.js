@@ -48,6 +48,7 @@
 
   var SETTINGS = {
     maxNote: 140,
+    timeoutMs: 15000, // a server call with no answer after this fails with "timeout"
     speedMinutes: 20, // shared speeds count for this long
     speedMinReadings: 2, // readings needed before a road's speed is trusted
     lightMinRatio: 0.8, // same rule as live TomTom speeds
@@ -225,13 +226,17 @@
       } catch (err) {
         req = Promise.reject(err);
       }
+      req = new Promise(function (resolve, reject) {
+        var timer = setTimeout(function () { reject(failure("timeout")); }, SETTINGS.timeoutMs);
+        req.then(function (v) { clearTimeout(timer); resolve(v); }, function (e) { clearTimeout(timer); reject(e); });
+      });
       return req.then(function (res) {
         if (res.status === 401 || res.status === 403) throw failure("denied", res.status);
         if (res.status === 429) throw failure("limit", res.status);
         if (!res.ok) throw failure("failed", res.status);
         return res.status === 204 ? null : res.json();
-      }, function () {
-        throw failure("offline");
+      }, function (err) {
+        throw err && err.code === "timeout" ? err : failure("offline");
       });
     }
 

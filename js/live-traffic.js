@@ -44,6 +44,7 @@
     speedsEveryMs: 15 * 60 * 1000, // speeds: maxPoints requests every 15 minutes
     matchMetres: 20, // a road section matches if its middle is this close to TomTom's shape
     parallel: 6, // requests at a time
+    timeoutMs: 20000, // a request with no answer after this counts as failed
     lightMinRatio: 0.8,
     moderateMinRatio: 0.5
   };
@@ -153,7 +154,8 @@
     nokey: "Enter a TomTom API key first.",
     denied: "TomTom refused the key. Check that it is correct and that the Traffic API is enabled for it.",
     limit: "TomTom's request limit was reached. Try again later.",
-    noanswer: "No live traffic came back. Check the internet connection and try again."
+    noanswer: "No live traffic came back. Check the internet connection and try again.",
+    timeout: "TomTom did not answer in time. Check the internet connection and try again."
   };
 
   /** An Error with a .code the app can translate (see MESSAGES). */
@@ -161,6 +163,14 @@
     var err = new Error(MESSAGES[code]);
     err.code = code;
     return err;
+  }
+
+  /** Rejects with a "timeout" failure if promise has not settled within ms. */
+  function withTimeout(promise, ms) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(failure("timeout")); }, ms);
+      promise.then(function (v) { clearTimeout(timer); resolve(v); }, function (e) { clearTimeout(timer); reject(e); });
+    });
   }
 
   /**
@@ -175,17 +185,18 @@
     var points = samplePoints(data);
     var answers = [];
     var fatal = null;
+    var timeouts = 0;
     var next = 0;
 
     function one(p) {
-      var url = ENDPOINT + "?point=" + p.lat.toFixed(5) + "," + p.lon.toFixed(5) + "&unit=KMPH&key=" + encodeURIComponent(key);
+      var url = ENDPOINT + "?point=" + p.lat.toFixed(5) + "," + p.lon.toFixed(5) + "&unit=kmph&key=" + encodeURIComponent(key);
       var request;
       try {
         request = Promise.resolve(doFetch(url));
       } catch (err) {
         request = Promise.reject(err); // some browsers throw at once for blocked requests
       }
-      return request.then(function (res) {
+      return withTimeout(request, SETTINGS.timeoutMs).then(function (res) {
         if (!res.ok) {
           if (res.status === 401 || res.status === 403) fatal = "denied";
           else if (res.status === 429) fatal = "limit";
@@ -194,7 +205,10 @@
         return res.json().then(function (json) {
           if (json && json.flowSegmentData) answers.push(json.flowSegmentData);
         });
-      }).catch(function () { return null; });
+      }).catch(function (err) {
+        if (err && err.code === "timeout") timeouts++;
+        return null;
+      });
     }
 
     function worker() {
@@ -207,7 +221,7 @@
     for (var i = 0; i < SETTINGS.parallel; i++) workers.push(worker());
     return Promise.all(workers).then(function () {
       if (fatal) throw failure(fatal);
-      if (!answers.length) throw failure("noanswer");
+      if (!answers.length) throw failure(timeouts ? "timeout" : "noanswer");
       var levels = matchToEdges(data, answers);
       return {
         levels: levels,
@@ -346,13 +360,13 @@
     } catch (err) {
       request = Promise.reject(err);
     }
-    return request.then(function (res) {
+    return withTimeout(request, SETTINGS.timeoutMs).then(function (res) {
       if (res.status === 401 || res.status === 403) throw failure("denied");
       if (res.status === 429) throw failure("limit");
       if (!res.ok) throw failure("noanswer");
-      return res.json();
-    }, function () {
-      throw failure("noanswer");
+      return res.json().catch(function () { throw failure("noanswer"); }); // not JSON
+    }, function (err) {
+      throw err && err.code === "timeout" ? err : failure("noanswer");
     }).then(function (json) {
       var out = incidentsFromResponse(data, json);
       out.fetchedAt = new Date();

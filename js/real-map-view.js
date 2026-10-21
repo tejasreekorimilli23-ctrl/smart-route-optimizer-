@@ -79,6 +79,16 @@
     return out;
   }
 
+  /**
+   * Tooltip text as plain text. Leaflet shows tooltip strings as HTML, and
+   * names can come from shared links, reports or TomTom, so they are escaped.
+   */
+  function plain(text) {
+    return String(text == null ? "" : text).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
   function act(action, payload) {
     if (api.onAction) api.onAction(action, payload);
   }
@@ -298,7 +308,7 @@
           var ll = latLngs(e.geom);
           var mid = ll[Math.floor(ll.length / 2)];
           root.L.marker(mid, { icon: divIcon("mk-hazard" + (h.id === "blackspot" ? " is-blackspot" : ""), "!", 20), keyboard: false })
-            .bindTooltip(tr("map.tipHazard", { hazard: api.hazardLabel ? api.hazardLabel(h.id) : h.label, road: roadName(e) }))
+            .bindTooltip(plain(tr("map.tipHazard", { hazard: api.hazardLabel ? api.hazardLabel(h.id) : h.label, road: roadName(e) })))
             .addTo(overlay);
         });
       });
@@ -320,7 +330,7 @@
         icon: divIcon("mk-incident inc-" + inc.category + (severe ? " is-severe" : ""), INCIDENT_ICONS[inc.category] || "!", 26),
         zIndexOffset: 900,
         keyboard: false
-      }).bindTooltip(opts.incidentTip ? opts.incidentTip(inc) : inc.category).addTo(overlay);
+      }).bindTooltip(plain(opts.incidentTip ? opts.incidentTip(inc) : inc.category)).addTo(overlay);
     });
 
     // Problems reported by people, with "still there" / "cleared" buttons.
@@ -330,7 +340,7 @@
         icon: divIcon("mk-report rp-" + r.type, REPORT_ICONS[r.type] || "?", 26),
         zIndexOffset: 950,
         keyboard: false
-      }).bindTooltip(info.title);
+      }).bindTooltip(plain(info.title));
       marker.on("click", function (ev) {
         root.L.DomEvent.stopPropagation(ev);
         var items = [{ label: info.detail }];
@@ -350,7 +360,7 @@
       root.L.circle([b.lat, b.lon], { radius: b.radiusMetres || 100, color: "#DD4545", weight: 2, fillOpacity: 0.12, interactive: false })
         .addTo(overlay);
       root.L.marker([b.lat, b.lon], { icon: divIcon("mk-hazard is-blackspot", "!", 22), keyboard: false })
-        .bindTooltip(tr("map.tipBlackspot", { name: b.name }))
+        .bindTooltip(plain(tr("map.tipBlackspot", { name: b.name })))
         .addTo(overlay);
     });
 
@@ -361,7 +371,7 @@
       root.L.marker([n.lat, n.lon], {
         icon: divIcon("mk-hospital" + (n.emergency === false ? " is-special" : ""), "H", 18),
         title: label
-      }).bindTooltip(label).on("click", function (ev) {
+      }).bindTooltip(plain(label)).on("click", function (ev) {
         root.L.DomEvent.stopPropagation(ev);
         root.L.popup().setLatLng([n.lat, n.lon]).setContent(menu(label, [
           { text: tr("map.goHere"), run: function () { act("choose-destination", n.id); } },
@@ -376,8 +386,12 @@
       if (!n) return;
       bounds.push([n.lat, n.lon]);
       var label = opts.placeName ? opts.placeName(n) : n.name;
-      root.L.marker([n.lat, n.lon], { icon: divIcon(pair[1], "", 22), zIndexOffset: 1000, title: label })
-        .bindTooltip(tr(pair[0] === "origin" ? "map.tipStart" : "map.tipDestination", { name: label }))
+      // Drag a pin to move it: it snaps to the nearest road where it is dropped.
+      root.L.marker([n.lat, n.lon], { icon: divIcon(pair[1], "", 22), zIndexOffset: 1000, title: label, draggable: true, autoPan: true })
+        .bindTooltip(plain(tr(pair[0] === "origin" ? "map.tipStart" : "map.tipDestination", { name: label })))
+        .on("dragend", function (ev) {
+          act(pair[0] === "origin" ? "set-start" : "set-destination", ev.target.getLatLng());
+        })
         .addTo(overlay);
     });
 

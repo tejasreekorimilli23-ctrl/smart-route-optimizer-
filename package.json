@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node scripts/serve.js",
     "check": "node scripts/check.js",
-    "test": "node --test tests/route-engine.test.js tests/real-network.test.js tests/live-traffic.test.js tests/community.test.js tests/directions.test.js tests/trip.test.js tests/translit.test.js tests/area-loader.test.js tests/i18n.test.js",
+    "test": "node --test tests/route-engine.test.js tests/real-network.test.js tests/live-traffic.test.js tests/community.test.js tests/directions.test.js tests/trip.test.js tests/translit.test.js tests/area-loader.test.js tests/i18n.test.js tests/objectives.test.js",
     "test:browser": "node tests/browser-smoke.cjs",
     "fetch-map": "node scripts/fetch-osm.js",
     "build-map": "node scripts/build-real-network.js",

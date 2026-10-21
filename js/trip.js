@@ -17,6 +17,7 @@
   var SETTINGS = {
     offRouteMetres: 50, // further than this from the route counts as off route...
     offRouteFixes: 2, // ...for this many positions in a row
+    maxAccuracyMetres: 100, // positions less accurate than this are ignored for off-route checks
     arriveMetres: 30, // this close to the end = arrived
     stepPassedMetres: 10, // a turn counts as passed this far after it
     announceMetres: [200, 50], // spoken reminders before a turn
@@ -123,11 +124,19 @@
     };
   }
 
-  /** Counts positions in a row that are off the route. */
+  /**
+   * Counts positions in a row that are off the route. accuracy (metres, the
+   * GPS's own estimate) guards against false alarms: a position worse than
+   * maxAccuracyMetres is ignored, and the tolerance is never smaller than
+   * the accuracy, so a fix that might still be on the road does not count.
+   */
   function offRouteCounter() {
     var count = 0;
-    return function (at) {
-      count = at && at.offset <= SETTINGS.offRouteMetres ? 0 : count + 1;
+    return function (at, accuracy) {
+      var acc = typeof accuracy === "number" && accuracy > 0 ? accuracy : 0;
+      if (acc > SETTINGS.maxAccuracyMetres) return false; // too vague to judge
+      var tolerance = Math.max(SETTINGS.offRouteMetres, acc);
+      count = at && at.offset <= tolerance ? 0 : count + 1;
       return count >= SETTINGS.offRouteFixes;
     };
   }

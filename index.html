@@ -114,8 +114,9 @@
           </fieldset>
           <fieldset class="choice-set">
             <legend data-i18n="priority.legend">Recommend the</legend>
-            <div id="priority-options" class="choice-grid">
+            <div id="priority-options" class="choice-grid is-three">
               <label class="tile"><input type="radio" name="priority" value="fastest"><span class="tile-body" data-i18n="priority.fastest">Fastest route</span></label>
+              <label class="tile"><input type="radio" name="priority" value="shortest"><span class="tile-body" data-i18n="priority.shortest">Shortest route</span></label>
               <label class="tile"><input type="radio" name="priority" value="safest"><span class="tile-body" data-i18n="priority.safest">Safest route</span></label>
             </div>
           </fieldset>
@@ -160,6 +161,8 @@
         <div id="community-panel" class="live-box community-box real-only">
           <div class="live-head">
             <strong data-i18n="community.title">Reports from people</strong>
+            <label class="report-note-label" for="report-note" data-i18n="report.noteLabel">Details (optional, sent with your next report)</label>
+            <input type="text" id="report-note" class="report-note" maxlength="140" autocomplete="off" data-i18n-attr="placeholder:report.notePlaceholder" placeholder="e.g. lorry broken down near the bridge">
             <button type="button" id="report-here" class="link-btn" data-i18n="community.reportHere">Report at my location</button>
           </div>
           <div id="report-types" class="report-types" hidden></div>
@@ -188,6 +191,7 @@
 
     <div class="main-col">
       <div id="alerts-banner" class="alerts-banner" role="alert" hidden></div>
+      <div id="offline-banner" class="offline-banner" role="status" aria-live="polite" hidden></div>
       <section class="map-panel" aria-labelledby="map-title">
         <div class="map-head">
           <h2 id="map-title" data-i18n="map.title">Road network</h2>
@@ -311,6 +315,15 @@
           <li data-i18n="about.real4">Map data can have gaps. Always follow road signs, signals and the traffic police.</li>
         </ul>
         <p class="note"><a href="admin.html" class="admin-link" data-i18n="about.admin">Official alerts (for police and municipality)</a></p>
+        <h3 data-i18n="about.howTitle">How routes are chosen</h3>
+        <ul>
+          <li data-i18n="about.how1">Roads are a graph: junctions are nodes, road sections are edges with length, speed, one-way rules and hazards.</li>
+          <li data-i18n="about.how2">Fastest = least estimated time (length ÷ speed × traffic factor). Shortest = least distance. Safest = least risk score (length × (1 + hazard weights)). All costs are positive, so Dijkstra's algorithm (with a binary heap) finds the best route exactly.</li>
+          <li data-i18n="about.how3">Alternatives: the roads of each route found are made 1.4× more costly and the search runs again; routes sharing more than 75% of their length are dropped.</li>
+          <li data-i18n="about.how4">Traffic comes from TomTom (live, with your key), reports from people, official alerts and shared speeds; otherwise it is estimated from the time of day. The label on the map says which.</li>
+          <li data-i18n="about.how5">The risk score is a simple heuristic from map tags and reports, not an official accident probability. No official black-spot list is included yet.</li>
+        </ul>
+        <p class="note disclaimer" data-i18n="about.disclaimer">This app is a planning aid. It is not an emergency service and does not guarantee road safety. In an emergency call 108 or 112.</p>
         <h3 data-i18n="about.demoTitle">How it works: demo town</h3>
         <p class="note" data-i18n="about.demoIntro">A small sample town (not real streets) for explaining the route algorithm step by step in a class or presentation.</p>
         <p class="note"><button type="button" id="demo-open" class="link-btn" data-i18n="mode.demoOpen">Open the demo town</button></p>
