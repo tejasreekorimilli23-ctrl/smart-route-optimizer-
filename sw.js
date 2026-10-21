@@ -12,7 +12,7 @@
  */
 "use strict";
 
-var APP_CACHE = "route-app-v3";
+var APP_CACHE = "route-app-v4";
 var TILE_CACHE = "route-tiles-v1";
 var MAX_TILES = 800;
 var APP_FILES = [

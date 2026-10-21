@@ -199,7 +199,7 @@
         el.setAttribute(p[0], t(p[1]));
       });
     });
-    document.title = t("docTitle");
+    document.title = "STROS – " + t("docTitle");
   }
 
   function setLangExtras() {
@@ -3509,6 +3509,41 @@
     el.classList.toggle("is-error", !!isError);
   }
 
+  /**
+   * First screen: sign in or create an account before using the app. A
+   * guest choice lasts for this visit (the tab), so route planning and the
+   * emergency route are never blocked by a login.
+   */
+  var gate = { on: false };
+
+  function guestThisVisit() {
+    try { return window.sessionStorage.getItem("guest") === "1"; } catch (err) { return false; }
+  }
+
+  function showGate() {
+    if (!ACC || ACC.current() || guestThisVisit() || !els.accountDialog.showModal) return;
+    gate.on = true;
+    els.accountDialog.classList.add("is-gate");
+    $("gate-brand").hidden = false;
+    $("gate-guest").hidden = false;
+    $("account-title").textContent = t("gate.title");
+    $("acct-why").textContent = t("gate.why");
+    accountSay("");
+    renderAccount();
+    els.accountDialog.showModal();
+    $("acct-email").focus();
+  }
+
+  function closeGate() {
+    gate.on = false;
+    els.accountDialog.classList.remove("is-gate");
+    $("gate-brand").hidden = true;
+    $("gate-guest").hidden = true;
+    $("account-title").textContent = t("acct.title");
+    $("acct-why").textContent = t("acct.why");
+    if (els.accountDialog.open) els.accountDialog.close();
+  }
+
   function renderAccount() {
     if (!ACC) return;
     var me = ACC.current();
@@ -3559,6 +3594,7 @@
       accountSay(t(kind === "signup" ? "acct.created" : "acct.signedIn"));
       renderAccount();
       syncAccount();
+      if (gate.on) setTimeout(closeGate, 900); // signed in: on to the app
     }, function (err) {
       accountSay(accountErrorText(err), true);
     });
@@ -3829,6 +3865,7 @@
   renderAccount();
   setInterval(clockTick, 30000);
   if (ACC && ACC.current()) syncAccount();
+  showGate();
 
   els.themeToggle.addEventListener("click", function () {
     theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
@@ -3856,14 +3893,31 @@
       else els.accountDialog.setAttribute("open", "");
     });
     $("acct-close").addEventListener("click", function () { els.accountDialog.close ? els.accountDialog.close() : els.accountDialog.removeAttribute("open"); });
+    $("acct-guest").addEventListener("click", function () {
+      try { window.sessionStorage.setItem("guest", "1"); } catch (err) { /* ignore */ }
+      closeGate();
+    });
+    // On the first screen, Escape does not skip signing in (use "Continue without an account").
+    els.accountDialog.addEventListener("cancel", function (ev) { if (gate.on) ev.preventDefault(); });
+    els.accountDialog.addEventListener("click", function (ev) {
+      var b = ev.target.closest ? ev.target.closest("[data-gate-lang]") : null;
+      if (b) {
+        setLang(b.getAttribute("data-gate-lang"));
+        $("account-title").textContent = t(gate.on ? "gate.title" : "acct.title");
+        $("acct-why").textContent = t(gate.on ? "gate.why" : "acct.why");
+      }
+    });
     $("acct-signin").addEventListener("click", function () { accountAction("signin"); });
     $("acct-signup").addEventListener("click", function () { accountAction("signup"); });
     $("acct-reset").addEventListener("click", function () { accountAction("reset"); });
     $("acct-signout").addEventListener("click", function () {
       ACC.signOut();
       account.syncError = null;
+      try { window.sessionStorage.removeItem("guest"); } catch (err) { /* ignore */ }
       accountSay(t("acct.signedOut"));
       renderAccount();
+      els.accountDialog.close();
+      showGate(); // back to the sign-in screen
     });
   }
   var shared = realAvailable ? sharedTrip() : null;

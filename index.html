@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Smart Traffic Route Optimization System</title>
+  <title>STROS – Smart Traffic Route Optimization System</title>
   <meta name="description" content="Route planner for Vizianagaram and an offline demo town: compares routes by journey time, distance, traffic and road-safety hazards, and finds the fastest or safest one.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -365,8 +365,17 @@
 
   <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
     <form id="account-form" method="dialog" novalidate>
+      <div id="gate-brand" class="gate-brand" hidden>
+        <img src="icons/icon-192.png" alt="" width="72" height="72">
+        <p class="gate-name">STROS</p>
+        <p class="gate-full" data-i18n="gate.full">Smart Traffic Route Optimization System</p>
+        <p class="gate-lang">
+          <button type="button" class="link-btn" data-gate-lang="en" lang="en">English</button> ·
+          <button type="button" class="link-btn" data-gate-lang="te" lang="te">తెలుగు</button>
+        </p>
+      </div>
       <h2 id="account-title" data-i18n="acct.title">Your account</h2>
-      <p class="note" data-i18n="acct.why">Optional. With an account, your saved places, recent destinations and trip history follow you to other devices. Everything else works without one.</p>
+      <p id="acct-why" class="note" data-i18n="acct.why">Optional. With an account, your saved places, recent destinations and trip history follow you to other devices. Everything else works without one.</p>
       <div id="account-out">
         <label for="acct-email" data-i18n="acct.email">Email</label>
         <input id="acct-email" type="email" autocomplete="email" required>
@@ -384,6 +393,10 @@
       </div>
       <p id="acct-status" class="live-status" role="status" aria-live="polite"></p>
       <button type="button" id="acct-close" class="link-btn" data-i18n="area.close">Close</button>
+      <div id="gate-guest" class="gate-guest" hidden>
+        <button type="button" id="acct-guest" class="link-btn" data-i18n="gate.guest">Continue without an account</button>
+        <p class="note" data-i18n="gate.guestNote">Route planning and the Emergency hospital route work without an account; your saved places then stay on this device.</p>
+      </div>
     </form>
   </dialog>
 

@@ -1,7 +1,8 @@
 /*
  * Draws the app icons (icons/icon-192.png, icons/icon-512.png and a
  * "maskable" version with extra margin) with no image libraries:
- * a navy square with a cyan route line between two points.
+ * a navy square with a cyan route line between two points and the short
+ * name "STROS" under it.
  *     node scripts/make-icons.js
  */
 "use strict";
@@ -59,14 +60,39 @@ function distToSegment(px, py, ax, ay, bx, by) {
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
+// The short name "STROS" (Smart Traffic Route Optimization System) in a
+// 5 x 7 block font, drawn under the route line.
+const GLYPHS = {
+  S: [".###.", "#...#", "#....", ".###.", "....#", "#...#", ".###."],
+  T: ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+  R: ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+  O: [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."]
+};
+const NAME = "STROS";
+
+/** True where the text is, for a word placed at (x0, y0) with square cells of `cell`. */
+function textAt(x, y, x0, y0, cell) {
+  const col = Math.floor((x - x0) / cell);
+  const row = Math.floor((y - y0) / cell);
+  if (row < 0 || row > 6 || col < 0 || col >= NAME.length * 6 - 1) return false;
+  const letter = GLYPHS[NAME[Math.floor(col / 6)]];
+  const c = col % 6;
+  return c < 5 && letter[row][c] === "#";
+}
+
 /** The picture, in 0..1 coordinates; `pad` shrinks it for maskable icons. */
 function icon(pad) {
   const s = (v) => pad + v * (1 - 2 * pad);
-  const route = [[0.22, 0.78], [0.22, 0.5], [0.55, 0.5], [0.55, 0.26], [0.78, 0.26]].map(([x, y]) => [s(x), s(y)]);
+  // Route line in the upper part, the name below it.
+  const route = [[0.24, 0.5], [0.24, 0.35], [0.5, 0.35], [0.5, 0.17], [0.76, 0.17]].map(([x, y]) => [s(x), s(y)]);
   const start = route[0];
   const end = route[route.length - 1];
-  const w = 0.075 * (1 - 2 * pad);
+  const w = 0.06 * (1 - 2 * pad);
+  const cell = (0.8 / (NAME.length * 6 - 1)) * (1 - 2 * pad);
+  const textX = s(0.1);
+  const textY = s(0.7);
   return (x, y) => {
+    if (textAt(x, y, textX, textY, cell)) return WHITE;
     if (Math.hypot(x - end[0], y - end[1]) < w * 1.6) return Math.hypot(x - end[0], y - end[1]) < w * 0.7 ? CYAN : NAVY;
     if (Math.hypot(x - end[0], y - end[1]) < w * 2.2) return CYAN;
     if (Math.hypot(x - start[0], y - start[1]) < w * 1.5) return WHITE;
